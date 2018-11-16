@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 
 
 def read_bed_cistrome(path):
@@ -7,14 +8,13 @@ def read_bed_cistrome(path):
     with open(path, 'r') as file:
         for line in file:
             line = line.strip().split()
-            line[-1] = float(line[-1])
             peaks.append(line)
     file.close()
     return(peaks)
 
 
 def get_top_peaks(peaks, amount):
-    sorted_peaks = sorted(peaks, key=lambda i: i[-1], reverse=True)
+    sorted_peaks = sorted(peaks, key=lambda i: float(i[6]), reverse=True)
     return(sorted_peaks[:amount])
 
 
@@ -49,22 +49,25 @@ if __name__ == '__main__':
         sys.exit(1)
 
     args = parser.parse_args()
-    path = args.input_bed
-    output = args.output_bed
+    path = args.input_narrowPeaks
+    output = args.output_narrowPeaks
     tag = args.tag
     amount = int(args.amount)
     split = args.split
+
+    if not os.path.isdir(output):
+        os.mkdir(output)
 
     if split:
         peaks = read_bed_cistrome(path)
         peaks = get_top_peaks(peaks, amount)
         peaks1, peaks2 = split_peaks(peaks)
-        with open(output + '/' + tag + '_train_' + '.narrowPeaks', 'w') as file:
+        with open(output + '/' + tag + '_TRAIN' + '.narrowPeaks', 'w') as file:
             for i in peaks1:
                 i[-1] = str(i[-1])
                 file.write('\t'.join(i) + '\n')
         file.close()
-        with open(output + '/' + tag + '_test_' + '.narrowPeaks', 'w') as file:
+        with open(output + '/' + tag + '_TEST' + '.narrowPeaks', 'w') as file:
             for i in peaks2:
                 i[-1] = str(i[-1])
                 file.write('\t'.join(i) + '\n')
