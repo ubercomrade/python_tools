@@ -7,11 +7,11 @@ import argparse
 import time
 
 
-
 '''
 Чтение PCM из фаила загруженного из БД Hocomoco
 [A,C,G,T]
 '''
+
 
 def read_matrix(path, file_format):
     '''
@@ -22,7 +22,7 @@ def read_matrix(path, file_format):
         with open(path) as file:
             file.readline()
             matrix = [list(map(float, line.strip().split())) for line in file]
-            matrix_dict = {'A':list(), 'C':list(), 'G':list(), 'T':list()}
+            matrix_dict = {'A': list(), 'C': list(), 'G': list(), 'T': list()}
             for i in matrix:
                 matrix_dict['A'].append(i[0])
                 matrix_dict['C'].append(i[1])
@@ -31,7 +31,6 @@ def read_matrix(path, file_format):
     else:
         pass
     return (matrix_dict)
-
 
 
 def read_sites(path, every_str=False):
@@ -69,8 +68,7 @@ def remove_equalent_seq(seq_list, homology=0.95):
     return(seq_list)
 
 
-
-def make_pfm_from_pcm(pcm, kind, pseudocount= '1/N'):
+def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
@@ -217,7 +215,6 @@ def make_pcm(motifs, kind):
     return(matrix)
 
 
-
 def background_freq(seq, kind):
 
     s = ''.join(seq)
@@ -339,7 +336,8 @@ def score_distribution_python(matrix, alpha, beta, ndigits=20,  background={'A':
         Q_new = []
         possible_scores_new = []
         matrix_slice = [matrix[i][position] for i in matrix.keys()]
-        t = [round(score + weight, ndigits) for score in possible_scores_old for weight in matrix_slice]
+        t = [round(score + weight, ndigits)
+             for score in possible_scores_old for weight in matrix_slice]
         bs = max_score(slice_matrix(matrix, position + 1, matrix_length))
         ws = min_score(slice_matrix(matrix, position + 1, matrix_length))
         Q_new = iter([Q * background[letter] for Q in Q_old for letter in background.keys()])
@@ -365,12 +363,13 @@ def fast_pvalue_python(matrix, alpha, ndigits=20, background={'A': 0.25, 'C': 0.
         Q_new = []
         possible_scores_new = []
         matrix_slice = [matrix[i][position] for i in matrix.keys()]
-        t = [round(score + weight, ndigits) for score in possible_scores_old for weight in matrix_slice]
+        t = [round(score + weight, ndigits)
+             for score in possible_scores_old for weight in matrix_slice]
         bs = max_score(slice_matrix(matrix, position + 1, matrix_length))
         ws = min_score(slice_matrix(matrix, position + 1, matrix_length))
         Q_new = [Q * background[letter] for Q in Q_old for letter in background.keys()]
         P += sum([Q for Q, i in zip(Q_new, t) if alpha - ws <= i])
-        Q_new = [Q for Q, i in zip(Q_new, t)  if (alpha - bs <= i) and (not (alpha - ws <= i))]
+        Q_new = [Q for Q, i in zip(Q_new, t) if (alpha - bs <= i) and (not (alpha - ws <= i))]
         possible_scores_new = [i for i in t if (alpha - bs <= i) and (not (alpha - ws <= i))]
         Q_old = list(Q_new)
         possible_scores_old = list(possible_scores_new)
@@ -381,7 +380,7 @@ def pwm_shuffling(pwm):
     shuffled_pwm = dict()
     score_lists = list(zip(*pwm.values()))
     random.shuffle(score_lists)
-    score_lists =  list(zip(*score_lists))
+    score_lists = list(zip(*score_lists))
     keys = list(pwm.keys())
     for i in range(len(score_lists)):
         shuffled_pwm[keys[i]] = score_lists[i]
@@ -410,7 +409,8 @@ def maximal_error_associated(pwm, rounded_pwm):
 
 def search_score(alpha, rounded_pwm, Q, error, ndigits, background):
     output = []
-    tmp_pvalue = fast_pvalue_python(rounded_pwm, alpha+error, ndigits=ndigits, background=background)
+    tmp_pvalue = fast_pvalue_python(rounded_pwm, alpha+error,
+                                    ndigits=ndigits, background=background)
     score_list = list(Q.keys())
     score_list.sort(reverse=False)
     if len(score_list) == 1:
@@ -431,7 +431,8 @@ def search_score(alpha, rounded_pwm, Q, error, ndigits, background):
 def from_pvalue_to_score(pwm, pvalue, ndigits, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}, digit=1):
     rounded_pwm = round_pwm(pwm, ndigits)
     error = maximal_error_associated(pwm, rounded_pwm)
-    Q = score_distribution_python(rounded_pwm, alpha=min_score(rounded_pwm), beta=max_score(rounded_pwm), ndigits=ndigits, background=background)
+    Q = score_distribution_python(rounded_pwm, alpha=min_score(
+        rounded_pwm), beta=max_score(rounded_pwm), ndigits=ndigits, background=background)
     score_list = list(Q.keys())
     score_list.sort(reverse=True)
     alpha = score_list[0]
@@ -446,30 +447,36 @@ def from_pvalue_to_score(pwm, pvalue, ndigits, background={'A': 0.25, 'C': 0.25,
         ndigits += digit
         rounded_pwm = round_pwm(pwm, ndigits)
         error = maximal_error_associated(pwm, rounded_pwm)
-        Q = score_distribution_python(rounded_pwm, alpha=(alpha - error), beta=(alpha + error), ndigits=ndigits, background=background)
+        Q = score_distribution_python(rounded_pwm, alpha=(
+            alpha - error), beta=(alpha + error), ndigits=ndigits, background=background)
         alpha = search_score(alpha, rounded_pwm, Q, error, ndigits, background)
         pvalue_out = fast_pvalue_python(rounded_pwm, alpha, ndigits=ndigits, background=background)
     return(alpha, pvalue_out)
 
 
 def make_more_precise_score(score, pvalue, pwm, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}):
-    more_precise_pvalue = fast_pvalue_python(pwm, score, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25})
+    more_precise_pvalue = fast_pvalue_python(
+        pwm, score, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25})
     ndigits = 20
     if more_precise_pvalue > pvalue:
         while not abs(pvalue - more_precise_pvalue) <= 0.00001:
-            Q = score_distribution_python(pwm, alpha=score, beta=score+0.2, background=background, ndigits=ndigits)
+            Q = score_distribution_python(pwm, alpha=score, beta=score +
+                                          0.2, background=background, ndigits=ndigits)
             scores = list(Q.keys())
             scores.sort()
-            pvalues = [fast_pvalue_python(matrix=pwm, alpha=i, background=background, ndigits=ndigits) for i in scores]
+            pvalues = [fast_pvalue_python(
+                matrix=pwm, alpha=i, background=background, ndigits=ndigits) for i in scores]
             diff = [abs(i - pvalue) for i in pvalues]
             more_precise_pvalue = pvalues[diff.index(min(diff))]
             score = scores[diff.index(min(diff))]
     else:
         while not abs(pvalue - more_precise_pvalue) <= 0.00001:
-            Q = score_distribution_python(pwm, alpha=score-0.2, beta=score, background=background, ndigits=ndigits)
+            Q = score_distribution_python(pwm, alpha=score-0.2, beta=score,
+                                          background=background, ndigits=ndigits)
             scores = list(Q.keys())
             scores.sort()
-            pvalues = [fast_pvalue_python(matrix=pwm, alpha=i, background=background, ndigits=ndigits) for i in scores]
+            pvalues = [fast_pvalue_python(
+                matrix=pwm, alpha=i, background=background, ndigits=ndigits) for i in scores]
             diff = [abs(i - pvalue) for i in pvalues]
             more_precise_pvalue = pvalues[diff.index(min(diff))]
             score = scores[diff.index(min(diff))]
@@ -492,8 +499,7 @@ if __name__ == '__main__':
                         required=False, default=int(1),
                         help='Initional matrix rounding in algorithm')
 
-
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
@@ -509,23 +515,26 @@ if __name__ == '__main__':
     kind = 'mono'
     precisely = args.precisely
     ndigits = int(args.ndigits)
-    #if ndigits is None:
-        #ndigits = 1
+    # if ndigits is None:
+    #ndigits = 1
 
-    #if os.path.isfile(fasta):
+    # if os.path.isfile(fasta):
     if not (fasta is None):
         start_time = time.time()
         all_sites = read_sites(fasta, every_str=False)
         background = background_freq(all_sites, kind=kind)
         pwm = read_matrix(path, 'HOCOMOCO')
-        score_value, pvalue_out = from_pvalue_to_score(pwm=pwm, pvalue=pvalue, ndigits=ndigits, background=background)
+        score_value, pvalue_out = from_pvalue_to_score(
+            pwm=pwm, pvalue=pvalue, ndigits=ndigits, background=background)
         with_out_round_pvalue = fast_pvalue_python(pwm, score_value, background=background)
         end_time = time.time()
-        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(score_value, pvalue_out, with_out_round_pvalue))
+        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(
+            score_value, pvalue_out, with_out_round_pvalue))
         print('TIME_OF_CALCULATION = {0} second'.format(end_time - start_time))
         if precisely:
             start_time = time.time()
-            precisely_score, pvalue_out = make_more_precise_score(score=score_value, pvalue=pvalue, pwm=pwm, background=background)
+            precisely_score, pvalue_out = make_more_precise_score(
+                score=score_value, pvalue=pvalue, pwm=pwm, background=background)
             end_time = time.time()
             print('\nMORE_PRECISELY_SCORE = {0}\nPVALUE = {1}'.format(precisely_score, pvalue_out))
             print('TIME_OF_CALCULATION = {0} second\n'.format(end_time - start_time))
@@ -534,12 +543,14 @@ if __name__ == '__main__':
         pwm = read_matrix(path, 'HOCOMOCO')
         score_value, pvalue_out = from_pvalue_to_score(pwm=pwm, pvalue=pvalue, ndigits=ndigits)
         with_out_round_pvalue = fast_pvalue_python(pwm, score_value)
-        end_time= time.time()
-        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(score_value, pvalue_out, with_out_round_pvalue))
+        end_time = time.time()
+        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(
+            score_value, pvalue_out, with_out_round_pvalue))
         print('TIME_OF_CALCULATION = {0} second\n'.format(end_time - start_time))
         if precisely:
             start_time = time.time()
-            precisely_score, pvalue_out = make_more_precise_score(score=score_value, pvalue=pvalue, pwm=pwm)
+            precisely_score, pvalue_out = make_more_precise_score(
+                score=score_value, pvalue=pvalue, pwm=pwm)
             end_time = time.time()
             print('\nMORE_PRECISELY_SCORE = {0}\nPVALUE = {1}'.format(precisely_score, pvalue_out))
             print('TIME_OF_CALCULATION = {0} second\n'.format(end_time - start_time))
