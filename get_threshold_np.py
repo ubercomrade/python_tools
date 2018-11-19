@@ -8,11 +8,11 @@ import time
 import numpy as np
 
 
-
 '''
 Чтение PCM из фаила загруженного из БД Hocomoco
 [A,C,G,T]
 '''
+
 
 def read_matrix(path, file_format):
     '''
@@ -23,7 +23,7 @@ def read_matrix(path, file_format):
         with open(path) as file:
             file.readline()
             matrix = [list(map(float, line.strip().split())) for line in file]
-            matrix_dict = {'A':list(), 'C':list(), 'G':list(), 'T':list()}
+            matrix_dict = {'A': list(), 'C': list(), 'G': list(), 'T': list()}
             for i in matrix:
                 matrix_dict['A'].append(i[0])
                 matrix_dict['C'].append(i[1])
@@ -32,7 +32,6 @@ def read_matrix(path, file_format):
     else:
         pass
     return (matrix_dict)
-
 
 
 def read_sites(path, every_str=False):
@@ -70,8 +69,7 @@ def remove_equalent_seq(seq_list, homology=0.95):
     return(seq_list)
 
 
-
-def make_pfm_from_pcm(pcm, kind, pseudocount= '1/N'):
+def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
@@ -218,7 +216,6 @@ def make_pcm(motifs, kind):
     return(matrix)
 
 
-
 def background_freq(seq, kind):
 
     s = ''.join(seq)
@@ -345,7 +342,8 @@ def score_distribution_np(matrix, alpha, beta, ndigits=20,  background={'A': 0.2
         bs = max_score(slice_matrix(matrix, position + 1, matrix_length))
         ws = min_score(slice_matrix(matrix, position + 1, matrix_length))
         conditions = np.logical_and(alpha - bs <= t, t <= beta - ws)
-        Q_new = np.array([Q * background[letter] for Q in Q_old for letter in background.keys()])[conditions]
+        Q_new = np.array([Q * background[letter]
+                          for Q in Q_old for letter in background.keys()])[conditions]
         possible_scores_new = t[conditions]
         Q_old = np.array(Q_new)
         possible_scores_old = np.array(possible_scores_new)
@@ -374,9 +372,11 @@ def fast_pvalue_np(matrix, alpha, ndigits=20, background={'A': 0.25, 'C': 0.25, 
         bs = max_score(slice_matrix(matrix, position + 1, matrix_length))
         ws = min_score(slice_matrix(matrix, position + 1, matrix_length))
         conditions_1 = (alpha - ws) <= t
-        P += np.sum(np.array([Q * background[letter] for Q in Q_old for letter in background.keys()])[conditions_1])
+        P += np.sum(np.array([Q * background[letter]
+                              for Q in Q_old for letter in background.keys()])[conditions_1])
         conditions_2 = np.logical_and(np.logical_not(alpha - ws <= t), alpha - bs <= t)
-        Q_new = np.array([Q * background[letter] for Q in Q_old for letter in background.keys()])[conditions_2]
+        Q_new = np.array([Q * background[letter]
+                          for Q in Q_old for letter in background.keys()])[conditions_2]
         possible_scores_new = t[conditions_2]
         Q_old = np.array(Q_new)
         possible_scores_old = np.array(possible_scores_new)
@@ -387,7 +387,7 @@ def pwm_shuffling(pwm):
     shuffled_pwm = dict()
     score_lists = list(zip(*pwm.values()))
     random.shuffle(score_lists)
-    score_lists =  list(zip(*score_lists))
+    score_lists = list(zip(*score_lists))
     keys = list(pwm.keys())
     for i in range(len(score_lists)):
         shuffled_pwm[keys[i]] = score_lists[i]
@@ -437,7 +437,8 @@ def search_score(alpha, rounded_pwm, Q, error, ndigits, background):
 def from_pvalue_to_score(pwm, pvalue, ndigits, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}, digit=1):
     rounded_pwm = round_pwm(pwm, ndigits)
     error = maximal_error_associated(pwm, rounded_pwm)
-    Q, scores = score_distribution_np(rounded_pwm, alpha=min_score(rounded_pwm), beta=max_score(rounded_pwm), ndigits=ndigits, background=background)
+    Q, scores = score_distribution_np(rounded_pwm, alpha=min_score(
+        rounded_pwm), beta=max_score(rounded_pwm), ndigits=ndigits, background=background)
     Q = distribution_np_to_dict(Q, scores)
     score_list = list(Q.keys())
     score_list.sort(reverse=True)
@@ -453,17 +454,18 @@ def from_pvalue_to_score(pwm, pvalue, ndigits, background={'A': 0.25, 'C': 0.25,
         ndigits += digit
         rounded_pwm = round_pwm(pwm, ndigits)
         error = maximal_error_associated(pwm, rounded_pwm)
-        Q, scores = score_distribution_np(rounded_pwm, alpha=(alpha - error), beta=(alpha + error), ndigits=ndigits, background=background)
+        Q, scores = score_distribution_np(rounded_pwm, alpha=(
+            alpha - error), beta=(alpha + error), ndigits=ndigits, background=background)
         Q = distribution_np_to_dict(Q, scores)
         alpha = search_score(alpha, rounded_pwm, Q, error, ndigits, background)
         pvalue_out = fast_pvalue_np(rounded_pwm, alpha, ndigits=ndigits, background=background)
     return(alpha, pvalue_out)
 
 
-if __name__ == '__main__':
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', action='store', dest='input',
-                        required=True, help='path to HOCOMOCO matrix file')
+                        required=True, help='path to PWM file')
     parser.add_argument('-f', '--fasta', action='store', dest='fasta',
                         required=False, help='path to BED file, needed to calculate backgroun frequences for nucleotieds. \
                         Without this parametr background frequances = {A: 0.25, C: 0.25, G: 0.25, T: 0.25}')
@@ -472,11 +474,10 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--round', action='store', dest='ndigits',
                         required=False, default=int(1),
                         help='Initional matrix rounding in algorithm')
+    return(parser.parse_args())
 
 
-    if len(sys.argv)==1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
+if __name__ == '__main__':
 
     args = parser.parse_args()
     pvalue = float(args.pvalue)
@@ -484,19 +485,21 @@ if __name__ == '__main__':
     fasta = args.fasta
     kind = 'mono'
     ndigits = int(args.ndigits)
-    #if ndigits is None:
-        #ndigits = 1
+    # if ndigits is None:
+    #ndigits = 1
 
-    #if os.path.isfile(fasta):
+    # if os.path.isfile(fasta):
     if not (fasta is None):
         start_time = time.time()
         all_sites = read_sites(fasta, every_str=False)
         background = background_freq(all_sites, kind=kind)
         pwm = read_matrix(path, 'HOCOMOCO')
-        score_value, pvalue_out = from_pvalue_to_score(pwm=pwm, pvalue=pvalue, ndigits=ndigits, background=background)
+        score_value, pvalue_out = from_pvalue_to_score(
+            pwm=pwm, pvalue=pvalue, ndigits=ndigits, background=background)
         with_out_round_pvalue = fast_pvalue_np(pwm, score_value, background=background)
         end_time = time.time()
-        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(score_value, pvalue_out, with_out_round_pvalue))
+        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(
+            score_value, pvalue_out, with_out_round_pvalue))
         print('TIME_OF_CALCULATION = {0} second'.format(end_time - start_time))
 
     else:
@@ -504,7 +507,7 @@ if __name__ == '__main__':
         pwm = read_matrix(path, 'HOCOMOCO')
         score_value, pvalue_out = from_pvalue_to_score(pwm=pwm, pvalue=pvalue, ndigits=ndigits)
         with_out_round_pvalue = fast_pvalue_np(pwm, score_value)
-        end_time= time.time()
-        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(score_value, pvalue_out, with_out_round_pvalue))
+        end_time = time.time()
+        print('\nSCORE = {0}\nPVALUE = {1}\nPVALUE_WITHOUT_ROUNDING = {2}'.format(
+            score_value, pvalue_out, with_out_round_pvalue))
         print('TIME_OF_CALCULATION = {0} second\n'.format(end_time - start_time))
-
