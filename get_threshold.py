@@ -486,7 +486,7 @@ def make_more_precise_score(score, pvalue, pwm, background={'A': 0.25, 'C': 0.25
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', action='store', dest='input',
-                        required=True, help='path to HOCOMOCO matrix file')
+                        required=True, help='path to PWM file')
     parser.add_argument('-f', '--fasta', action='store', dest='fasta',
                         required=False, help='path to BED file, needed to calculate backgroun frequences for nucleotieds. \
                         Without this parametr background frequances = {A: 0.25, C: 0.25, G: 0.25, T: 0.25}')
