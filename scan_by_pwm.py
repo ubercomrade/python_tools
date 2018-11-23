@@ -108,6 +108,7 @@ def scan_seq_by_pwm(pwm, record, threshold):
             site_dict['end'] = str(int(record['start']) + i + length_pwm)
             site_dict['site'] = site_seq
             site_dict['strand'] = record['strand']
+            site_dict['score'] = s
             results.append(site_dict)
 
     # second strand
@@ -122,6 +123,7 @@ def scan_seq_by_pwm(pwm, record, threshold):
             site_dict['end'] = str(int(record['end']) - i)
             site_dict['site'] = site_seq
             site_dict['strand'] = reverse_record['strand']
+            site_dict['score'] = s
             results.append(site_dict)
     return(results)
 
@@ -145,7 +147,7 @@ def main():
     args = parse_args()
     pwm_path = args.input_pwm
     fasta_path = args.input_fasta
-    threshold = args.fasta
+    threshold = args.threshold
     results_path = args.output
 
     fasta = read_fasta(fasta_path)
@@ -156,7 +158,7 @@ def main():
 
     df = pd.DataFrame(results)
     df['name'] = np.repeat('.', len(df))
-    df['score'] = np.repeat(0, len(df))
+    #df['score'] = np.repeat(0, len(df))
     df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'id', 'site']]
     df.to_csv(results_path, sep='\t', header=False, index=False)
 
