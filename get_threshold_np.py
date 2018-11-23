@@ -467,7 +467,7 @@ def parse_args():
     parser.add_argument('-i', '--input', action='store', dest='input',
                         required=True, help='path to PWM file')
     parser.add_argument('-f', '--fasta', action='store', dest='fasta',
-                        required=False, help='path to BED file, needed to calculate backgroun frequences for nucleotieds. \
+                        required=False, help='path to FASTA file, needed to calculate backgroun frequences for nucleotieds. \
                         Without this parametr background frequances = {A: 0.25, C: 0.25, G: 0.25, T: 0.25}')
     parser.add_argument('-p', '--pvalue', action='store', dest='pvalue',
                         required=True, help='pvalue')
@@ -479,7 +479,7 @@ def parse_args():
 
 if __name__ == '__main__':
 
-    args = parser.parse_args()
+    args = parse_args()
     pvalue = float(args.pvalue)
     path = args.input
     fasta = args.fasta

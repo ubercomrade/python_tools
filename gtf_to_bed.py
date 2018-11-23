@@ -81,7 +81,7 @@ if __name__ == '__main__':
     parser_promoters.add_argument('-bed', '--output', action='store', dest='output_bed',
                                   required=True, help='path to BED file')
     parser_promoters.add_argument('-l', '--left', action='store', type=int, dest='left',
-                                  default=-2000, required=False, help='left_tail + TSS, default_value = 0')
+                                  default=0, required=False, help='left_tail + TSS, default_value = 0')
     parser_promoters.add_argument('-r', '--right', action='store', type=int, dest='rigth',
                                   default=-2000, required=False, help='TSS + rigth_tail, default_value = -2000')
 

@@ -70,7 +70,7 @@ class BioRecord:
             self.sequence = None
 
     def setLength(self):
-        if  (not (self.start is None)) and (not (self.end is None)):
+        if (not (self.start is None)) and (not (self.end is None)):
             self.length = self.end - self.start
         else:
             self.lenth = None
@@ -99,6 +99,7 @@ class BioRecord:
         except:
             print('Start or End is None')
             return(None)
+
     def getName(self):
         return(self.recordName)
 
@@ -181,7 +182,6 @@ def add_tail(bio_records, tail_length):
     return(bio_copy)
 
 
-
 def stat_of_fasta_file(path):
     '''
     start line == 1
@@ -252,11 +252,12 @@ def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
             print('{0} was not found in FASTA'.format(chr_name))
             continue
         peak_start_line = peak.getStart() // length + chr_start_line  # number of line where seq started
-        peak_end_line = peak.getEnd() // length  + chr_start_line  # number of line where seq ended
+        peak_end_line = peak.getEnd() // length + chr_start_line  # number of line where seq ended
         position_start = peak.getStart() % length  # position number of nucleotide in first line
-        #positionEnd = peaks.getEnd() % length  # position number of nucleotide in last line
-        #positionStart = peakStartLine * length - peak.getStart()  # position number of nucleotide in first line
-        position_end = peak.getEnd() - peak.getStart() + position_start # position number of nucleotide in last line
+        # positionEnd = peaks.getEnd() % length  # position number of nucleotide in last line
+        # positionStart = peakStartLine * length - peak.getStart()  # position number of nucleotide in first line
+        # position number of nucleotide in last line
+        position_end = peak.getEnd() - peak.getStart() + position_start
         for line_number in range(peak_start_line, peak_end_line + 1):
             seq += linecache.getline(path_fasta, line_number).strip()
         peak.setSequence(seq[position_start:position_end])
@@ -297,8 +298,7 @@ if __name__ == '__main__':
                         default=None, required=False,
                         help='With this parametr all peaks will get tail in start and end of sequence')
 
-
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 

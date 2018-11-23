@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 import random
 import pandas as pd
+import argparse
 
 
 def parse_bamm_and_bg_from_file(bamm_file, bg_file):
@@ -53,7 +54,7 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
     else:
         print('File {0} does not exist'.format(bg_file))
         exit()
-    return model, bg, order
+    return model, bg, order-1
 
 
 def make_log_odds_bamm(bamm, bg):
@@ -186,7 +187,6 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
 
 
 def parse_args():
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
                         required=True, help='path to FASTA file with head: >uniq_id|chromosome|start-end|strand')
