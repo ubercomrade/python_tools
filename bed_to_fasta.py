@@ -3,183 +3,59 @@ import argparse
 import sys
 import os
 import pickle
+import pandas as pd
+import numpy as np
 
 
-class BioRecord:
-
-    def __init__(self):
-        self.recordName = None
-        self.chromosome = None
-        self.start = None
-        self.end = None
-        self.sequence = None
-        self.strand = None
-        self.length = None
-
-    def setChromosome(self, chromosome):
-        self.chromosome = chromosome
-
-    def setStartPosition(self, start):
-        try:
-            start = int(start)
-            if start >= 0:
-                self.start = start
-            else:
-                raise Exception()
-        except:
-            print('start not numeric or start < 0!')
-            self.start = None
-
-    def setEndPosition(self, end):
-        try:
-            end = int(end)
-            if end >= 0:
-                self.end = end
-            else:
-                raise Exception()
-        except:
-            print('start not numeric or end < 0!')
-            self.start = None
-
-    def setName(self, name):
-        self.recordName = name
-
-    def setStrand(self, strand):
-        try:
-            strand = str(strand)
-            if strand == '+' or strand == '-':
-                self.strand = strand
-            else:
-                self.strand = None
-                raise Exception('strand can be + or -')
-        except:
-            print('strand can be + or -')
-            self.strand = None
-
-    def setSequence(self, sequence):
-        try:
-            sequence = str(sequence)
-            sequence = sequence.upper()
-            control = {'A', 'C', 'G', 'T'}
-            if len(set(list(sequence)) - control) != 0:
-                raise Exception()
-            else:
-                self.sequence = sequence
-        except:
-            print('sequence contains wrong letter')
-            self.sequence = None
-
-    def setLength(self):
-        if (not (self.start is None)) and (not (self.end is None)):
-            self.length = self.end - self.start
-        else:
-            self.lenth = None
-
-    def getChromosome(self):
-        return(self.chromosome)
-
-    def getSequence(self):
-        return(self.sequence)
-
-    def getStrand(self):
-        return(self.strand)
-
-    def getStart(self):
-        return(self.start)
-
-    def getEnd(self):
-        return(self.end)
-
-    def getPositions(self):
-        try:
-            if self.start != None and self.end != None:
-                return([self.start, self.end])
-            else:
-                raise Exception()
-        except:
-            print('Start or End is None')
-            return(None)
-
-    def getName(self):
-        return(self.recordName)
-
-    def getLength(self):
-        return(self.length)
-
-    def __str__(self):
-        return(self.recordName)
-
-    def __repr__(self):
-        return(self.recordName)
+def read_bed(path):
+    bed = pd.read_csv('/home/anton/Downloads/86793_peaks.bed',
+                      sep='\t', header=None,
+                      names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
+    return(bed)
 
 
-def read_bed3(path):
-    output = list()
-    with open(path, 'r') as file:
-        counter = 1
-        for line in file:
-            line = line.strip().split()
-            record = BioRecord()
-            record.setName('Sequence_' + str(counter))
-            record.setChromosome(line[0])
-            record.setStartPosition(line[1])
-            record.setEndPosition(line[2])
-            record.setLength()
-            output.append(record)
-            counter += 1
-    file.close()
-    return(output)
-
-
-def minimal_length(bio_records):
+def minimal_length(bed):
     '''
     Получить минимальную длину последовательности
     '''
-    bio_copy = list(bio_records)
-    bio_copy = sorted(bio_copy, key=lambda i: i.getLength(), reverse=False)
-    length = bio_copy[0].getLength()
+    length = min(bed['end'] - bed['start'])
     return(length)
 
 
-def maximal_length(bio_records):
+def maximal_length(bed):
     '''
     Получить максимальную длину последовательности
     '''
-    bio_copy = list(bio_records)
-    bio_copy = sorted(bio_copy, key=lambda i: i.getLength(), reverse=True)
-    length = bio_copy[0].getLength()
+    length = max(bed['end'] - bed['start'])
     return(length)
 
 
-def slice_to_size(bio_records, length):
+def slice_to_size(bed, length):
     '''
     Привести все записи к единой длине
     '''
-    bio_copy = list(bio_records)
-    for i in bio_copy:
-        if i.getLength() == length:
-            continue
-        else:
-            start = i.getStart()
-            end = i.getEnd()
-            mid = (end - start) // 2 + start
-            new_start = mid - length // 2
-            new_end = mid + (length - length // 2)
-            i.setStartPosition(new_start)
-            i.setEndPosition(new_end)
-    return(bio_copy)
+    start = bed['start']
+    end = bed['end']
+    mid = (end - start) // 2 + start
+    new_start = mid - length // 2
+    new_end = mid + (length - length // 2)
+
+    bed['start'] = new_start
+    bed['end'] = new_end
+    return(bed)
 
 
-def add_tail(bio_records, tail_length):
-    bio_copy = list(bio_records)
-    for i in bio_copy:
-        start = i.getStart()
-        end = i.getEnd()
-        new_start = start - tail_length
-        new_end = end + tail_length
-        i.setStartPosition(new_start)
-        i.setEndPosition(new_end)
-    return(bio_copy)
+def add_tail(bed, tail_length):
+    '''
+    Добавть хвосты ко всем записям
+    '''
+    start = bed['start']
+    end = bed['end']
+    new_start = start - tail_length
+    new_end = end + tail_length
+    bed['start'] = new_start
+    bed['end'] = new_end
+    return(bed)
 
 
 def stat_of_fasta_file(path):
@@ -214,70 +90,96 @@ def stat_of_fasta_file(path):
         return output
 
 
-def modify_bio_records(bio_records, to_min, to_max, to_size, tail):
+def modify_bio_records(bed, to_min, to_max, to_size, tail):
     '''
     Модифицирование длины в зависимости от параметров
     '''
-    bio_copy = list(bio_records)
     if to_min:
-        min_length = minimal_length(bio_copy)
-        bio_copy = slice_to_size(bio_copy, min_length)
+        min_length = minimal_length(bed)
+        bio_copy = slice_to_size(bed, min_length)
         return(bio_copy)
     elif to_max:
-        max_length = maximal_length(bio_copy)
-        bio_copy = slice_to_size(bio_copy, max_length)
+        max_length = maximal_length(bed)
+        bio_copy = slice_to_size(bed, max_length)
         return(bio_copy)
     elif not (to_size is None):
         to_size = int(to_size)
-        bio_copy = slice_to_size(bio_copy, to_size)
+        bio_copy = slice_to_size(bed, to_size)
         return(bio_copy)
     elif not (tail is None):
         tail = int(tail)
-        bio_copy = add_tail(bio_copy, tail)
+        bio_copy = add_tail(bed, tail)
         return(bio_copy)
     else:
-        return(bio_copy)
+        return(bed)
 
 
 def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
-    bed_peaks = read_bed3(path_bed)
+    bed_peaks = read_bed(path_bed)
     bed_peaks = modify_bio_records(bed_peaks, to_min, to_max, to_size, tail)
     chromosomes, length = stat_of_fasta_file(path_fasta)
-    for peak in bed_peaks:
+    results = []
+    for i in range(len(bed_peaks)):
+        rec = {'name': str(), 'chr': str(), 'start': int(), 'end': int(), 'strand': str()}
         seq = str()  # container for sequnce of peak
-        chr_name = peak.getChromosome()
+        chr_name = bed_peaks.iloc[i]['chromosome']
         try:
             chr_start_line = chromosomes[chr_name]
         except:
             print('{0} was not found in FASTA'.format(chr_name))
             continue
-        peak_start_line = peak.getStart() // length + chr_start_line  # number of line where seq started
-        peak_end_line = peak.getEnd() // length + chr_start_line  # number of line where seq ended
-        position_start = peak.getStart() % length  # position number of nucleotide in first line
-        # positionEnd = peaks.getEnd() % length  # position number of nucleotide in last line
-        # positionStart = peakStartLine * length - peak.getStart()  # position number of nucleotide in first line
-        # position number of nucleotide in last line
-        position_end = peak.getEnd() - peak.getStart() + position_start
+
+        rec['chr'] = bed_peaks.iloc[i]['chromosome']
+        if bed_peaks.iloc[i]['name'] != '.':
+            rec['name'] = bed_peaks.iloc[i]['name']
+        else:
+            rec['name'] = 'peaks_' + str(i)
+
+        if not bed_peaks.iloc[i]['start'] < 0:
+            rec['start'] = bed_peaks.iloc[i]['start']
+        else:
+            continue
+
+        if not bed_peaks.iloc[i]['end'] < 0:
+            rec['end'] = bed_peaks.iloc[i]['end']
+        else:
+            continue
+
+        if bed_peaks.iloc[i]['strand'] == '.' or np.isnan(bed_peaks.iloc[i]['strand']):
+            rec['strand'] = '+'
+        else:
+            rec['strand'] = bed_peaks.iloc[i]['strand']
+
+        peak_start_line = bed_peaks.iloc[i]['start'] // length + \
+            chr_start_line  # number of line where seq started
+        peak_end_line = bed_peaks.iloc[i]['end'] // length + \
+            chr_start_line  # number of line where seq ended
+        # position number of nucleotide in first line
+        position_start = bed_peaks.iloc[i]['start'] % length
+        position_end = bed_peaks.iloc[i]['end'] - bed_peaks.iloc[i]['start'] + position_start
         for line_number in range(peak_start_line, peak_end_line + 1):
             seq += linecache.getline(path_fasta, line_number).strip()
-        peak.setSequence(seq[position_start:position_end])
+        if not 'N' in seq[position_start:position_end]:
+            rec['seq'] = seq[position_start:position_end]
+        else:
+            continue
+        results.append(rec)
     linecache.clearcache()
-    return(bed_peaks)
+    return(results)
 
 
-def write_fasta(bio_records, path_to_write):
+def write_fasta(results, path_to_write):
     with open(path_to_write, 'w') as file:
-        for record in bio_records:
-            if record.getSequence() is not None:
-                file.write('>' + record.getName() + '|' + record.getChromosome() + '|' +
-                           str(record.getStart()) + '-' + str(record.getEnd()) + '\n')
-                file.write(record.getSequence() + '\n')
-            else:
-                continue
+        for record in results:
+            file.write('>' + record['name'] + '|' + record['chr'] + '|' +
+                       str(record['start']) + '-' + str(record['end']) + '|' +
+                       record['strand'] + '\n')
+            file.write(record['seq'] + '\n')
     file.close()
+    pass
 
 
-if __name__ == '__main__':
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-if', '--inputFasta', action='store', dest='input_fasta',
                         required=True, help='path to FASTA file')
@@ -302,7 +204,11 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    args = parser.parse_args()
+    return(parser.parse_args())
+
+
+def main():
+    args = parse_args()
     input_fasta = args.input_fasta
     input_bed = args.input_bed
     output_fasta = args.output_fasta
@@ -313,3 +219,7 @@ if __name__ == '__main__':
 
     results = bed_to_fasta(input_fasta, input_bed, to_min, to_max, to_size, tail)
     write_fasta(results, output_fasta)
+
+
+if __name__ == '__main__':
+    main()
