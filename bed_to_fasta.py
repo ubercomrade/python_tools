@@ -60,7 +60,7 @@ class BioRecord:
         try:
             sequence = str(sequence)
             sequence = sequence.upper()
-            control = {'A', 'C', 'G', 'T', 'N'}
+            control = {'A', 'C', 'G', 'T'}
             if len(set(list(sequence)) - control) != 0:
                 raise Exception()
             else:
