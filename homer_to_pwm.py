@@ -187,14 +187,14 @@ def main():
     pcm = make_pcm_from_homer(pfm_homer=pfm)
     if not (path_fasta is None):
         fasta = read_fasta(path_fasta)
-        background = background_freq(fasta, 'mono')
+        background = background_freq(fasta)
     else:
         background = {'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}
     pwm = make_pwm_from_pcm(pcm, background)
 
     with open(output_pwm, 'w') as file:
         file.write(
-            '>{0} BEST_MATCH= {1}/{2} ALPHABET= ACGT\n'.format(inf['id_pfm'], inf['tf_name'], inf['tf_db']))
+            '>{0}\tBEST_MATCH= {1}/{2}\tALPHABET= ACGT\n'.format(inf['id_pfm'], inf['tf_name'], inf['tf_db']))
         for i in zip(pwm['A'], pwm['C'], pwm['G'], pwm['T']):
             file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
     file.close()

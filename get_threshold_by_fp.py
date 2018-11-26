@@ -39,7 +39,7 @@ def read_fasta(path):
 def read_pwm(path):
     with open(path, 'r') as file:
         inf = file.readline()
-        inf = inf.strip().split()
+        inf = inf.strip().split('\t')
         id_pfm = inf[0][1:].strip()
         tf_name = inf[1].split('/')[0].strip()
         tf_db = inf[1].split('/')[1].strip()
