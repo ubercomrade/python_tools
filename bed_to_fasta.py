@@ -8,8 +8,9 @@ import numpy as np
 
 
 def read_bed(path):
-    bed = pd.read_csv('/home/anton/Downloads/86793_peaks.bed',
+    bed = pd.read_csv(path,
                       sep='\t', header=None,
+                      usecols=[0, 1, 2, 3, 4, 5],
                       names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
     return(bed)
 
@@ -145,8 +146,11 @@ def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
         else:
             continue
 
-        if bed_peaks.iloc[i]['strand'] == '.' or np.isnan(bed_peaks.iloc[i]['strand']):
+        if bed_peaks.iloc[i]['strand'] == '.' and isinstance(bed_peaks.iloc[i]['strand'], str):
             rec['strand'] = '+'
+        elif not isinstance(bed_peaks.iloc[i]['strand'], str):
+            if np.isnan(bed_peaks.iloc[i]['strand']):
+                rec['strand'] = '+'
         else:
             rec['strand'] = bed_peaks.iloc[i]['strand']
 

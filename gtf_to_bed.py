@@ -37,8 +37,8 @@ def read_gtf(path):
     gtf['start'] = pd.to_numeric(gtf['start'])
     gtf['end'] = pd.to_numeric(gtf['end'])
     del data
-    for i in gtf['chr'].unique()[24:]:
-        gtf = gtf[i != gtf['chr']]
+    # for i in gtf['chr'].unique()[24:]:
+    #    gtf = gtf[i != gtf['chr']]
     return(gtf)
 
 
