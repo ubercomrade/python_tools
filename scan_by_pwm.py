@@ -1,3 +1,19 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
+
 import linecache
 import argparse
 import sys
@@ -19,7 +35,7 @@ def read_fasta(path):
             if line.startswith('>'):
                 line = line[1:].strip().split('|')
                 record = dict()
-                record['id'] = line[0]
+                record['name'] = line[0]
                 record['chromosome'] = line[1]
                 record['start'] = line[2].split('-')[0]
                 record['end'] = line[2].split('-')[1]
@@ -85,13 +101,13 @@ def complement(record):
             seq += 'C'
         elif letter == 'T':
             seq += 'A'
-    #output['seq'] = seq[::-1]
+    output['seq'] = seq[::-1]
     return(output)
 
 
 def scan_seq_by_pwm(pwm, record, threshold):
     results = []
-    reverse_record = reverse_complement(record)
+    reverse_record = complement(record)
     length_pwm = len(pwm['A'])
     seq = record['seq']
     reverse_seq = reverse_record['seq']
@@ -102,7 +118,7 @@ def scan_seq_by_pwm(pwm, record, threshold):
         s = score(site_seq, pwm)
         if s >= threshold:
             site_dict = dict()
-            site_dict['id'] = record['id']
+            site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
             site_dict['start'] = str(int(record['start']) + i)
             site_dict['end'] = str(int(record['start']) + i + length_pwm)
@@ -117,7 +133,7 @@ def scan_seq_by_pwm(pwm, record, threshold):
         s = score(site_seq, pwm)
         if s >= threshold:
             site_dict = dict()
-            site_dict['id'] = record['id']
+            site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
             site_dict['start'] = str(int(record['end']) - i - length_pwm)
             site_dict['end'] = str(int(record['end']) - i)
@@ -157,9 +173,9 @@ def main():
         results += scan_seq_by_pwm(pwm, record, threshold)
 
     df = pd.DataFrame(results)
-    df['name'] = np.repeat('.', len(df))
+    #df['name'] = np.repeat('.', len(df))
     #df['score'] = np.repeat(0, len(df))
-    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'id', 'site']]
+    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     df.to_csv(results_path, sep='\t', header=False, index=False)
 
 

@@ -1,3 +1,18 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
 
 import math
 import csv
@@ -67,8 +82,7 @@ def remove_equalent_seq(seqList, homology=0.95):
     return(seqList)
 
 
-
-def make_pfm_from_pcm(pcm, kind, pseudocount= '1/N'):
+def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
@@ -215,7 +229,6 @@ def make_pcm(motifs, kind):
     return(matrix)
 
 
-
 def background_freq(seq, kind):
 
     s = ''.join(seq)
@@ -244,29 +257,33 @@ def main(path, homology, kind, pseudocount):
     PCM = make_pcm(seq, kind=kind)
     PWM = make_pwm_from_pcm(PCM, kind=kind, background=background, pseudocount=pseudocount)
     return(PWM)
-    
+
 
 if __name__ == '__main__':
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', action='store', dest='input', required=True , help='Path to file with motifs')
-    parser.add_argument('-o', '--output', action='store', dest='output', required=True, help='Path to file with results of calculation')
-    parser.add_argument('-t', '--type', action='store', dest='kind', required=True, help='Type of matrix di- or mononucliotide, after flag print di or mono')
-    parser.add_argument('-H', '--removeHomologs', action='store', dest='homology', required=True, help='portion of homology, for example 0.95')
 
-    if len(sys.argv)==1:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', action='store', dest='input',
+                        required=True, help='Path to file with motifs')
+    parser.add_argument('-o', '--output', action='store', dest='output',
+                        required=True, help='Path to file with results of calculation')
+    parser.add_argument('-t', '--type', action='store', dest='kind', required=True,
+                        help='Type of matrix di- or mononucliotide, after flag print di or mono')
+    parser.add_argument('-H', '--removeHomologs', action='store', dest='homology',
+                        required=True, help='portion of homology, for example 0.95')
+
+    if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
     args = parser.parse_args()
-    
+
     path = args.input
-    output = args.output 
+    output = args.output
     kind = args.kind
     pseudocount = '1/N'
     homology = float(args.homology)
     PWM = main(path, homology, kind, pseudocount)
-    
+
     with open(output, 'w', newline='') as file:
         keys = sorted(list(PWM.keys()))
         file.write('>' + '\t'.join(keys) + '\n')
@@ -276,4 +293,3 @@ if __name__ == '__main__':
                     file.write(str(PWM[j][i]) + '\t')
                 else:
                     file.write(str(PWM[j][i]) + '\n')
-

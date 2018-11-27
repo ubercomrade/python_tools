@@ -1,3 +1,19 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
+
 import os
 import math
 import random
@@ -11,6 +27,7 @@ import argparse
 [A,C,G,T]
 '''
 
+
 def read_matrix(path, file_format):
     '''
     Чтение PCM из фаила из разных источников
@@ -18,10 +35,10 @@ def read_matrix(path, file_format):
     '''
     import csv
     if file_format == 'HOCOMOCO':
-        with open(path, newline = '') as file:
+        with open(path, newline='') as file:
             file.readline()
             matrix = [list(map(float, row)) for row in csv.reader(file, delimiter='\t')]
-            matrix_dict = {'A':list(), 'C':list(), 'G':list(), 'T':list()}
+            matrix_dict = {'A': list(), 'C': list(), 'G': list(), 'T': list()}
             for i in matrix:
                 matrix_dict['A'].append(i[0])
                 matrix_dict['C'].append(i[1])
@@ -67,8 +84,7 @@ def remove_equalent_seq(seqList, homology=0.95):
     return(seqList)
 
 
-
-def make_pfm_from_pcm(pcm, kind, pseudocount= '1/N'):
+def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
@@ -215,7 +231,6 @@ def make_pcm(motifs, kind):
     return(matrix)
 
 
-
 def background_freq(seq, kind):
 
     s = ''.join(seq)
@@ -337,7 +352,8 @@ def score_distribution_python(matrix, alpha, beta, ndigits,  background={'A': 0.
         Q_new = []
         possible_scores_new = []
         matrix_slice = [matrix[i][position] for i in matrix.keys()]
-        t = [round(score + weight, ndigits) for score in possible_scores_old for weight in matrix_slice]
+        t = [round(score + weight, ndigits)
+             for score in possible_scores_old for weight in matrix_slice]
         bs = max_score(slice_matrix(matrix, position + 1, matrixLength))
         ws = min_score(slice_matrix(matrix, position + 1, matrixLength))
         Q_new = iter([Q * background[letter] for Q in Q_old for letter in background.keys()])
@@ -363,12 +379,13 @@ def fast_pvalue_python(matrix, alpha, ndigits, background={'A': 0.25, 'C': 0.25,
         Q_new = []
         possible_scores_new = []
         matrix_slice = [matrix[i][position] for i in matrix.keys()]
-        t = [round(score + weight, ndigits) for score in possible_scores_old for weight in matrix_slice]
+        t = [round(score + weight, ndigits)
+             for score in possible_scores_old for weight in matrix_slice]
         bs = max_score(slice_matrix(matrix, position + 1, matrixLength))
         ws = min_score(slice_matrix(matrix, position + 1, matrixLength))
         Q_old = [Q * background[letter] for Q in Q_old for letter in background.keys()]
         P += sum([Q for Q, i in zip(Q_old, t) if alpha - ws <= i])
-        Q_new = [Q for Q, t in zip(Q_old, t)  if alpha - bs <= t]
+        Q_new = [Q for Q, t in zip(Q_old, t) if alpha - bs <= t]
         possible_scores_new = [i for i in t if alpha - bs <= i]
         Q_old = list(Q_new)
         possible_scores_old = list(possible_scores_new)
@@ -379,7 +396,7 @@ def pwm_shuffling(pwm):
     shuffled_pwm = dict()
     score_lists = list(zip(*pwm.values()))
     random.shuffle(score_lists)
-    score_lists =  list(zip(*score_lists))
+    score_lists = list(zip(*score_lists))
     keys = list(pwm.keys())
     for i in range(len(score_lists)):
         shuffled_pwm[keys[i]] = score_lists[i]
@@ -408,7 +425,8 @@ def maximal_error_associated(pwm, rounded_pwm):
 
 def search_score(alpha, rounded_pwm, Q, error, ndigits, background):
     output = []
-    tmp_pvalue = fast_pvalue_python(rounded_pwm, alpha+error, ndigits=ndigits, background=background)
+    tmp_pvalue = fast_pvalue_python(rounded_pwm, alpha+error,
+                                    ndigits=ndigits, background=background)
     score_list = list(Q.keys())
     score_list.sort(reverse=True)
     if len(score_list) == 1:
@@ -429,7 +447,8 @@ def search_score(alpha, rounded_pwm, Q, error, ndigits, background):
 def from_pvalue_to_score(pwm, pvalue, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}, ndigits=1, digit=1):
     rounded_pwm = round_pwm(pwm, ndigits)
     error = maximal_error_associated(pwm, rounded_pwm)
-    Q = score_distribution_python(rounded_pwm, alpha=min_score(rounded_pwm), beta=max_score(rounded_pwm), ndigits=ndigits, background=background)
+    Q = score_distribution_python(rounded_pwm, alpha=min_score(
+        rounded_pwm), beta=max_score(rounded_pwm), ndigits=ndigits, background=background)
     score_list = list(Q.keys())
     score_list.sort(reverse=True)
     alpha = score_list[0]
@@ -443,7 +462,8 @@ def from_pvalue_to_score(pwm, pvalue, background={'A': 0.25, 'C': 0.25, 'G': 0.2
         ndigits += digit
         rounded_pwm = round_pwm(pwm, ndigits)
         error = maximal_error_associated(pwm, rounded_pwm)
-        Q = score_distribution_python(rounded_pwm, alpha=(alpha - error), beta=(alpha + error), ndigits=ndigits, background=background)
+        Q = score_distribution_python(rounded_pwm, alpha=(
+            alpha - error), beta=(alpha + error), ndigits=ndigits, background=background)
         alpha = search_score(alpha, rounded_pwm, Q, error, ndigits, background)
     return(alpha)
 
@@ -462,7 +482,8 @@ def main(path, fasta, output):
         P = 0
         for score in scores:
             P += Q[score]
-            results['norm_score'].append(to_norm(score, min_score=min_score(pwm), max_score=max_score(pwm)))
+            results['norm_score'].append(
+                to_norm(score, min_score=min_score(pwm), max_score=max_score(pwm)))
             results['score'].append(score)
             results['pvalue'].append(P)
         with open(output, 'w') as file:
@@ -480,7 +501,8 @@ def main(path, fasta, output):
         P = 0
         for score in scores:
             P += Q[score]
-            results['norm_score'].append(to_norm(score, min_score=min_score(pwm), max_score=max_score(pwm)))
+            results['norm_score'].append(
+                to_norm(score, min_score=min_score(pwm), max_score=max_score(pwm)))
             results['score'].append(score)
             results['pvalue'].append(P)
         with open(output, 'w') as file:
@@ -488,6 +510,7 @@ def main(path, fasta, output):
             for i in range(len(results['norm_score'])):
                 file.write(str(results['norm_score'][i]) + '\t' + str(results['score'][i])
                            + '\t' + str(results['pvalue'][i]) + '\n')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -499,7 +522,7 @@ if __name__ == '__main__':
                         required=False, help='path to BED file, needed to calculate backgroun frequences for nucleotieds. \
                         Without this parametr background frequances = {A: 0.25, C: 0.25, G: 0.25, T: 0.25}')
 
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 

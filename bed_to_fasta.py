@@ -1,3 +1,19 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
+
 import linecache
 import argparse
 import sys
@@ -115,27 +131,21 @@ def modify_bio_records(bed, to_min, to_max, to_size, tail):
         return(bed)
 
 
-def complement(record):
+def complement(seq):
     '''
     Make reverse and compelent
     '''
-    output = dict(record)
-    strand = record['strand']
-    seq = str()
-    if strand == '+':
-        output['strand'] = '-'
-    else:
-        output['strand'] = '+'
-    for letter in output['seq']:
+    output = str()
+    for letter in seq:
         if letter == 'A':
-            seq += 'T'
+            output += 'T'
         elif letter == 'C':
-            seq += 'G'
+            output += 'G'
         elif letter == 'G':
-            seq += 'C'
+            output += 'C'
         elif letter == 'T':
-            seq += 'A'
-    #output['seq'] = seq[::-1]
+            output += 'A'
+    output = output[::-1]
     return(output)
 
 

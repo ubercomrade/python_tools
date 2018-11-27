@@ -1,3 +1,18 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
 
 import math
 import csv
@@ -67,8 +82,7 @@ def remove_equalent_seq(seqList, homology=0.95):
     return(seqList)
 
 
-
-def make_pfm_from_pcm(pcm, kind, pseudocount= '1/N'):
+def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
@@ -213,7 +227,6 @@ def make_pcm(motifs, kind):
                 matrix[l[i]][i] += 1
 
     return(matrix)
-
 
 
 def background_freq(seq, kind):
@@ -361,15 +374,15 @@ def main(path, homology, kind):
     all_motifs = all_motifs[:len(all_motifs) - len(all_motifs) % k]
     total_length = len(all_motifs)
     background = background_freq(all_motifs, kind=kind)
-    
+
     results = {'FPR': [], 'TPR': [], 'Score': [], 'Norm_score': []}
     tp_scores = []
     fp_scores = []
     step = int(total_length / k)
-    
+
     for i in range(step, total_length, step):
         train_set = all_motifs[i:] + all_motifs[:i - 30]
-        test_set = all_motifs[i - step:i] 
+        test_set = all_motifs[i - step:i]
         random_set = []
         for seq in test_set:
             random_set += random_seq(seq, 10)
@@ -379,7 +392,7 @@ def main(path, homology, kind):
 
         tp_scores += scan_sequences_2(test_set, PWM, kind=kind)
         fp_scores += scan_sequences_2(random_set, PWM, kind=kind)
-    
+
     all_scores = tp_scores + fp_scores
     all_scores.sort()
     uniq_scores = set(all_scores)
@@ -396,32 +409,37 @@ def main(path, homology, kind):
         tpr = len([i for i in tp_scores if i >= score])/len(tp_scores)
         if fpr == 0:
             fpr = 1/len(fp_scores)
-    
+
         results['FPR'].append(fpr)
         results['TPR'].append(tpr)
         results['Score'].append(score)
         results['Norm_score'].append(norm_score)
     return(results)
-    
-    
-if __name__ == '__main__':
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', action='store', dest='input', required=True , help='Path to file with binding sites')
-    parser.add_argument('-o', '--output', action='store', dest='output', required=True, help='Path to file with results of calculation')
-    parser.add_argument('-t', '--type', action='store', dest='kind', required=True, help='Type of matrix di- or mononucliotide, after flag print di or mono')
-    parser.add_argument('-H', '--removeHomologs', action='store', dest='homology', required=True, help='portion of homology, for example 0.95')
 
-    if len(sys.argv)==1:
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', action='store', dest='input',
+                        required=True, help='Path to file with binding sites')
+    parser.add_argument('-o', '--output', action='store', dest='output',
+                        required=True, help='Path to file with results of calculation')
+    parser.add_argument('-t', '--type', action='store', dest='kind', required=True,
+                        help='Type of matrix di- or mononucliotide, after flag print di or mono')
+    parser.add_argument('-H', '--removeHomologs', action='store', dest='homology',
+                        required=True, help='portion of homology, for example 0.95')
+
+    if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
     args = parser.parse_args()
-    
-    path = args.input #Путь к фаилу с мотивами
-    homology = float(args.homology) #Допустимый уровень гомологии между мотивами (если уровень гомологии выше, то последовательность выбрасывается)
-    kind = args.kind #Тип матрицы (mono or di)
-    output = args.output #Путь к фаилу для записи результатов
+
+    path = args.input  # Путь к фаилу с мотивами
+    # Допустимый уровень гомологии между мотивами (если уровень гомологии выше, то последовательность выбрасывается)
+    homology = float(args.homology)
+    kind = args.kind  # Тип матрицы (mono or di)
+    output = args.output  # Путь к фаилу для записи результатов
 
     #fileInput = '/Users/anton/Documents/Python/JASPAR/MA0491.1.sites'
     #everyStr = False
@@ -437,5 +455,4 @@ if __name__ == '__main__':
 
         for i in range(len(output['FPR'])):
             writer.writerow({'FPR': output['FPR'][i], 'TPR': output['TPR'][i],
-            'Score': output['Score'][i], 'Norm_score': output['Norm_score'][i]})
-
+                             'Score': output['Score'][i], 'Norm_score': output['Norm_score'][i]})

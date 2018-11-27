@@ -1,3 +1,18 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
 
 import math
 import csv
@@ -64,7 +79,7 @@ def removeEqualentSeq_2(seqList, homology=0.95):
     return(allMotifs)
 
 
-def makePFMfromPCM(PCM, kind, pseudocount= '1/N'):
+def makePFMfromPCM(PCM, kind, pseudocount='1/N'):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
@@ -211,7 +226,6 @@ def makePCM(motifs, kind):
     return(matrix)
 
 
-
 def backgroundFreq(seq, kind):
 
     s = ''.join(seq)
@@ -354,7 +368,7 @@ def main(fileInput, everyStr, homology, kind):
             TPR = 1/len(testMotifs)
 
         FPR = int()
-        totalLen  = int()
+        totalLen = int()
         while FPR <= 150:
             randomMotifs = []
             for i in subMotifs:
@@ -391,14 +405,16 @@ if __name__ == '__main__':
                         dest='homology',
                         help='portion of homology, for example 0.95')
 
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
     args = parser.parse_args()
 
     fileInput = args.fileInput  # Путь к фаилу с мотивами
-    everyStr = args.fileType  # Если строки не разделяются символом '>', то параметр True, иначе пиши False (for Fasta)
-    homology = float(args.homology)  # Допустимый уровень гомологии между мотивами (если уровень гомологии выше, то последовательность выбрасывается)
+    # Если строки не разделяются символом '>', то параметр True, иначе пиши False (for Fasta)
+    everyStr = args.fileType
+    # Допустимый уровень гомологии между мотивами (если уровень гомологии выше, то последовательность выбрасывается)
+    homology = float(args.homology)
     kind = args.kind  # Тип матрицы (mono or di)
     fileOutput = args.fileOutput  # Путь к фаилу для записи результатов
 
@@ -412,4 +428,4 @@ if __name__ == '__main__':
 
         for i in range(len(output['FPR'])):
             writer.writerow({'FPR': output['FPR'][i], 'TPR': output['TPR'][i],
-            'Score': output['Score'][i], 'NormScore': output['NormScore'][i]})
+                             'Score': output['Score'][i], 'NormScore': output['NormScore'][i]})
