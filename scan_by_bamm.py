@@ -78,7 +78,7 @@ def read_fasta(path):
             if line.startswith('>'):
                 line = line[1:].strip().split('|')
                 record = dict()
-                record['id'] = line[0]
+                record['name'] = line[0]
                 record['chromosome'] = line[1]
                 record['start'] = line[2].split('-')[0]
                 record['end'] = line[2].split('-')[1]
@@ -93,18 +93,47 @@ def read_fasta(path):
     return(fasta)
 
 
+# def score_bamm(seq, bamm, k_mers, order):
+#    '''
+#    Вспомагательная функция, считает score для строки с такой же длиной как и bamm + order
+#    '''
+#    length_of_seq = len(seq)
+#    position = 0
+#    score = 0
+#    for position in range(length_of_seq - order):
+#        letter = seq[position:order + position + 1]
+#        loc = k_mers[letter]
+#        score += bamm[order][position][loc]
+#    return(score)
+
+
 def score_bamm(seq, bamm, k_mers, order):
     '''
-    Вспомагательная функция, считает score для строки с такой же длиной как и bamm
+    Вспомагательная функция, считает score для строки с такой же длиной как и bamm + order
     '''
     length_of_seq = len(seq)
     position = 0
     score = 0
     for position in range(length_of_seq - order):
-        letter = seq[position:order + position + 1]
+        letter = seq[position:order + position + 1][::-1]
+        # print(letter)
         loc = k_mers[letter]
         score += bamm[order][position][loc]
     return(score)
+
+
+# def make_k_mers(order):
+#    #  make list with possible k-mer based on bHMM model
+#    tmp = itertools.product('ACGT', repeat=order + 1)
+#    k_mer = []
+#    for i in tmp:
+#        k_mer.append(''.join(i[1:]) + i[0])
+#    k_mer_dict = dict()
+#    index = 0
+#    for i in k_mer:
+#        k_mer_dict[i] = index
+#        index += 1
+#    return(k_mer_dict)
 
 
 def make_k_mers(order):
@@ -112,7 +141,7 @@ def make_k_mers(order):
     tmp = itertools.product('ACGT', repeat=order + 1)
     k_mer = []
     for i in tmp:
-        k_mer.append(''.join(i[1:]) + i[0])
+        k_mer.append(''.join(i))
     k_mer_dict = dict()
     index = 0
     for i in k_mer:
@@ -121,7 +150,7 @@ def make_k_mers(order):
     return(k_mer_dict)
 
 
-def reverse_complement(record):
+def complement(record):
     '''
     Make reverse and compelent
     '''
@@ -141,7 +170,7 @@ def reverse_complement(record):
             seq += 'C'
         elif letter == 'T':
             seq += 'A'
-    output['seq'] = seq[::-1]
+    #output['seq'] = seq[::-1]
     return(output)
 
 
@@ -149,7 +178,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
 
     k_mers = make_k_mers(order)
     motif_length = len(log_odds_bamm[0])
-    reverse_record = reverse_complement(record)
+    reverse_record = complement(record)
     seq = record['seq']
     reverse_seq = reverse_record['seq']
     results = []
@@ -160,7 +189,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
         s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
         if s >= threshold:
             site_dict = dict()
-            site_dict['id'] = record['id']
+            site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
             site_dict['start'] = str(int(record['start']) + i)
             site_dict['end'] = str(int(record['start']) + i + motif_length)
@@ -175,7 +204,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
         s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
         if s >= threshold:
             site_dict = dict()
-            site_dict['id'] = record['id']
+            site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
             site_dict['start'] = str(int(record['end']) - i - motif_length)
             site_dict['end'] = str(int(record['end']) - i)
@@ -218,9 +247,8 @@ def main():
         results += scan_seq_by_bamm(record, log_odds_bamm, order, threshold)
 
     df = pd.DataFrame(results)
-    df['name'] = np.repeat('.', len(df))
-    #df['score'] = np.repeat(0, len(df))
-    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'id', 'site']]
+    #df['name'] = np.repeat('.', len(df))
+    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     df.to_csv(results_path, sep='\t', header=False, index=False)
 
 

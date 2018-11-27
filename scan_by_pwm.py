@@ -65,7 +65,7 @@ def score(seq, pwm):
     return(score)
 
 
-def reverse_complement(record):
+def complement(record):
     '''
     Make reverse and compelent
     '''
@@ -85,7 +85,7 @@ def reverse_complement(record):
             seq += 'C'
         elif letter == 'T':
             seq += 'A'
-    output['seq'] = seq[::-1]
+    #output['seq'] = seq[::-1]
     return(output)
 
 
