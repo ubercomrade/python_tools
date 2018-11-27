@@ -115,6 +115,30 @@ def modify_bio_records(bed, to_min, to_max, to_size, tail):
         return(bed)
 
 
+def complement(record):
+    '''
+    Make reverse and compelent
+    '''
+    output = dict(record)
+    strand = record['strand']
+    seq = str()
+    if strand == '+':
+        output['strand'] = '-'
+    else:
+        output['strand'] = '+'
+    for letter in output['seq']:
+        if letter == 'A':
+            seq += 'T'
+        elif letter == 'C':
+            seq += 'G'
+        elif letter == 'G':
+            seq += 'C'
+        elif letter == 'T':
+            seq += 'A'
+    #output['seq'] = seq[::-1]
+    return(output)
+
+
 def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
     bed_peaks = read_bed(path_bed)
     bed_peaks = modify_bio_records(bed_peaks, to_min, to_max, to_size, tail)
@@ -164,7 +188,10 @@ def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
         for line_number in range(peak_start_line, peak_end_line + 1):
             seq += linecache.getline(path_fasta, line_number).strip()
         if not 'N' in seq[position_start:position_end]:
-            rec['seq'] = seq[position_start:position_end]
+            if rec['strand'] == '+':
+                rec['seq'] = seq[position_start:position_end]
+            else:
+                rec['seq'] = complement(seq[position_start:position_end])
         else:
             continue
         results.append(rec)
