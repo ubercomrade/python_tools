@@ -33,6 +33,7 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
                     motif_order = motif_order + 1
                 else:
                     break
+        file.close()
 
         # count the motif length
         motif_length = int(sum(1 for line in open(bamm_file)) / (motif_order + 1))
@@ -47,6 +48,7 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
                 for k in range(motif_order):
                     model[k].append([float(p) for p in file.readline().split()])
                 file.readline()
+        file.close()
 
         # convert a bamm array to numpy array
         for k in range(motif_order):
@@ -67,6 +69,7 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
                 bg_freq = [float(p) for p in line.split()]
                 bg[order] = np.array(bg_freq, dtype=float)
                 order += 1
+        file.close()
     else:
         print('File {0} does not exist'.format(bg_file))
         exit()
@@ -106,6 +109,7 @@ def read_fasta(path):
                 continue
             record['seq'] = line.strip().upper()
             fasta.append(record)
+    file.close()
     return(fasta)
 
 

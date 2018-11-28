@@ -47,6 +47,7 @@ def read_fasta(path):
                 continue
             record['seq'] = line.strip().upper()
             fasta.append(record)
+    file.close()
     return(fasta)
 
 
