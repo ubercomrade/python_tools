@@ -1,5 +1,22 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
 import argparse
 import sys
+import os
+from multiprocessing import Pool
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,7 +71,6 @@ def overlap(site_1, site_2):
     Does the range (start1, end1) overlap with (start2, end2)?
     Based on De Morgan's laws
     '''
-
     return site_1['end'] >= site_2['start'] and site_2['end'] >= site_1['start']
 
 
@@ -62,73 +78,91 @@ def get_coord(site):
     return(np.array(site['start'], site['end']))
 
 
-def calculate_fraction_of_sites(data, bamm_sites, pwm_sites):
+def calculate_fraction_of_sites(sub_data, sub_pwm_sites, sub_bamm_sites):
 
     # Varable for write results
-    results = {'peaks': int(), 'no_sites': int(), 'only_pwm_sites': int(), 'only_bamm_sites': int(),
-               'only_overlap_sites': int(), 'added_sites_by_bamm': int(), 'added_sites_by_pwm': int(),
-               'added_sites_by_both_methods': int()}
-    results['peaks'] = len(data)
-    results['no_sites'] = len(set(data['name']) - set(bamm_sites['name']) - set(pwm_sites['name']))
-    results['only_bamm_sites'] = len(set(bamm_sites['name']) - set(pwm_sites['name']))
-    results['only_pwm_sites'] = len(set(pwm_sites['name']) - set(bamm_sites['name']))
+    results = {'peaks': int(), 'no_sites': int(), 'pwm_sites': int(), 'bamm_sites': int(),
+               'overlap_sites': int(), 'not_overlap_sites': int()}
+    results['peaks'] = len(sub_data)
+    results['no_sites'] = len(set(sub_data['name']) -
+                              set(sub_bamm_sites['name']) - set(sub_pwm_sites['name']))
+    results['bamm_sites'] = len(set(sub_bamm_sites['name']) - set(sub_pwm_sites['name']))
+    results['pwm_sites'] = len(set(sub_pwm_sites['name']) - set(sub_bamm_sites['name']))
 
     # Caclculation fraction of sites in peaks
-    both_method_peaks = set(bamm_sites['name']) & set(pwm_sites['name'])
+    both_method_peaks = set(sub_bamm_sites['name']) & set(sub_pwm_sites['name'])
     common_peaks_results = pd.DataFrame()
 
-    # !!!Need to improve!!!
-    # + strand
     for peak in both_method_peaks:
-        subset_bamm = pd.DataFrame(bamm_sites[np.logical_and(
-            bamm_sites['name'] == peak, bamm_sites['strand'] == '+')])
-        subset_pwm = pd.DataFrame(pwm_sites[np.logical_and(
-            pwm_sites['name'] == peak, pwm_sites['strand'] == '+')])
-        for index_pwm, row_pwm in subset_pwm.iterrows():
-            for index_bamm, row_bamm in subset_bamm.iterrows():
-                intersection = overlap(row_pwm, row_bamm)
-                subset_bamm.loc[index_bamm, 'overlaps'] = intersection
-                subset_pwm.loc[index_pwm, 'overlaps'] = intersection
-        common_peaks_results = pd.concat([common_peaks_results, subset_bamm, subset_pwm])
+        subset_bamm = pd.DataFrame(sub_bamm_sites[np.logical_and(
+            sub_bamm_sites['name'] == peak, sub_bamm_sites['strand'] == '+')])
+        subset_pwm = pd.DataFrame(sub_pwm_sites[np.logical_and(
+            sub_pwm_sites['name'] == peak, sub_pwm_sites['strand'] == '+')])
+        intersections_down = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
+        ) for index_bamm, row_bamm in subset_bamm.iterrows()]
 
-    # - strand
-    for peak in both_method_peaks:
-        subset_bamm = pd.DataFrame(bamm_sites[np.logical_and(
-            bamm_sites['name'] == peak, bamm_sites['strand'] == '-')])
-        subset_pwm = pd.DataFrame(pwm_sites[np.logical_and(
-            pwm_sites['name'] == peak, pwm_sites['strand'] == '-')])
-        for index_pwm, row_pwm in subset_pwm.iterrows():
-            for index_bamm, row_bamm in subset_bamm.iterrows():
-                intersection = overlap(row_pwm, row_bamm)
-                subset_bamm.loc[index_bamm, 'overlaps'] = intersection
-                subset_pwm.loc[index_pwm, 'overlaps'] = intersection
-        common_peaks_results = pd.concat([common_peaks_results, subset_bamm, subset_pwm])
+        subset_bamm = pd.DataFrame(sub_bamm_sites[np.logical_and(
+            sub_bamm_sites['name'] == peak, sub_bamm_sites['strand'] == '-')])
+        subset_pwm = pd.DataFrame(sub_pwm_sites[np.logical_and(
+            sub_pwm_sites['name'] == peak, sub_pwm_sites['strand'] == '-')])
+        intersections_up = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
+        ) for index_bamm, row_bamm in subset_bamm.iterrows()]
 
-    # !!!Need to improve!!!
-    # Ended calculation
-    for peak in both_method_peaks:
-        tmp = common_peaks_results[common_peaks_results['name'] == peak]
-        tmp = set(tmp[tmp['overlaps'] == False]['type'])
-        if 'pwm' in tmp and 'bamm' in tmp:
-            results['added_sites_by_both_methods'] += 1
-            continue
-        elif 'pwm' in tmp:
-            results['added_sites_by_pwm'] += 1
-            continue
-        elif 'bamm' in tmp:
-            results['added_sites_by_bamm'] += 1
-            continue
+        intersections = intersections_up + intersections_down
+        if sum(intersections) == 0:
+            results['not_overlap_sites'] += 1
         else:
-            results['only_overlap_sites'] += 1
-
+            results['overlap_sites'] += 1
     return(results)
+
+
+def get_sub_data(top, peaks, sites):
+    sub_data = peaks[:top]
+    names = set(sub_data['name'])
+    sub_sites = sites[[i in names for i in sites['name']]]
+    return(sub_sites)
+
+
+def get_top(top, peaks):
+    sub_data = peaks[:top]
+    return(sub_data)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--peaks', action='store', dest='input_peaks',
+                        required=True, help='path to peaks in BED format or like BED format that contain all scaned peaks coordinates')
+    parser.add_argument('-m', '--pwm', action='store', dest='pwm_path',
+                        required=True, help='path to file that contain sites obtained by PWM in peaks file')
+    parser.add_argument('-b', '--bamm', action='store', dest='bamm_path',
+                        required=True, help='path to file that contain sites obtained by BAMM in peaks file')
+    parser.add_argument('-t', '--tag', action='store', dest='tag',
+                        required=True, help='TAG for output files')
+    parser.add_argument('-o', '--out', action='store', dest='out_dir',
+                        required=True, help='OUT_DIR')
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    return(parser.parse_args())
 
 
 def main():
     # MAIN
-    bamm_path = '/home/anton/DATA/TF/CEPBA_mm10_GSM2845732/SCAN/CEBPA_all_BAMM.tsv'
-    pwm_path = '/home/anton/DATA/TF/CEPBA_mm10_GSM2845732/SCAN/CEBPA_all_PWM.tsv'
-    peaks_path = '/home/anton/DATA/TF/CEPBA_mm10_GSM2845732/BED/CEBPA_all.bed'
+    #bamm_path = '~/DATA/TF/CEPBA_mm10_GSM2845732/SCAN/CEBPA_all_BAMM.tsv'
+    #pwm_path = '~/DATA/TF/CEPBA_mm10_GSM2845732/SCAN/CEBPA_all_PWM.tsv'
+    #peaks_path = '~/DATA/TF/CEPBA_mm10_GSM2845732/BED/CEBPA_all.bed'
+    #tag = '123'
+    #out_dir = '~/DATA/TEST'
+
+    args = parse_args()
+    bamm_path = args.bamm_path
+    pwm_path = args.pwm_path
+    peaks_path = args.input_peaks
+    tag = args.tag
+    out_dir = args.out_dir
+
+    if not os.path.isdir(out_dir):
+        os.mkdir(out_dir)
 
     # Read bamm sites
     bamm_sites = read_bed_like_file(bamm_path)
@@ -143,61 +177,38 @@ def main():
     # Read peaks and give names to every peask
     data = read_peaks(peaks_path)
 
-    # Total results
-    total_results = []
+    # Get subdata by peak score (TOP 1000, 2000, ...)
+    top = [i * 1000 for i in range(1, len(data) // 1000 + 1)]
+    pwm_sub_sites = [get_sub_data(i, data, pwm_sites) for i in top]
+    bamm_sub_sites = [get_sub_data(i, data, bamm_sites) for i in top]
+    sub_data = [get_top(i, data) for i in top]
 
-    # Get subdata by peak score
-    bins = 7
-    bins_width = (max(data['score']) - min(data['score'])) / bins
-    fractions = []
-    for step in range(bins):
-        low = round(min(data['score']) + step * bins_width)
-        high = round(min(data['score']) + (step + 1) * bins_width)
-        fractions.append(str(low) + '-' + str(high))
-        sub_data = data[np.logical_and(data['score'] >= low, data['score'] < high)]
-        names = set(sub_data['name'])
-        sub_pwm_sites = pwm_sites[[i in names for i in pwm_sites['name']]]
-        sub_bamm_sites = bamm_sites[[i in names for i in bamm_sites['name']]]
-        total_results.append(calculate_fraction_of_sites(sub_data, sub_bamm_sites, sub_pwm_sites))
+    data = zip(sub_data, pwm_sub_sites, bamm_sub_sites)
+    with Pool(len(top)) as p:
+        total_results = p.starmap(calculate_fraction_of_sites, data)
 
     # Count data
     count = pd.DataFrame(total_results)
-    count['fractions'] = fractions
-
-    # Fraction data devided by total volume of peaks
-    total_count = pd.DataFrame(total_results)
-    total_count = total_count.drop(columns=["peaks"])
-    total_count['fractions'] = fractions
-    for column in total_count:
-        if column == 'fractions':
-            break
-        total_count[column] = total_count[column] / sum(count['peaks'])
+    count = count[['overlap_sites', 'pwm_sites', 'bamm_sites',
+                   'not_overlap_sites', 'no_sites', 'peaks']]
+    count.to_csv(out_dir + '/' + tag + '_COUNT.tsv', sep='\t', index=False)
 
     # Fraction data devided by fractiomal volume of peaks
-    fractional_count = pd.DataFrame(total_results)
-    fractional_count['fractions'] = fractions
-    for column in fractional_count:
-        if column == 'fractions':
-            break
-        fractional_count[column] = fractional_count[column] / fractional_count['peaks']
-    fractional_count = fractional_count.drop(columns="peaks")
+    frequency = pd.DataFrame(total_results)
+    frequency = frequency[['overlap_sites', 'pwm_sites',
+                           'bamm_sites', 'not_overlap_sites', 'no_sites', 'peaks']]
+    for column in frequency:
+        if column == 'peaks':
+            continue
+        frequency[column] = frequency[column] / frequency['peaks']
+    frequency.to_csv(out_dir + '/' + tag + '_FREQUENCY.tsv', sep='\t', index=False)
 
-    return(fractional_count, total_count, count)
+    # Picture
+    ax = frequency.plot.bar(stacked=True, x='peaks')
+    ax.legend(loc=[1.05, 0.62])
+    fig = ax.get_figure()
+    fig.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150,  bbox_inches='tight')
 
 
-fractional_count, total_count, count = main()
-
-
-ax = fractional_count.plot.bar(stacked=True, x='fractions')
-ax.legend(loc=[1.1, 0.45])
-fig = ax.get_figure()
-fig.savefig('/home/anton/DATA/TF/CEPBA_mm10_GSM2845732/FRACTIONS.JPG',
-            dpi=150,  bbox_inches='tight')
-
-ax = total_count.plot.bar(stacked=True, x='fractions')
-ax.legend(loc=[1.1, 0.45])
-fig = ax.get_figure()
-fig.savefig('/home/anton/DATA/TF/CEPBA_mm10_GSM2845732/TOTAL_FRACTIONS.JPG',
-            dpi=150,  bbox_inches='tight')
-
-count.to_csv('/home/anton/DATA/TF/CEPBA_mm10_GSM2845732/count.tsv', sep='\t', index=False)
+if __name__ == '__main__':
+    main()
