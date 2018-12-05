@@ -179,22 +179,25 @@ def make_pcm(motifs):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', action='store', dest='input',
-                        required=True, help='path to PCM matrix file HOCOMOCO format')
+                        required=True, help='path to ChIPMunk results')
     parser.add_argument('-o', '--output', action='store', dest='output',
-                        required=True, help='path to PWM output file')
-    parser.add_argument('-f', '--fasta', action='store', dest='fasta',
-                        required=False, help='path to BED file, needed to calculate backgroun frequences for nucleotieds. \
-                        Without this parametr background frequances = {A: 0.25, C: 0.25, G: 0.25, T: 0.25}')
+                        required=True, help='dir to write output files')
+    parser.add_argument('-t', '--tag', action='store', dest='tag',
+                        required=True, help='TAG for output files')
+    parser.add_argument('-b', '--background', action='store', dest='background',
+                        required=False, help='path to FASTA file, needed to calculate backgroun frequences for nucleotieds. \
+                        Without this parametr background calculated based on sites')
     return(parser.parse_args())
 
 
-def write_meme(output, tag, pcm, background, nsites):
+def write_meme(output, tag, pfm, background, nsites):
     with open(output + '/' + tag + '.meme', 'w') as file:
         file.write('MEME version 4\n\nALPHABET= ACGT\n\nBackground letter frequencies\n')
         file.write('A {0} C {1} G {2} T {3}\n\n'.format(background['A'], background['C'],
                                                         background['G'], background['T']))
         file.write('MOTIF {0}\n'.format(tag))
-        file.write('letter-probability matrix: alength= 4 w= {0} nsites= {1}\n'.format(inf['w']))
+        file.write(
+            'letter-probability matrix: alength= 4 w= {0} nsites= {1}\n'.format(len(pfm['A']), nsites))
         for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
             file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
 
@@ -214,7 +217,8 @@ def main():
     tag = args.tag
 
     seq = get_sequences(input_)
-    if not (fasta_path is None):
+    nsites = len(seq)
+    if not (output_ is None):
         background = background_freq(list(seq['seq']))
     else:
         fasta = read_fasta(background_path)
@@ -227,6 +231,9 @@ def main():
     if not os.path.isdir(output_):
         os.mkdir(output_)
 
+    write_meme(output_, tag, pfm, background, nsites)
+    write_pwm(output_, tag, pwm)
 
-# if __name__ == '__main__':
-#    main()
+
+if __name__ == '__main__':
+    main()
