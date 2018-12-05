@@ -17,6 +17,8 @@ GNU General Public License for more details.
 import linecache
 import argparse
 import sys
+import multiprocessing as mp
+import functools
 import pandas as pd
 import numpy as np
 
@@ -42,7 +44,7 @@ def read_fasta(path):
                 try:
                     record['strand'] = line[3]
                 except:
-                    #print('Record with out strand. Strand is +')
+                    # print('Record with out strand. Strand is +')
                     record['strand'] = '+'
                 continue
             record['seq'] = line.strip().upper()
@@ -106,7 +108,7 @@ def complement(record):
     return(output)
 
 
-def scan_seq_by_pwm(pwm, record, threshold):
+def scan_seq_by_pwm(record, pwm, threshold):
     results = []
     reverse_record = complement(record)
     length_pwm = len(pwm['A'])
@@ -169,13 +171,20 @@ def main():
 
     fasta = read_fasta(fasta_path)
     pwm, inf = read_pwm(pwm_path)
-    results = []
-    for record in fasta:
-        results += scan_seq_by_pwm(pwm, record, threshold)
+
+    # results = []
+    # for record in fasta:
+    #    results += scan_seq_by_pwm(record, pwm, threshold)
+
+    with mp.Pool(4) as p:
+        results = p.map(functools.partial(scan_seq_by_pwm, record,
+                                          pwm=pwm, threshold=threshold), fasta)
+    results = [i for i in results if i != []]
+    results = [j for sub in results for j in sub]
 
     df = pd.DataFrame(results)
-    #df['name'] = np.repeat('.', len(df))
-    #df['score'] = np.repeat(0, len(df))
+    # df['name'] = np.repeat('.', len(df))
+    # df['score'] = np.repeat(0, len(df))
     df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     df.to_csv(results_path, sep='\t', header=False, index=False)
 

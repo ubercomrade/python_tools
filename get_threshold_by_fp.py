@@ -19,6 +19,8 @@ import argparse
 import sys
 import os
 import itertools
+import multiprocessing as mp
+import functools
 import pandas as pd
 import numpy as np
 
@@ -44,7 +46,7 @@ def read_fasta(path):
                 try:
                     record['strand'] = line[3]
                 except:
-                    #print('Record with out strand. Strand is +')
+                    # print('Record with out strand. Strand is +')
                     record['strand'] = '+'
                 continue
             record['seq'] = line.strip().upper()
@@ -148,7 +150,7 @@ def read_fasta(path):
                 try:
                     record['strand'] = line[3]
                 except:
-                    #print('Record with out strand. Strand is +')
+                    # print('Record with out strand. Strand is +')
                     record['strand'] = '+'
                 continue
             record['seq'] = line.strip().upper()
@@ -259,7 +261,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
     return(results)
 
 
-def scan_seq_by_pwm(pwm, record):
+def scan_seq_by_pwm(record, pwm):
     results = []
     reverse_record = complement(record)
     length_pwm = len(pwm['A'])
@@ -333,9 +335,16 @@ def main():
 
         fasta = read_fasta(fasta_path)
         pwm, inf = read_pwm(pwm_path)
-        results = []
-        for record in fasta:
-            results += scan_seq_by_pwm(pwm, record)
+
+        # results = []
+        # for record in fasta:
+        #    results += scan_seq_by_pwm(record, pwm)
+
+        with mp.Pool(4) as p:
+            results = p.map(functools.partial(scan_seq_by_pwm, record, pwm=pwm), fasta)
+        results = [i for i in results if i != []]
+        results = [j for sub in results for j in sub]
+
         thr, calc_fp = get_threshold(results, fp)
         print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
 
@@ -348,9 +357,17 @@ def main():
         fasta = read_fasta(fasta_path)
         bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
         log_odds_bamm = make_log_odds_bamm(bamm, bg)
-        results = []
-        for record in fasta:
-            results += scan_seq_by_bamm(record, log_odds_bamm, order)
+
+        # results=[]
+        # for record in fasta:
+        #    results += scan_seq_by_bamm(record, log_odds_bamm, order)
+
+        with mp.Pool(4) as p:
+            results = p.map(functools.partial(scan_seq_by_bamm,
+                                              log_odds_bamm=log_odds_bamm, order=order), fasta)
+        results = [i for i in results if i != []]
+        results = [j for sub in results for j in sub]
+
         thr, calc_fp = get_threshold(results, fp)
         print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
 

@@ -18,6 +18,8 @@ import os
 import numpy as np
 import itertools
 import random
+import multiprocessing as mp
+import functools
 import pandas as pd
 import argparse
 
@@ -104,7 +106,7 @@ def read_fasta(path):
                 try:
                     record['strand'] = line[3]
                 except:
-                    #print('Record with out strand. Strand is +')
+                    # print('Record with out strand. Strand is +')
                     record['strand'] = '+'
                 continue
             record['seq'] = line.strip().upper()
@@ -262,12 +264,19 @@ def main():
     fasta = read_fasta(fasta_path)
     bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
     log_odds_bamm = make_log_odds_bamm(bamm, bg)
-    results = []
-    for record in fasta:
-        results += scan_seq_by_bamm(record, log_odds_bamm, order, threshold)
+
+    # results = []
+    # for record in fasta:
+    #    results += scan_seq_by_bamm(record, log_odds_bamm, order, threshold)
+
+    with mp.Pool(4) as p:
+        results = p.map(functools.partial(scan_seq_by_bamm,
+                                          log_odds_bamm=log_odds_bamm, order=order, threshold=threshold), fasta)
+    results = [i for i in results if i != []]
+    results = [j for sub in results for j in sub]
 
     df = pd.DataFrame(results)
-    #df['name'] = np.repeat('.', len(df))
+    # df['name'] = np.repeat('.', len(df))
     df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     df.to_csv(results_path, sep='\t', header=False, index=False)
 
