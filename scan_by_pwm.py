@@ -56,18 +56,18 @@ def read_fasta(path):
 def read_pwm(path):
     with open(path, 'r') as file:
         inf = file.readline()
-        inf = inf.strip().split('\t')
-        id_pfm = inf[0][1:].strip()
-        tf_name = inf[1].split('/')[0].strip()
-        tf_db = inf[1].split('/')[1].strip()
-        inf = {'id_pfm': id_pfm, 'tf_name': tf_name, 'tf_db': tf_db}
+        #inf = inf.strip().split('\t')
+        #id_pfm = inf[0][1:].strip()
+        #tf_name = inf[1].split('/')[0].strip()
+        #tf_db = inf[1].split('/')[1].strip()
+        #inf = {'id_pfm': id_pfm, 'tf_name': tf_name, 'tf_db': tf_db}
         pwm = {'A': [], 'C': [], 'G': [], 'T': []}
         for line in file:
             line = line.strip().split('\t')
             for letter, value in zip(pwm.keys(), line):
                 pwm[letter].append(float(value))
     file.close()
-    return(pwm, inf)
+    return(pwm)  # , inf)
 
 
 def score(seq, pwm):
@@ -170,14 +170,14 @@ def main():
     results_path = args.output
 
     fasta = read_fasta(fasta_path)
-    pwm, inf = read_pwm(pwm_path)
+    pwm = read_pwm(pwm_path)
 
     # results = []
     # for record in fasta:
     #    results += scan_seq_by_pwm(record, pwm, threshold)
 
     with mp.Pool(4) as p:
-        results = p.map(functools.partial(scan_seq_by_pwm, record,
+        results = p.map(functools.partial(scan_seq_by_pwm,
                                           pwm=pwm, threshold=threshold), fasta)
     results = [i for i in results if i != []]
     results = [j for sub in results for j in sub]
