@@ -209,6 +209,13 @@ def write_pwm(output, tag, pwm):
             file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
 
 
+def write_sites(output, tag, sites):
+    with open(output + '/' + tag + '.fasta', 'w') as file:
+        for index, site in enumerate(sites):
+            file.write('>site_' + str(index) + '\n')
+            file.write(site + '\n')
+
+
 def main():
     args = parse_args()
     input_ = args.input
@@ -233,6 +240,7 @@ def main():
 
     write_meme(output_, tag, pfm, background, nsites)
     write_pwm(output_, tag, pwm)
+    write_sites(output=output_, tag=tag, sites=list(seq['seq']))
 
 
 if __name__ == '__main__':
