@@ -285,19 +285,93 @@ def closed_to_fpr(results_, fpr):
     return(df.loc[df['delta'].idxmin()])
 
 
-def main():
-    path = '/home/anton/DATA/TF/FOXA1_hg38_ENCSR819LGH/MOTIFS/FOXA1_14.fasta'
-    seq = read_fasta(path)
-    background = background_freq(seq)
-    seq = remove_equalent_seq(seq, homology=0.95)
-    pwm = make_pwm(seq, background)
-    min_score = get_min_score(pwm)
-    max_score = get_max_score(pwm)
-    fpr = 0.0005
+def parse_args():
 
-    tpr_list = list()
-    for s in range(20):
-        scores = calculate_score_for_train_test(seq, k=400)
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest='subparser_name')
+    roc_parser = subparsers.add_parser('roc', help='return tsv file with roc [fpr, tpr, score]')
+    roc_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
+                            required=True, help='path to FASTA file with sites')
+    roc_parser.add_argument('-n', '--tag', action='store', dest='tag',
+                            required=True, help='file tag')
+    roc_parser.add_argument('-t', '--times', action='store', dest='times', type=int,
+                            default=100, required=False, help='x times random sample will be larger than original sample')
+    roc_parser.add_argument('-o', '--output', action='store', dest='output',
+                            required=True, help='dir for write output file')
+
+    tpr_parser = subparsers.add_parser('tpr', help='return tpr with fixed value of fpr')
+    tpr_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
+                            required=True, help='path to FASTA file with sites')
+    tpr_parser.add_argument('-t', '--times', action='store', dest='times', type=int,
+                            default=100, required=False, help='x times random sample will be larger than original sample')
+    tpr_parser.add_argument('-i', '--iterations', action='store', type=int, dest='iterations',
+                            default=10, required=False, help='number of iterations')
+    tpr_parser.add_argument('-v', '--fpr', action='store', type=float, dest='fpr',
+                            required=True, help='value of FPR')
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    return(parser.parse_args())
+
+
+def main():
+
+    args = parse_args()
+    if args.subparser_name == 'tpr':
+        #path = '/home/anton/DATA/TF/FOXA1_hg38_ENCSR819LGH/MOTIFS/FOXA1_14.fasta'
+        path = args.input_fasta
+        fpr = args.fpr
+        iterations = args.iterations
+        times = args.times
+
+        seq = read_fasta(path)
+        background = background_freq(seq)
+        seq = remove_equalent_seq(seq, homology=0.95)
+        pwm = make_pwm(seq, background)
+        min_score = get_min_score(pwm)
+        max_score = get_max_score(pwm)
+
+        tpr_list = list()
+        for i in range(iterations):
+            scores = calculate_score_for_train_test(seq, k=times)
+            true_scores = [i for i, j in scores]
+            false_scores = [k for i, j in scores for k in j]
+
+            norm_true_scores = np.array([to_norm(score, min_score, max_score)
+                                         for score in true_scores])
+            norm_false_scores = np.array([to_norm(score, min_score, max_score)
+                                          for score in false_scores])
+            norm_true_scores.sort()
+            norm_false_scores.sort()
+
+            with mp.Pool(mp.cpu_count()) as p:
+                results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
+                                                  np_false_scores=norm_false_scores), norm_true_scores)
+            results = pd.DataFrame(results)
+
+            tpr = closed_to_fpr(results, fpr)['tpr']
+            tpr_list.append(tpr)
+
+        print('TPR')
+        for i in tpr_list:
+            print(i)
+
+    elif args.subparser_name == 'roc':
+        #path = '/home/anton/DATA/TF/FOXA1_hg38_ENCSR819LGH/MOTIFS/FOXA1_14.fasta'
+        path = args.input_fasta
+        tag = args.tag
+        output = args.output
+        times = args.times
+
+        seq = read_fasta(path)
+        background = background_freq(seq)
+        seq = remove_equalent_seq(seq, homology=0.95)
+        pwm = make_pwm(seq, background)
+        min_score = get_min_score(pwm)
+        max_score = get_max_score(pwm)
+
+        scores = calculate_score_for_train_test(seq, k=times)
         true_scores = [i for i, j in scores]
         false_scores = [k for i, j in scores for k in j]
 
@@ -311,11 +385,13 @@ def main():
             results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
                                               np_false_scores=norm_false_scores), norm_true_scores)
         results = pd.DataFrame(results)
+        results = results[['tpr', 'fpr', 'score']]
 
-        tpr = closed_to_fpr(results, fpr)['tpr']
-        tpr_list.append(tpr)
-    return(tpr_list)
+        if not os.path.isdir(output):
+            os.mkdir(output)
+
+        results.to_csv(output + '/' + tag + 'tsv', header=True, index=False)
 
 
 if __name__ == '__main__':
-    res = main()
+    main()
