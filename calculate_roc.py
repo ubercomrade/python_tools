@@ -390,7 +390,7 @@ def main():
         if not os.path.isdir(output):
             os.mkdir(output)
 
-        results.to_csv(output + '/' + tag + 'tsv', header=True, index=False)
+        results.to_csv(output + '/' + tag + '.tsv', sep='\t', header=True, index=False)
 
 
 if __name__ == '__main__':
