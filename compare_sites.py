@@ -29,12 +29,13 @@ def read_bed_like_file(path):
 
 
 def read_peaks(path):
-    df = pd.read_csv(path, sep='\t', header=None,
+    df = pd.read_csv(path, sep='\t', header=None, usecols=[0, 1, 2, 3, 4, 5],
                      names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
     if df['name'][0] == '.':
         name = 'peaks_'
         names = [name + str(i) for i in range(len(df))]
         df['name'] = names
+    # print(df)
     return(df)
 
 

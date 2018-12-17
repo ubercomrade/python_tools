@@ -353,7 +353,6 @@ def main():
             tpr = closed_to_fpr(results, fpr)['tpr']
             tpr_list.append(tpr)
 
-        print('TPR')
         for i in tpr_list:
             print(i)
 

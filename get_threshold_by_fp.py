@@ -346,7 +346,8 @@ def main():
         results = [j for sub in results for j in sub]
 
         thr, calc_fp = get_threshold(results, fp)
-        print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
+        #print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
+        print(thr)
 
     elif args.subparser_name == 'bamm':
         bamm_path = args.input_bamm
@@ -369,7 +370,8 @@ def main():
         results = [j for sub in results for j in sub]
 
         thr, calc_fp = get_threshold(results, fp)
-        print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
+        #print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
+        print(thr)
 
 
 if __name__ == '__main__':
