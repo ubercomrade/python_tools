@@ -70,7 +70,7 @@ def parse_args():
         parser.print_help(sys.stderr)
         sys.exit(1)
     return(parser.parse_args())
-    
+
 
 def main():
     args = parse_args()
@@ -81,7 +81,7 @@ def main():
     amount = int(args.amount)
     split = args.split
     file_extension = os.path.splitext(path)[1]
-    
+
     if not os.path.isdir(output):
         os.mkdir(output)
 
@@ -102,13 +102,12 @@ def main():
     else:
         peaks = read_file(path)
         peaks = get_top_peaks(peaks, amount, col)
-        with open(output + '/' + tag + file_extension, 'w') as file:
+        with open(output + '/' + tag + '.bed', 'w') as file:
             for i in peaks:
                 i[-1] = str(i[-1])
                 file.write('\t'.join(i) + '\n')
         file.close()
 
-    
 
 if __name__ == '__main__':
     main()
