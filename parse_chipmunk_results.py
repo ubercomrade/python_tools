@@ -57,6 +57,26 @@ def read_fasta(path):
     return(sequences)
 
 
+def remove_equalent_seq(seq_list, homology=0.95):
+    '''
+    Удаление гомологичных последовательностей из списка (seq_list)
+    Если кол-во совпадений при сравнении последовательности 1 и 2 >= длина последовательности * homology,
+    то последовательность 1 удаляется из списка
+    Функция возвращает новый список
+    '''
+    seq_list = list(seq_list)
+    treshold = homology * len(seq_list[0])
+    for seq1 in tuple(seq_list):
+        sub_seq_list = list(seq_list)
+        sub_seq_list.remove(seq1)
+        for seq2 in sub_seq_list:
+            score = len([i for i, j in zip(seq1, seq2) if i == j])
+            if score >= treshold:
+                seq_list.remove(seq1)
+                break
+    return(seq_list)
+
+
 def background_freq(seq):
     s = ''.join(seq)
     background = {}
@@ -224,14 +244,15 @@ def main():
     tag = args.tag
 
     seq = get_sequences(input_)
+    seq = remove_equalent_seq(seq_list=list(seq['seq']), homology=0.95)
     nsites = len(seq)
     if not (output_ is None):
-        background = background_freq(list(seq['seq']))
+        background = background_freq(seq)
     else:
         fasta = read_fasta(background_path)
         background = background_freq(fasta)
 
-    pcm = make_pcm(list(seq['seq']))
+    pcm = make_pcm(seq)
     pfm = make_pfm_from_pcm(pcm)
     pwm = make_pwm_from_pcm(pcm, background)
 
@@ -240,7 +261,7 @@ def main():
 
     write_meme(output_, tag, pfm, background, nsites)
     write_pwm(output_, tag, pwm)
-    write_sites(output=output_, tag=tag, sites=list(seq['seq']))
+    write_sites(output=output_, tag=tag, sites=seq)
 
 
 if __name__ == '__main__':

@@ -325,6 +325,11 @@ def get_threshold(results, fp):
     return(thr, calc_fp)
 
 
+def get_fpr(uniq_score, results, length):
+    fpr = (length - np.searchsorted(results, uniq_score, side='right') - 1) / length
+    return(fpr)
+
+
 def main():
     args = parse_args()
 
@@ -348,6 +353,19 @@ def main():
         thr, calc_fp = get_threshold(results, fp)
         #print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
         print(thr)
+        #results = np.array(results)
+        # results.sort()
+        #uniq_scores = np.unique(results)
+        #length = len(results)
+        # with mp.Pool(2) as p:
+        #    fp = p.map(functools.partial(get_fpr,
+        #                                 results=results,
+        #                                 length=length), uniq_scores)
+
+        #fpr = np.array(fpr)
+        # fpr.sort()
+        #results = results[::-1]
+        #print(results[np.searchsorted(fpr, fp, side='left')])
 
     elif args.subparser_name == 'bamm':
         bamm_path = args.input_bamm
@@ -372,6 +390,20 @@ def main():
         thr, calc_fp = get_threshold(results, fp)
         #print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
         print(thr)
+
+        #results = np.array(results)
+        # results.sort()
+        #uniq_scores = np.unique(results)
+        #length = len(results)
+        # with mp.Pool(2) as p:
+        #    fp = p.map(functools.partial(get_fpr,
+        #                                 results=results,
+        #                                 length=length), uniq_scores)
+
+        #fpr = np.array(fpr)
+        # fpr.sort()
+        #results = results[::-1]
+        #print(results[np.searchsorted(fpr, fp, side='left')])
 
 
 if __name__ == '__main__':
