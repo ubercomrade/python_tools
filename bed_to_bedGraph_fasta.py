@@ -29,7 +29,7 @@ import numpy as np
 def read_bed(path):
     bed = pd.read_csv(path,
                       sep='\t', header=None,
-                      #usecols=[0, 1, 2, 3, 4, 5],
+                      # usecols=[0, 1, 2, 3, 4, 5],
                       names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
     bed.loc[np.isnan(bed['strand']), 'strand'] = '.'
     return(bed)
@@ -232,17 +232,19 @@ def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
 
 
 def bed_to_graph_fasta(record, graph):
-    chr_ = record['chr']
     record_start = record['start']
     record_end = record['end']
     record['graph'] = []
-    sub_graph = graph[graph['chromosome'] == chr_]
 
-    for coordinate in range(record_start, record_end):
-        index = int(np.searchsorted(sub_graph['start'], coordinate))
-        value = sub_graph.iloc[index]['score']
-        record['graph'].append(str(value))
-    record['graph'] = ' '.join(record['graph'])
+    # for coordinate in range(record_start, record_end):
+    #index = int(np.searchsorted(graph['start'], coordinate))
+    #    value = graph.iloc[index]['score']
+    #    record['graph'].append(str(value))
+    #record['graph'] = ' '.join(record['graph'])
+
+    value = [str(graph.iloc[int(np.searchsorted(graph['start'], coordinate))]['score'])
+             for coordinate in range(record_start, record_end)]
+    record['graph'] = ' '.join(value)
     return(record)
 
 
@@ -310,14 +312,14 @@ def main():
     if os.path.isfile(graph_path):
         results = bed_to_fasta(input_fasta, input_bed, to_min, to_max, to_size, tail)
         graph = read_bed_graph(graph_path)
-        with mp.Pool(mp.cpu_count()) as p:
-            # with mp.Pool(2) as p:
-            graph_results = p.map(functools.partial(bed_to_graph_fasta,
-                                                    graph=graph), results)
-        #graph_results = []
-        # for record in results:
-        #    res = bed_to_graph_fasta(record, graph)
-        #    graph_results.append(res)
+
+        graph_results = []
+        results = sorted(results, key=lambda x: x['chr'])
+        chrs = np.unique([i['chr'] for i in results])
+        for chr_ in chrs:
+            sub_results = [record for record in results if record['chr'] == chr_]
+            sub_graph = graph[graph['chromosome'] == chr_]
+            graph_results += [bed_to_graph_fasta(record, sub_graph) for record in sub_results]
 
         write_wig_fata(graph_results, output_fasta)
     else:
