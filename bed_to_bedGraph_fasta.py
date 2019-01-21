@@ -310,14 +310,14 @@ def main():
     if os.path.isfile(graph_path):
         results = bed_to_fasta(input_fasta, input_bed, to_min, to_max, to_size, tail)
         graph = read_bed_graph(graph_path)
-        # with mp.Pool(mp.cpu_count()) as p:
-        # with mp.Pool(2) as p:
-        #    results = p.map(functools.partial(bed_to_graph_fasta,
-        #                                      graph=graph), results)
-        graph_results = []
-        for record in results:
-            res = bed_to_graph_fasta(record, graph)
-            graph_results.append(res)
+        with mp.Pool(mp.cpu_count()) as p:
+            # with mp.Pool(2) as p:
+            graph_results = p.map(functools.partial(bed_to_graph_fasta,
+                                                    graph=graph), results)
+        #graph_results = []
+        # for record in results:
+        #    res = bed_to_graph_fasta(record, graph)
+        #    graph_results.append(res)
 
         write_wig_fata(graph_results, output_fasta)
     else:

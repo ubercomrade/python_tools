@@ -60,7 +60,7 @@ def read_sites(path, every_str=False):
             sequences = [i.strip().upper() for i in file]
     else:
         with open(path, 'r') as file:
-            sequences = [i.strip().upper() for i in file if i.strip() != '>']
+            sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
     return(sequences)
 
 

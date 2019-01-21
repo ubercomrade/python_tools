@@ -137,7 +137,8 @@ def score_bamm(seq, bamm, k_mers, order):
     position = 0
     score = 0
     for position in range(length_of_seq - order):
-        letter = seq[position:order + position + 1][::-1]
+        letter = seq[position:order + position + 1]
+        # [::-1]
         # print(letter)
         loc = k_mers[letter]
         score += bamm[order][position][loc]
