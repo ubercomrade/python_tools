@@ -31,19 +31,19 @@ def read_bed(path):
                       sep='\t', header=None,
                       #usecols=[0, 1, 2, 3, 4, 5],
                       names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
-    bed.loc[np.isnan(bed['strand']),'strand'] = '.'
+    bed.loc[np.isnan(bed['strand']), 'strand'] = '.'
     return(bed)
 
 
 def read_bed_graph(path):
     graph = pd.read_csv(path,
-                      sep='\t', header=None,
-                      names=['chromosome', 'start', 'end', 'score'])
-    
+                        sep='\t', header=None,
+                        names=['chromosome', 'start', 'end', 'score'])
+
     return(graph)
 
 
-#def read_bed(path):
+# def read_bed(path):
 #    bed = pd.read_csv(path,
 #                      sep='\t', header=None,
 #                      usecols=[0, 1, 2, 3, 4],
@@ -237,15 +237,15 @@ def bed_to_graph_fasta(record, graph):
     record_end = record['end']
     record['graph'] = []
     sub_graph = graph[graph['chromosome'] == chr_]
-    
+
     for coordinate in range(record_start, record_end):
         index = int(np.searchsorted(sub_graph['start'], coordinate))
         value = sub_graph.iloc[index]['score']
         record['graph'].append(str(value))
     record['graph'] = ' '.join(record['graph'])
     return(record)
-        
-    
+
+
 def write_fasta(results, path_to_write):
     with open(path_to_write, 'w') as file:
         for record in results:
@@ -310,10 +310,16 @@ def main():
     if os.path.isfile(graph_path):
         results = bed_to_fasta(input_fasta, input_bed, to_min, to_max, to_size, tail)
         graph = read_bed_graph(graph_path)
-        with mp.Pool(mp.cpu_count()) as p:
-            results = p.map(functools.partial(bed_to_graph_fasta,
-                                              graph=graph), results)
-        write_wig_fata(results, output_fasta)
+        # with mp.Pool(mp.cpu_count()) as p:
+        # with mp.Pool(2) as p:
+        #    results = p.map(functools.partial(bed_to_graph_fasta,
+        #                                      graph=graph), results)
+        graph_results = []
+        for record in results:
+            res = bed_to_graph_fasta(record, graph)
+            graph_results.append(res)
+
+        write_wig_fata(graph_results, output_fasta)
     else:
         results = bed_to_fasta(input_fasta, input_bed, to_min, to_max, to_size, tail)
         write_fasta(results, output_fasta)

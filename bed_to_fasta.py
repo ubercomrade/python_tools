@@ -23,11 +23,20 @@ import pandas as pd
 import numpy as np
 
 
+# def read_bed(path):
+#    bed = pd.read_csv(path,
+#                      sep='\t', header=None,
+#                      usecols=[0, 1, 2, 3, 4, 5],
+#                      names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
+#    return(bed)
+
+
 def read_bed(path):
     bed = pd.read_csv(path,
                       sep='\t', header=None,
-                      usecols=[0, 1, 2, 3, 4, 5],
+                      #usecols=[0, 1, 2, 3, 4, 5],
                       names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
+    bed.loc[np.isnan(bed['strand']), 'strand'] = '.'
     return(bed)
 
 
