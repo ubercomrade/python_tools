@@ -77,24 +77,22 @@ def remove_equalent_seq(seq_list, homology=0.95):
     return(seq_list)
 
 
-def background_freq(seq):
+def background_freq_di(seq):
     s = ''.join(seq)
     background = {}
-    mono_nucleotides = itertools.product('ACGT', repeat=1)
-    for i in mono_nucleotides:
-        background[i[0]] = s.count(i[0])
+    di_nucleotides = itertools.product('ACGT', repeat=2)
+    for i in di_nucleotides:
+        background[''.join(i)] = s.count(''.join(i))
     sum_of_nuc = sum(background.values())
     for i in background.keys():
         background[i] = background[i]/sum_of_nuc
     return(background)
 
 
-def make_pfm_from_pcm(pcm, pseudocount='1/N'):
+def make_dipfm_from_dipcm(pcm):
     '''
     Вычисление частотной матрицы на основе PCM.
     Для того чтобы избавиться от 0 значений частот используется pseudocount.
-    Pseudocount может быть dict со стандартными значениями {'A':0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25} [1],
-    либо pseudocount может быть str со значением sqroot [2].
     Подробнее о расчетах смотри:
     1)Wyeth W.Wasserman and Albin Sandelin
       APPLIED BIOINFORMATICS FOR THE IDENTIFICATION OF REGULATORY ELEMENTS
@@ -110,40 +108,25 @@ def make_pfm_from_pcm(pcm, pseudocount='1/N'):
 
     '''
 
-    number_of_sites = [0] * len(pcm['A'])
+    number_of_sites = [0] * len(pcm['AA'])
     for key in pcm.keys():
         for i in range(len(pcm[key])):
             number_of_sites[i] += pcm[key][i]
 
     pfm = dict()
-    mono_nucleotides = itertools.product('ACGT', repeat=1)
-    for i in mono_nucleotides:
-        pfm[i[0]] = []
+    di_nucleotides = itertools.product('ACGT', repeat=2)
+    for i in di_nucleotides:
+        pfm[''.join(i)] = []
 
-    if pseudocount == '1/N':
-        first_key = list(pcm.keys())[0]
-        nuc_pseudo = 1/len(pcm.keys())
-        for i in range(len(pcm[first_key])):
-            for nuc in pcm.keys():
-                pfm[nuc].append((pcm[nuc][i] + nuc_pseudo) / (number_of_sites[i] + 1))
-        return(pfm)
-
-    elif pseudocount == 'sqroot':
-        total_sq_root = int()
-        for i in pcm.keys():
-            total_sq_root += pcm[i][0]
-        total_sq_root = math.sqrt(total_sq_root)
-        sq_root = total_sq_root/len(pcm.keys())
-
-        first_key = list(pcm.keys())[0]
-        for i in range(len(pcm[first_key])):
-            for nuc in pcm.keys():
-                pfm[nuc].append((pcm[nuc][i] + sq_root) / (number_of_sites[i] + total_sq_root))
-
+    first_key = list(pcm.keys())[0]
+    nuc_pseudo = 1/len(pcm.keys())
+    for i in range(len(pcm[first_key])):
+        for nuc in pcm.keys():
+            pfm[nuc].append((pcm[nuc][i] + nuc_pseudo) / (number_of_sites[i] + 1))
     return(pfm)
 
 
-def make_pwm_from_pcm(pcm, background, method='log-odds', pseudocount='1/N'):
+def make_dipwm_from_dipcm(pcm, background):
     '''
     Функиця, которая считает PWM (position weight matrix) на основе PCM (position count matrix)
     с преобразованием log-odds (добавить новые)
@@ -165,11 +148,10 @@ def make_pwm_from_pcm(pcm, background, method='log-odds', pseudocount='1/N'):
 
     '''
     pwm = {}
-    mono_nucleotides = itertools.product('ACGT', repeat=1)
-    for i in mono_nucleotides:
-        pwm[i[0]] = []
-
-    pfm = make_pfm_from_pcm(pcm, pseudocount)
+    di_nucleotides = itertools.product('ACGT', repeat=2)
+    for i in di_nucleotides:
+        pwm[''.join(i)] = []
+    pfm = make_dipfm_from_dipcm(pcm)
     first_key = list(pcm.keys())[0]
     for i in range(len(pfm[first_key])):
         for j in pfm.keys():
@@ -177,22 +159,23 @@ def make_pwm_from_pcm(pcm, background, method='log-odds', pseudocount='1/N'):
     return(pwm)
 
 
-def make_pcm(motifs):
+def make_dipcm(motifs):
     '''
     input - список мотивов одинаковой длины
     output -  PCM
     Создает PCM на основе списка мотивов
     '''
     matrix = {}
-    mono_nucleotides = itertools.product('ACGT', repeat=1)
-    for i in mono_nucleotides:
-        matrix[i[0]] = []
+    di_nucleotides = itertools.product('ACGT', repeat=2)
+    for i in di_nucleotides:
+        matrix[''.join(i)] = []
     len_of_motif = len(motifs[0])
     for i in matrix.keys():
-        matrix[i] = [0]*len_of_motif
-    for i in range(len_of_motif):
-        for l in motifs:
-            matrix[l[i]][i] += 1
+        matrix[i] = [0]*(len_of_motif - 1)
+
+    for site in motifs:
+        for i in range(len(site) - 1):
+            matrix[site[i:i+2]][i] += 1
     return(matrix)
 
 
@@ -210,29 +193,25 @@ def parse_args():
     return(parser.parse_args())
 
 
-def write_meme(output, tag, pfm, background, nsites):
-    with open(output + '/' + tag + '.meme', 'w') as file:
-        file.write('MEME version 4\n\nALPHABET= ACGT\n\nBackground letter frequencies\n')
-        file.write('A {0} C {1} G {2} T {3}\n\n'.format(background['A'], background['C'],
-                                                        background['G'], background['T']))
-        file.write('MOTIF {0}\n'.format(tag))
-        file.write(
-            'letter-probability matrix: alength= 4 w= {0} nsites= {1}\n'.format(len(pfm['A']), nsites))
-        for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
-            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
-
-
 def write_pwm(output, tag, pwm):
+    matrix = [array for array in pwm.values()]
     with open(output + '/' + tag + '.pwm', 'w') as file:
         file.write('>{0}\n'.format(tag))
-        for i in zip(pwm['A'], pwm['C'], pwm['G'], pwm['T']):
-            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
+        for i in list(map(list, zip(*matrix))):
+            i = [str(j) for j in i]
+            file.write('\t'.join(i) + '\n')
 
 
-def write_sites(output, tag, sites):
+def write_fasta(output, tag, sites):
     with open(output + '/' + tag + '.fasta', 'w') as file:
         for index, site in enumerate(sites):
             file.write('>site_' + str(index) + '\n')
+            file.write(site + '\n')
+
+
+def write_sites(output, tag, sites):
+    with open(output + '/' + tag + '.sites', 'w') as file:
+        for site in sites:
             file.write(site + '\n')
 
 
@@ -247,20 +226,20 @@ def main():
     seq = remove_equalent_seq(seq_list=list(seq['seq']), homology=0.95)
     nsites = len(seq)
     if background_path is None:
-        background = background_freq(seq)
+        background = background_freq_di(seq)
     else:
         fasta = read_fasta(background_path)
-        background = background_freq(fasta)
+        background = background_freq_di(fasta)
 
-    pcm = make_pcm(seq)
-    pfm = make_pfm_from_pcm(pcm)
-    pwm = make_pwm_from_pcm(pcm, background)
+    pcm = make_dipcm(seq)
+    pfm = make_dipfm_from_dipcm(pcm)
+    pwm = make_dipwm_from_dipcm(pcm, background)
 
     if not os.path.isdir(output_):
         os.mkdir(output_)
 
-    write_meme(output_, tag, pfm, background, nsites)
-    write_pwm(output_, tag, pwm)
+    write_pwm(output=output_, tag=tag, pwm=pwm)
+    write_fasta(output=output_, tag=tag, sites=seq)
     write_sites(output=output_, tag=tag, sites=seq)
 
 

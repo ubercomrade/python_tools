@@ -71,6 +71,21 @@ def read_pwm(path):
     return(pwm)  # , inf)
 
 
+def read_dipwm(path):
+    dipwm = dict()
+    with open(path, 'r') as file:
+        inf = file.readline()
+        di_nucleotides = itertools.product('ACGT', repeat=2)
+        for i in di_nucleotides:
+            dipwm[''.join(i)] = []
+        for line in file:
+            line = line.strip().split('\t')
+            for letter, value in zip(dipwm.keys(), line):
+                dipwm[letter].append(float(value))
+    file.close()
+    return(dipwm)  # , inf)
+
+
 def parse_bamm_and_bg_from_file(bamm_file, bg_file):
 
     # Read BaMM file
@@ -161,7 +176,7 @@ def read_fasta(path):
 def score(seq, pwm):
     '''
     Вспомагательная функция, считает score для строки с такой же длиной как и PWM
-    kind - тип PWM mono or di
+    тип monoPWM
     '''
     length_of_seq = len(seq)
     position = 0
@@ -169,6 +184,18 @@ def score(seq, pwm):
     for letter in seq:
         score += pwm[letter][position]
         position += 1
+    return(score)
+
+
+def score_dipwm(seq, dipwm):
+    '''
+    Вспомагательная функция, считает score для строки с такой же длиной как и PWM
+    тип diPWM
+    '''
+    length_of_seq = len(seq)
+    score = 0
+    for i in range(length_of_seq - 1):
+        score += dipwm[seq[i:i+2]][i]
     return(score)
 
 
@@ -282,6 +309,27 @@ def scan_seq_by_pwm(record, pwm):
     return(results)
 
 
+def scan_seq_by_dipwm(record, dipwm):
+    results = []
+    reverse_record = complement(record)
+    length_pwm = len(dipwm['AA'])
+    seq = record['seq']
+    reverse_seq = reverse_record['seq']
+
+    # first strand
+    for i in range(len(seq) - length_pwm + 2):
+        site_seq = seq[i:length_pwm + i]
+        s = score_dipwm(site_seq, dipwm)
+        results.append(s)
+
+    # second strand
+    for i in range(len(seq) - length_pwm + 2):
+        site_seq = reverse_seq[i:length_pwm + i]
+        s = score_dipwm(site_seq, dipwm)
+        results.append(s)
+    return(results)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='subparser_name')
@@ -292,6 +340,14 @@ def parse_args():
                             required=True, help='path to PWM file')
     pwm_parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
                             required=True, help='value of FP (FP ~ P-VALUE)')
+
+    dipwm_parser = subparsers.add_parser('dipwm', help='threshold for diPWM')
+    dipwm_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
+                              required=True, help='path to FASTA file with head: >uniq_id|chromosome|start-end|strand')
+    dipwm_parser.add_argument('-m', '--pwm', action='store', dest='input_dipwm',
+                              required=True, help='path to diPWM file')
+    dipwm_parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
+                              required=True, help='value of FP (FP ~ P-VALUE)')
 
     bamm_parser = subparsers.add_parser('bamm', help='threshold for bamm')
     bamm_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -404,6 +460,22 @@ def main():
         # fpr.sort()
         #results = results[::-1]
         #print(results[np.searchsorted(fpr, fp, side='left')])
+
+    elif args.subparser_name == 'dipwm':
+        pwm_path = args.input_dipwm
+        fasta_path = args.input_fasta
+        fp = args.false_positive
+
+        fasta = read_fasta(fasta_path)
+        dipwm = read_dipwm(pwm_path)
+
+        with mp.Pool(4) as p:
+            results = p.map(functools.partial(scan_seq_by_dipwm, dipwm=dipwm), fasta)
+        results = [i for i in results if i != []]
+        results = [j for sub in results for j in sub]
+
+        thr, calc_fp = get_threshold(results, fp)
+        print(thr)
 
 
 if __name__ == '__main__':
