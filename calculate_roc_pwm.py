@@ -316,16 +316,24 @@ def parse_args():
                             default=10, required=False, help='number of iterations')
     tpr_parser.add_argument('-v', '--fpr', action='store', type=float, dest='fpr',
                             required=True, help='value of FPR')
+    tpr_parser.add_argument('-n', '--tag', action='store', dest='tag',
+                            required=True, help='file tag')
+    tpr_parser.add_argument('-o', '--output', action='store', dest='output',
+                            required=True, help='dir for write output file')
 
-    tpr_parser = subparsers.add_parser('get_fpr', help='return fpr with fixed value of tpr')
-    tpr_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
+    fpr_parser = subparsers.add_parser('get_fpr', help='return fpr with fixed value of tpr')
+    fpr_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
                             required=True, help='path to FASTA file with sites')
-    tpr_parser.add_argument('-t', '--times', action='store', dest='times', type=int,
+    fpr_parser.add_argument('-t', '--times', action='store', dest='times', type=int,
                             default=100, required=False, help='x times random sample will be larger than original sample')
-    tpr_parser.add_argument('-i', '--iterations', action='store', type=int, dest='iterations',
+    fpr_parser.add_argument('-i', '--iterations', action='store', type=int, dest='iterations',
                             default=10, required=False, help='number of iterations')
-    tpr_parser.add_argument('-v', '--tpr', action='store', type=float, dest='tpr',
+    fpr_parser.add_argument('-v', '--tpr', action='store', type=float, dest='tpr',
                             required=True, help='value of TPR')
+    fpr_parser.add_argument('-n', '--tag', action='store', dest='tag',
+                            required=True, help='file tag')
+    fpr_parser.add_argument('-o', '--output', action='store', dest='output',
+                            required=True, help='dir for write output file')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -342,6 +350,8 @@ def main():
         fpr = args.fpr
         iterations = args.iterations
         times = args.times
+        tag = args.tag
+        output = args.output
 
         seq = read_fasta(path)
         background = background_freq(seq)
@@ -367,6 +377,12 @@ def main():
                 results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
                                                   np_false_scores=norm_false_scores), norm_true_scores)
             results = pd.DataFrame(results)
+            results = results[['tpr', 'fpr', 'score']]
+
+            if not os.path.isdir(output):
+                os.mkdir(output)
+
+            results.to_csv(output + '/' + tag + '_'+ str(i) + '_' + '.tsv', sep='\t', header=True, index=False)
 
             tpr = closed_to_fpr(results, fpr)['tpr']
             tpr_list.append(tpr)
@@ -380,6 +396,8 @@ def main():
         tpr = args.tpr
         iterations = args.iterations
         times = args.times
+        tag = args.tag
+        output = args.output
 
         seq = read_fasta(path)
         background = background_freq(seq)
@@ -409,6 +427,13 @@ def main():
 
             fpr = closed_to_tpr(results, tpr)['fpr']
             fpr_list.append(fpr)
+
+            results = results[['tpr', 'fpr', 'score']]
+
+            if not os.path.isdir(output):
+                os.mkdir(output)
+
+            results.to_csv(output + '/' + tag + '_'+ str(i) + '_' + '.tsv', sep='\t', header=True, index=False)
 
         for i in fpr_list:
             print(i)

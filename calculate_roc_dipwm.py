@@ -298,6 +298,10 @@ def parse_args():
                             default=10, required=False, help='number of iterations')
     tpr_parser.add_argument('-v', '--fpr', action='store', type=float, dest='fpr',
                             required=True, help='value of FPR')
+    tpr_parser.add_argument('-n', '--tag', action='store', dest='tag',
+                            required=True, help='file tag')
+    tpr_parser.add_argument('-o', '--output', action='store', dest='output',
+                            required=True, help='dir for write output file')
 
     tpr_parser = subparsers.add_parser('get_fpr', help='return fpr with fixed value of tpr')
     tpr_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -308,6 +312,10 @@ def parse_args():
                             default=10, required=False, help='number of iterations')
     tpr_parser.add_argument('-v', '--tpr', action='store', type=float, dest='tpr',
                             required=True, help='value of TPR')
+    fpr_parser.add_argument('-n', '--tag', action='store', dest='tag',
+                            required=True, help='file tag')
+    fpr_parser.add_argument('-o', '--output', action='store', dest='output',
+                            required=True, help='dir for write output file')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -349,6 +357,12 @@ def main():
                 results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
                                                   np_false_scores=norm_false_scores), norm_true_scores)
             results = pd.DataFrame(results)
+            results = results[['tpr', 'fpr', 'score']]
+
+            if not os.path.isdir(output):
+                os.mkdir(output)
+
+            results.to_csv(output + '/' + tag + '_'+ str(i) + '_' + '.tsv', sep='\t', header=True, index=False)
 
             tpr = closed_to_fpr(results, fpr)['tpr']
             tpr_list.append(tpr)
@@ -388,6 +402,12 @@ def main():
                                                   np_false_scores=norm_false_scores), norm_true_scores)
             results = pd.DataFrame(results)
             # print(results)
+            results = results[['tpr', 'fpr', 'score']]
+
+            if not os.path.isdir(output):
+                os.mkdir(output)
+
+            results.to_csv(output + '/' + tag + '_'+ str(i) + '_' + '.tsv', sep='\t', header=True, index=False)
 
             fpr = closed_to_tpr(results, tpr)['fpr']
             fpr_list.append(fpr)
