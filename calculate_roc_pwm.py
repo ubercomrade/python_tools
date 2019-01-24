@@ -360,41 +360,39 @@ def main():
         min_score = get_min_score(pwm)
         max_score = get_max_score(pwm)
 
-        tpr_list = list()
-        for i in range(iterations):
-            scores = calculate_score_for_train_test(seq, k=times)
-            true_scores = [i for i, j in scores]
-            false_scores = [k for i, j in scores for k in j]
+        #tpr_list = list()
+        # for i in range(iterations):
+        scores = calculate_score_for_train_test(seq, k=times)
+        true_scores = [i for i, j in scores]
+        false_scores = [k for i, j in scores for k in j]
 
-            norm_true_scores = np.array([to_norm(score, min_score, max_score)
-                                         for score in true_scores])
-            norm_false_scores = np.array([to_norm(score, min_score, max_score)
-                                          for score in false_scores])
-            norm_true_scores.sort()
-            norm_false_scores.sort()
+        norm_true_scores = np.array([to_norm(score, min_score, max_score)
+                                     for score in true_scores])
+        norm_false_scores = np.array([to_norm(score, min_score, max_score)
+                                      for score in false_scores])
+        norm_true_scores.sort()
+        norm_false_scores.sort()
 
-            with mp.Pool(mp.cpu_count()) as p:
-                results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
-                                                  np_false_scores=norm_false_scores), norm_true_scores)
-            results = pd.DataFrame(results)
-            results = results[['tpr', 'fpr', 'score']]
+        with mp.Pool(mp.cpu_count()) as p:
+            results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
+                                              np_false_scores=norm_false_scores), norm_true_scores)
+        results = pd.DataFrame(results)
+        results = results[['tpr', 'fpr', 'score']]
 
-            if not os.path.isdir(output):
-                os.mkdir(output)
+        if not os.path.isdir(output):
+            os.mkdir(output)
 
-            results.to_csv(output + '/' + tag + '_'+ str(i) + '_' + '.tsv', sep='\t', header=True, index=False)
+        results.to_csv(output + '/' + tag +
+                       '.tsv', sep='\t', header=True, index=False)
 
-            tpr = closed_to_fpr(results, fpr)['tpr']
-            tpr_list.append(tpr)
-
-        for i in tpr_list:
-            print(i)
+        tpr = closed_to_fpr(results, fpr)['tpr']
+        print(tpr)
 
     elif args.subparser_name == 'get_fpr':
         #path = '/home/anton/DATA/TF/FOXA1_hg38_ENCSR819LGH/MOTIFS/FOXA1_14.fasta'
         path = args.input_fasta
         tpr = args.tpr
-        iterations = args.iterations
+        #iterations = args.iterations
         times = args.times
         tag = args.tag
         output = args.output
@@ -406,37 +404,35 @@ def main():
         min_score = get_min_score(pwm)
         max_score = get_max_score(pwm)
 
-        fpr_list = list()
-        for i in range(iterations):
-            scores = calculate_score_for_train_test(seq, k=times)
-            true_scores = [i for i, j in scores]
-            false_scores = [k for i, j in scores for k in j]
+        #fpr_list = list()
+        # for i in range(iterations):
+        scores = calculate_score_for_train_test(seq, k=times)
+        true_scores = [i for i, j in scores]
+        false_scores = [k for i, j in scores for k in j]
 
-            norm_true_scores = np.array([to_norm(score, min_score, max_score)
-                                         for score in true_scores])
-            norm_false_scores = np.array([to_norm(score, min_score, max_score)
-                                          for score in false_scores])
-            norm_true_scores.sort()
-            norm_false_scores.sort()
+        norm_true_scores = np.array([to_norm(score, min_score, max_score)
+                                     for score in true_scores])
+        norm_false_scores = np.array([to_norm(score, min_score, max_score)
+                                      for score in false_scores])
+        norm_true_scores.sort()
+        norm_false_scores.sort()
 
-            with mp.Pool(mp.cpu_count()) as p:
-                results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
-                                                  np_false_scores=norm_false_scores), norm_true_scores)
-            results = pd.DataFrame(results)
-            # print(results)
+        with mp.Pool(mp.cpu_count()) as p:
+            results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
+                                              np_false_scores=norm_false_scores), norm_true_scores)
+        results = pd.DataFrame(results)
+        results = results[['tpr', 'fpr', 'score']]
 
-            fpr = closed_to_tpr(results, tpr)['fpr']
-            fpr_list.append(fpr)
+        if not os.path.isdir(output):
+            os.mkdir(output)
+        results.to_csv(output + '/' + tag + '.tsv', sep='\t', header=True, index=False)
 
-            results = results[['tpr', 'fpr', 'score']]
+        fpr = closed_to_tpr(results, tpr)['fpr']
+        # fpr_list.append(fpr)
 
-            if not os.path.isdir(output):
-                os.mkdir(output)
-
-            results.to_csv(output + '/' + tag + '_'+ str(i) + '_' + '.tsv', sep='\t', header=True, index=False)
-
-        for i in fpr_list:
-            print(i)
+        print(fpr)
+        # for i in fpr_list:
+        #    print(i)
 
     elif args.subparser_name == 'roc':
         #path = '/home/anton/DATA/TF/FOXA1_hg38_ENCSR819LGH/MOTIFS/FOXA1_14.fasta'
