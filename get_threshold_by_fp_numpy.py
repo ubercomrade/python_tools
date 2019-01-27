@@ -13,16 +13,19 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 '''
 
-
+from numba import jit
 import linecache
 import argparse
 import sys
 import os
 import itertools
+import array
 import multiprocessing as mp
 import functools
-import pandas as pd
+#import pandas as pd
 import numpy as np
+import random
+
 
 
 def read_fasta(path):
@@ -207,7 +210,7 @@ def score_bamm(seq, bamm, k_mers, order):
     position = 0
     score = 0
     for position in range(length_of_seq - order):
-        letter = seq[position:order + position + 1][::-1]
+        letter = seq[position:order + position + 1]
         loc = k_mers[letter]
         score += bamm[order][position][loc]
     return(score)
@@ -272,100 +275,45 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
     reverse_record = complement(record)
     seq = record['seq']
     reverse_seq = reverse_record['seq']
-    results = []
+    results = np.array([])
 
     # scan first strand
-    for i in range(len(seq) - motif_length + 1):
-        site_seq = seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
-        results.append(s)
-    
-    seq = seq[::-1]
-    for i in range(len(seq) - motif_length + 1):
-        site_seq = seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
-        results.append(s)
+    results = np.append(results, np.array([score_bamm(seq[i:motif_length + i], log_odds_bamm, k_mers, order) for i in range(len(seq) - motif_length + 1)]))
 
     # scan second strand
-    for i in range(len(seq) - motif_length + 1):
-        site_seq = reverse_seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
-        results.append(s)
-    
-    reverse_seq = reverse_seq[::-1]
-    for i in range(len(seq) - motif_length + 1):
-        site_seq = reverse_seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
-        results.append(s)
+    results = np.append(results, np.array([score_bamm(reverse_seq[i:motif_length + i], log_odds_bamm, k_mers, order) for i in range(len(seq) - motif_length + 1)]))
 
     return(results)
 
 
 def scan_seq_by_pwm(record, pwm):
-    results = []
+    results = np.array([])
     reverse_record = complement(record)
     length_pwm = len(pwm['A'])
     seq = record['seq']
     reverse_seq = reverse_record['seq']
 
     # first strand
-    for i in range(len(seq) - length_pwm + 1):
-        site_seq = seq[i:length_pwm + i]
-        s = score(site_seq, pwm)
-        results.append(s)
-    
-    seq = seq[::-1]
-    for i in range(len(seq) - length_pwm + 1):
-        site_seq = seq[i:length_pwm + i]
-        s = score(site_seq, pwm)
-        results.append(s)
+    results = np.append(results, np.array([score(seq[i:length_pwm + i], pwm) for i in range(len(seq) - length_pwm + 1)]))
 
-        
     # second strand
-    for i in range(len(seq) - length_pwm + 1):
-        site_seq = reverse_seq[i:length_pwm + i]
-        s = score(site_seq, pwm)
-        results.append(s)
-    
-    reverse_seq = reverse_seq[::-1]
-    for i in range(len(seq) - length_pwm + 1):
-        site_seq = reverse_seq[i:length_pwm + i]
-        s = score(site_seq, pwm)
-        results.append(s)
+    results = np.append(results, np.array([score(reverse_seq[i:length_pwm + i], pwm) for i in range(len(seq) - length_pwm + 1)]))
 
     return(results)
 
 
 def scan_seq_by_dipwm(record, dipwm):
-    results = []
+    results = np.array([])
     reverse_record = complement(record)
     length_pwm = len(dipwm['AA'])
     seq = record['seq']
     reverse_seq = reverse_record['seq']
 
-    # first strand
-    for i in range(len(seq) - length_pwm + 2):
-        site_seq = seq[i:length_pwm + i]
-        s = score_dipwm(site_seq, dipwm)
-        results.append(s)
-    
-    seq = seq[::-1]
-    for i in range(len(seq) - length_pwm + 2):
-        site_seq = seq[i:length_pwm + i]
-        s = score_dipwm(site_seq, dipwm)
-        results.append(s)
-        
-    # second strand
-    for i in range(len(seq) - length_pwm + 2):
-        site_seq = reverse_seq[i:length_pwm + i]
-        s = score_dipwm(site_seq, dipwm)
-        results.append(s)
-    
-    reverse_seq = reverse_seq[::-1]
-    for i in range(len(seq) - length_pwm + 2):
-        site_seq = reverse_seq[i:length_pwm + i]
-        s = score_dipwm(site_seq, dipwm)
-        results.append(s)
+    # scan first strand
+    results = np.append(results, np.array([score_dipwm(seq[i:length_pwm + i], dipwm) for i in range(len(seq) - length_pwm + 1)]))
+
+    # scan second strand
+    results = np.append(results, np.array([score_dipwm(reverse_seq[i:length_pwm + i], dipwm) for i in range(len(seq) - length_pwm + 1)]))
 
     return(results)
 
@@ -405,8 +353,9 @@ def parse_args():
     return(parser.parse_args())
 
 
-def get_threshold(results, fp):
-    scores = np.array(results)
+@jit(nopython=True)
+def get_threshold(scores, fp):
+    #scores = np.array(results)
     scores.sort()
     scores = scores[::-1]  # sorted score from big to small
     i = int(len(scores) * fp) - 10  # position of score value
@@ -437,31 +386,14 @@ def main():
         fasta = read_fasta(fasta_path)
         pwm = read_pwm(pwm_path)
 
-        # results = []
-        # for record in fasta:
-        #    results += scan_seq_by_pwm(record, pwm)
-
-        with mp.Pool(4) as p:
+        with mp.Pool(mp.cpu_count()) as p:
             results = p.map(functools.partial(scan_seq_by_pwm, pwm=pwm), fasta)
-        results = [i for i in results if i != []]
-        results = [j for sub in results for j in sub]
+        results = np.concatenate(results, axis=None)
 
         thr, calc_fp = get_threshold(results, fp)
         #print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
         print(thr)
-        #results = np.array(results)
-        # results.sort()
-        #uniq_scores = np.unique(results)
-        #length = len(results)
-        # with mp.Pool(2) as p:
-        #    fp = p.map(functools.partial(get_fpr,
-        #                                 results=results,
-        #                                 length=length), uniq_scores)
 
-        #fpr = np.array(fpr)
-        # fpr.sort()
-        #results = results[::-1]
-        #print(results[np.searchsorted(fpr, fp, side='left')])
 
     elif args.subparser_name == 'bamm':
         bamm_path = args.input_bamm
@@ -473,33 +405,15 @@ def main():
         bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
         log_odds_bamm = make_log_odds_bamm(bamm, bg)
 
-        # results=[]
-        # for record in fasta:
-        #    results += scan_seq_by_bamm(record, log_odds_bamm, order)
 
-        with mp.Pool(4) as p:
+        with mp.Pool(mp.cpu_count()) as p:
             results = p.map(functools.partial(scan_seq_by_bamm,
                                               log_odds_bamm=log_odds_bamm, order=order), fasta)
-        results = [i for i in results if i != []]
-        results = [j for sub in results for j in sub]
+        results = np.concatenate(results, axis=None)
 
         thr, calc_fp = get_threshold(results, fp)
         #print('Optimal score threshold = {0}\nCalculated FP = {1}'. format(thr, calc_fp))
         print(thr)
-
-        #results = np.array(results)
-        # results.sort()
-        #uniq_scores = np.unique(results)
-        #length = len(results)
-        # with mp.Pool(2) as p:
-        #    fp = p.map(functools.partial(get_fpr,
-        #                                 results=results,
-        #                                 length=length), uniq_scores)
-
-        #fpr = np.array(fpr)
-        # fpr.sort()
-        #results = results[::-1]
-        #print(results[np.searchsorted(fpr, fp, side='left')])
 
     elif args.subparser_name == 'dipwm':
         pwm_path = args.input_dipwm
@@ -509,11 +423,9 @@ def main():
         fasta = read_fasta(fasta_path)
         dipwm = read_dipwm(pwm_path)
 
-        with mp.Pool(4) as p:
+        with mp.Pool(mp.cpu_count()) as p:
             results = p.map(functools.partial(scan_seq_by_dipwm, dipwm=dipwm), fasta)
-        results = [i for i in results if i != []]
-        results = [j for sub in results for j in sub]
-
+        results = np.concatenate(results, axis=None)
         thr, calc_fp = get_threshold(results, fp)
         print(thr)
 

@@ -129,8 +129,8 @@ def scan_seq_by_pwm(record, pwm, threshold):
             site_dict['strand'] = record['strand']
             site_dict['score'] = s
             results.append(site_dict)
-            
-    seq = seq[::-1] # сканирование в другом направлении  
+
+    seq = seq[::-1]  # сканирование в другом направлении
     for i in range(len(seq) - length_pwm + 1):
         site_seq = seq[i:length_pwm + i]
         s = score(site_seq, pwm)
@@ -159,9 +159,8 @@ def scan_seq_by_pwm(record, pwm, threshold):
             site_dict['strand'] = reverse_record['strand']
             site_dict['score'] = s
             results.append(site_dict)
-     
-    
-    reverse_seq = reverse_seq[::-1] # сканирование в другом направлении  
+
+    reverse_seq = reverse_seq[::-1]  # сканирование в другом направлении
     for i in range(len(seq) - length_pwm + 1):
         site_seq = reverse_seq[i:length_pwm + i]
         s = score(site_seq, pwm)
@@ -175,8 +174,7 @@ def scan_seq_by_pwm(record, pwm, threshold):
             site_dict['strand'] = reverse_record['strand']
             site_dict['score'] = s
             results.append(site_dict)
-            
-            
+
     return(results)
 
 
@@ -209,7 +207,7 @@ def main():
     # for record in fasta:
     #    results += scan_seq_by_pwm(record, pwm, threshold)
 
-    with mp.Pool(4) as p:
+    with mp.Pool(1) as p:
         results = p.map(functools.partial(scan_seq_by_pwm,
                                           pwm=pwm, threshold=threshold), fasta)
     results = [i for i in results if i != []]

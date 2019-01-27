@@ -270,7 +270,7 @@ def main():
     # for record in fasta:
     #    results += scan_seq_by_bamm(record, log_odds_bamm, order, threshold)
 
-    with mp.Pool(4) as p:
+    with mp.Pool(mp.cpu_count()) as p:
         results = p.map(functools.partial(scan_seq_by_bamm,
                                           log_odds_bamm=log_odds_bamm, order=order, threshold=threshold), fasta)
     results = [i for i in results if i != []]

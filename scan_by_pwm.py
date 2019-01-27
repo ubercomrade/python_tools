@@ -176,7 +176,7 @@ def main():
     # for record in fasta:
     #    results += scan_seq_by_pwm(record, pwm, threshold)
 
-    with mp.Pool(4) as p:
+    with mp.Pool(mp.cpu_count()) as p:
         results = p.map(functools.partial(scan_seq_by_pwm,
                                           pwm=pwm, threshold=threshold), fasta)
     results = [i for i in results if i != []]
