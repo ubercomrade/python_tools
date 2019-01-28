@@ -115,48 +115,25 @@ def read_fasta(path):
     return(fasta)
 
 
-# def score_bamm(seq, bamm, k_mers, order):
-#    '''
-#    Вспомагательная функция, считает score для строки с такой же длиной как и bamm + order
-#    '''
-#    length_of_seq = len(seq)
-#    position = 0
-#    score = 0
-#    for position in range(length_of_seq - order):
-#        letter = seq[position:order + position + 1]
-#        loc = k_mers[letter]
-#        score += bamm[order][position][loc]
-#    return(score)
-
-
-def score_bamm(seq, bamm, k_mers, order):
+def score_bamm(seq, bamm, order):
     '''
-    Вспомагательная функция, считает score для строки с такой же длиной как и bamm + order
+    Вспомагательная функция, считает score для строки с такой же длиной как и bamm
     '''
     length_of_seq = len(seq)
-    position = 0
     score = 0
-    for position in range(length_of_seq - order):
-        letter = seq[position:order + position + 1]
-        # [::-1]
-        # print(letter)
-        loc = k_mers[letter]
-        score += bamm[order][position][loc]
+    for position in range(len(seq) - order):
+        score += bamm[seq[position:position + order + 1]][position]
     return(score)
 
 
-# def make_k_mers(order):
-#    #  make list with possible k-mer based on bHMM model
-#    tmp = itertools.product('ACGT', repeat=order + 1)
-#    k_mer = []
-#    for i in tmp:
-#        k_mer.append(''.join(i[1:]) + i[0])
-#    k_mer_dict = dict()
-#    index = 0
-#    for i in k_mer:
-#        k_mer_dict[i] = index
-#        index += 1
-#    return(k_mer_dict)
+def bamm_to_dict(log_odds_bamm, order, k_mers):
+    bamm_dict = {}
+    for k_mer in k_mers:
+        bamm_dict[k_mer] = list()
+    for i in range(len(log_odds_bamm[order])):
+        for index, k_mer in enumerate(k_mers):
+            bamm_dict[k_mer].append(log_odds_bamm[order][i][index])
+    return(bamm_dict)
 
 
 def make_k_mers(order):
@@ -199,8 +176,7 @@ def complement(record):
 
 def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
 
-    k_mers = make_k_mers(order)
-    motif_length = len(log_odds_bamm[0])
+    motif_length = len(log_odds_bamm[list(log_odds_bamm.keys())[0]])
     reverse_record = complement(record)
     seq = record['seq']
     reverse_seq = reverse_record['seq']
@@ -209,7 +185,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
     # scan first strand
     for i in range(len(seq) - motif_length + 1):
         site_seq = seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
+        s = score_bamm(site_seq, log_odds_bamm, order)
         if s >= threshold:
             site_dict = dict()
             site_dict['name'] = record['name']
@@ -224,7 +200,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
     # scan second strand
     for i in range(len(seq) - motif_length + 1):
         site_seq = reverse_seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, k_mers, order)
+        s = score_bamm(site_seq, log_odds_bamm, order)
         if s >= threshold:
             site_dict = dict()
             site_dict['name'] = record['name']
@@ -265,6 +241,8 @@ def main():
     fasta = read_fasta(fasta_path)
     bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
     log_odds_bamm = make_log_odds_bamm(bamm, bg)
+    k_mers = make_k_mers(order=order)
+    log_odds_bamm = bamm_to_dict(log_odds_bamm=log_odds_bamm, order=order, k_mers=k_mers)
 
     # results = []
     # for record in fasta:

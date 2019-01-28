@@ -147,33 +147,14 @@ def make_log_odds_bamm(bamm, bg):
     return(log_odds_bamm)
 
 
-def read_fasta(path):
-    '''
-    Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-    Все экземпляры хранятся в списке
-    Функция возвращает список экземпляров класса BioRecord
-
-    Шапка для FASTA: >uniq_id|chromosome|start-end|strand
-    '''
-    fasta = list()
-    with open(path, 'r') as file:
-        for line in file:
-            if line.startswith('>'):
-                line = line[1:].strip().split('|')
-                record = dict()
-                record['id'] = line[0]
-                record['chromosome'] = line[1]
-                record['start'] = line[2].split('-')[0]
-                record['end'] = line[2].split('-')[1]
-                try:
-                    record['strand'] = line[3]
-                except:
-                    # print('Record with out strand. Strand is +')
-                    record['strand'] = '+'
-                continue
-            record['seq'] = line.strip().upper()
-            fasta.append(record)
-    return(fasta)
+def bamm_to_dict(log_odds_bamm, order, k_mers):
+    bamm_dict = {}
+    for k_mer in k_mers:
+        bamm_dict[k_mer] = list()
+    for i in range(len(log_odds_bamm[order])):
+        for index, k_mer in enumerate(k_mers):
+            bamm_dict[k_mer].append(log_odds_bamm[order][i][index])
+    return(bamm_dict)
 
 
 def score(seq, pwm):
@@ -202,32 +183,15 @@ def score_dipwm(seq, dipwm):
     return(score)
 
 
-def score_bamm(seq, bamm, k_mers, order):
+def score_bamm(seq, bamm, order):
     '''
     Вспомагательная функция, считает score для строки с такой же длиной как и bamm
     '''
     length_of_seq = len(seq)
-    position = 0
     score = 0
-    for position in range(length_of_seq - order):
-        letter = seq[position:order + position + 1]
-        loc = k_mers[letter]
-        score += bamm[order][position][loc]
+    for position in range(len(seq) - order):
+        score += bamm[seq[position:position + order + 1]][position]
     return(score)
-
-
-# def make_k_mers(order):
-#    #  make list with possible k-mer based on bHMM model
-#    tmp = itertools.product('ACGT', repeat=order + 1)
-#    k_mer = []
-#    for i in tmp:
-#        k_mer.append(''.join(i[1:]) + i[0])
-#    k_mer_dict = dict()
-#    index = 0
-#    for i in k_mer:
-#        k_mer_dict[i] = index
-#        index += 1
-#    return(k_mer_dict)
 
 
 def make_k_mers(order):
@@ -270,18 +234,17 @@ def complement(record):
 
 def scan_seq_by_bamm(record, log_odds_bamm, order):
 
-    k_mers = make_k_mers(order)
-    motif_length = len(log_odds_bamm[0])
+    motif_length = len(log_odds_bamm[list(log_odds_bamm.keys())[0]])
     reverse_record = complement(record)
     seq = record['seq']
     reverse_seq = reverse_record['seq']
     results = np.array([])
 
     # scan first strand
-    results = np.append(results, np.array([score_bamm(seq[i:motif_length + i], log_odds_bamm, k_mers, order) for i in range(len(seq) - motif_length + 1)]))
+    results = np.append(results, np.array([score_bamm(seq[i:motif_length + i], log_odds_bamm, order) for i in range(len(seq) - motif_length + 1)]))
 
     # scan second strand
-    results = np.append(results, np.array([score_bamm(reverse_seq[i:motif_length + i], log_odds_bamm, k_mers, order) for i in range(len(seq) - motif_length + 1)]))
+    results = np.append(results, np.array([score_bamm(reverse_seq[i:motif_length + i], log_odds_bamm, order) for i in range(len(seq) - motif_length + 1)]))
 
     return(results)
 
@@ -404,7 +367,8 @@ def main():
         fasta = read_fasta(fasta_path)
         bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
         log_odds_bamm = make_log_odds_bamm(bamm, bg)
-
+        k_mers = make_k_mers(order)
+        log_odds_bamm = bamm_to_dict(log_odds_bamm, order, k_mers)
 
         with mp.Pool(mp.cpu_count()) as p:
             results = p.map(functools.partial(scan_seq_by_bamm,
