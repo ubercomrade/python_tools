@@ -630,6 +630,7 @@ def main():
 
     list_fpr_for_thr = args.fpr
     list_fpr_for_thr = [float(i) for i in list_fpr_for_thr]
+    #print(list_fpr_for_thr)
 
     bed_graph_flag = args.bedGraph_flag
     if bed_graph_flag:
@@ -637,7 +638,7 @@ def main():
     else:
         wig_flag='wiggle'
 
-    zoops=args.zoop
+    zoops=args.zoops
     try_size=args.try_limit
     bamm_order=args.bamm_order
     recalculate_model=True
