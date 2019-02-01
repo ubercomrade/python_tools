@@ -36,7 +36,7 @@ def read_bed(path):
                       sep='\t', header=None,
                       #usecols=[0, 1, 2, 3, 4, 5],
                       names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
-    bed.loc[np.isnan(bed['strand']), 'strand'] = '.'
+    #bed.loc[np.isnan(bed['strand']), 'strand'] = '.'
     return(bed)
 
 

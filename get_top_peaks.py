@@ -35,6 +35,8 @@ def read_file(path):
 
 def get_top_peaks(peaks, amount, col):
     sorted_peaks = sorted(peaks, key=lambda i: float(i[col]), reverse=True)
+    for index, line in enumerate(sorted_peaks):
+        line[3] = 'peaks_' + str(index)
     return(sorted_peaks[:amount])
 
 
