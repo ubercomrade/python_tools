@@ -158,6 +158,9 @@ def parse_args():
                         required=True, help='threshold for PWM')
     parser.add_argument('-o', '--output', action='store', dest='output',
                         required=True, help='path to BED like file for output')
+    parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
+
     return(parser.parse_args())
 
 
@@ -168,6 +171,7 @@ def main():
     fasta_path = args.input_fasta
     threshold = args.threshold
     results_path = args.output
+    cpu_count = args.cpu_count
 
     fasta = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
@@ -176,7 +180,7 @@ def main():
     # for record in fasta:
     #    results += scan_seq_by_pwm(record, pwm, threshold)
 
-    with mp.Pool(mp.cpu_count()) as p:
+    with mp.Pool(cpu_count) as p:
         results = p.map(functools.partial(scan_seq_by_pwm,
                                           pwm=pwm, threshold=threshold), fasta)
     results = [i for i in results if i != []]

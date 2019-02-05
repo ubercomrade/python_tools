@@ -291,6 +291,8 @@ def parse_args():
                             required=True, help='path to PWM file')
     pwm_parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
                             required=True, help='value of FP (FP ~ P-VALUE)')
+    pwm_parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
 
     dipwm_parser = subparsers.add_parser('dipwm', help='threshold for diPWM')
     dipwm_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -299,6 +301,8 @@ def parse_args():
                               required=True, help='path to diPWM file')
     dipwm_parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
                               required=True, help='value of FP (FP ~ P-VALUE)')
+    dipwm_parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
 
     bamm_parser = subparsers.add_parser('bamm', help='threshold for bamm')
     bamm_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -309,6 +313,9 @@ def parse_args():
                              required=True, help='path to backgroud file /format is .hbcp/')
     bamm_parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
                              required=True, help='value of FP (FP ~ P-VALUE)')
+    bamm_parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -345,11 +352,12 @@ def main():
         pwm_path = args.input_pwm
         fasta_path = args.input_fasta
         fp = args.false_positive
+        cpu_count = args.cpu_count
 
         fasta = read_fasta(fasta_path)
         pwm = read_pwm(pwm_path)
 
-        with mp.Pool(mp.cpu_count()) as p:
+        with mp.Pool(cpu_count) as p:
             results = p.map(functools.partial(scan_seq_by_pwm, pwm=pwm), fasta)
         results = np.concatenate(results, axis=None)
 
@@ -363,6 +371,7 @@ def main():
         bg_path = args.input_bg
         fasta_path = args.input_fasta
         fp = args.false_positive
+        cpu_count = args.cpu_count
 
         fasta = read_fasta(fasta_path)
         bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
@@ -370,7 +379,7 @@ def main():
         k_mers = make_k_mers(order)
         log_odds_bamm = bamm_to_dict(log_odds_bamm, order, k_mers)
 
-        with mp.Pool(mp.cpu_count()) as p:
+        with mp.Pool(cpu_count) as p:
             results = p.map(functools.partial(scan_seq_by_bamm,
                                               log_odds_bamm=log_odds_bamm, order=order), fasta)
         results = np.concatenate(results, axis=None)
@@ -383,11 +392,12 @@ def main():
         pwm_path = args.input_dipwm
         fasta_path = args.input_fasta
         fp = args.false_positive
+        cpu_count = args.cpu_count
 
         fasta = read_fasta(fasta_path)
         dipwm = read_dipwm(pwm_path)
 
-        with mp.Pool(mp.cpu_count()) as p:
+        with mp.Pool(cpu_count) as p:
             results = p.map(functools.partial(scan_seq_by_dipwm, dipwm=dipwm), fasta)
         results = np.concatenate(results, axis=None)
         thr, calc_fp = get_threshold(results, fp)

@@ -306,6 +306,8 @@ def parse_args():
                             default=100, required=False, help='x times random sample will be larger than original sample')
     roc_parser.add_argument('-o', '--output', action='store', dest='output',
                             required=True, help='dir for write output file')
+    roc_parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
 
     tpr_parser = subparsers.add_parser('get_tpr', help='return tpr with fixed value of fpr')
     tpr_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -320,6 +322,8 @@ def parse_args():
                             required=True, help='file tag')
     tpr_parser.add_argument('-o', '--output', action='store', dest='output',
                             required=True, help='dir for write output file')
+    tpr_parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
 
     fpr_parser = subparsers.add_parser('get_fpr', help='return fpr with fixed value of tpr')
     fpr_parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -334,6 +338,8 @@ def parse_args():
                             required=True, help='file tag')
     fpr_parser.add_argument('-o', '--output', action='store', dest='output',
                             required=True, help='dir for write output file')
+    fpr_parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -352,6 +358,7 @@ def main():
         times = args.times
         tag = args.tag
         output = args.output
+        cpu_count = args.cpu_count
 
         seq = read_fasta(path)
         background = background_freq(seq)
@@ -373,7 +380,7 @@ def main():
         norm_true_scores.sort()
         norm_false_scores.sort()
 
-        with mp.Pool(mp.cpu_count()) as p:
+        with mp.Pool(cpu_count) as p:
             results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
                                               np_false_scores=norm_false_scores), norm_true_scores)
         results = pd.DataFrame(results)
@@ -396,6 +403,7 @@ def main():
         times = args.times
         tag = args.tag
         output = args.output
+        cpu_count = args.cpu_count
 
         seq = read_fasta(path)
         background = background_freq(seq)
@@ -417,7 +425,7 @@ def main():
         norm_true_scores.sort()
         norm_false_scores.sort()
 
-        with mp.Pool(mp.cpu_count()) as p:
+        with mp.Pool(cpu_count) as p:
             results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
                                               np_false_scores=norm_false_scores), norm_true_scores)
         results = pd.DataFrame(results)
@@ -440,6 +448,7 @@ def main():
         tag = args.tag
         output = args.output
         times = args.times
+        cpu_count = args.cpu_count
 
         seq = read_fasta(path)
         background = background_freq(seq)
@@ -458,7 +467,7 @@ def main():
         norm_true_scores.sort()
         norm_false_scores.sort()
 
-        with mp.Pool(mp.cpu_count()) as p:
+        with mp.Pool(cpu_count) as p:
             results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
                                               np_false_scores=norm_false_scores), norm_true_scores)
         results = pd.DataFrame(results)

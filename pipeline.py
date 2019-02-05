@@ -8,7 +8,7 @@ import numpy as np
 
 def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_sample_size,
                               list_fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
-                              path_to_promoters, path_to_genome,
+                              path_to_promoters, path_to_genome, cpu_count,
                               wig_flag='wiggle', zoops=1.0, try_size=100,
                               bamm_order=2, recalculate_model=True):
 
@@ -16,6 +16,7 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
     zoops = str(zoops)
     bamm_order = str(bamm_order)
     try_size=str(try_size)
+    cpu_count = str(cpu_count)
 
     if not path_to_python_tools[-1] == '/':
         path_to_python_tools += '/'
@@ -98,7 +99,7 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         #Bed peaks to wig_fasta
         print('Bed peaks to wig_fasta for {0}'.format(tag))
         if wig_flag == 'bedgraph':
-            args = ['python3', path_to_python_tools + 'bed_to_bedGraph_fasta.py',
+            args = ['python3', path_to_python_tools + 'bed_to_bedgraph_fasta.py',
                    '-if', path_to_genome,
                    '-bed', bed + '/' + tag + '_' + str(training_sample_size) + '.bed',
                     '-w', wig_path,
@@ -131,7 +132,7 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         args = ['java', '-cp', dir_with_chipmunk + 'chipmunk.jar',
                        'ru.autosome.ChIPMunk', str(motif_length), str(motif_length), 'yes', zoops,
                        'p:' + fasta + '/' + tag + '_'+ str(training_sample_size) + '_WIG.fa',
-                      try_size, '10', '1', '4', 'random']
+                      try_size, '10', '1', cpu_count, 'random']
         path_out = chipmunk + '/RESULTS_' + str(motif_length) + '.txt'
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         out = p.communicate()
@@ -151,7 +152,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                     '-t', '30000',
                     '-v', '0.5',
                    '-n', tag + '_' + str(motif_length),
-                   '-o', motifs]
+                   '-o', motifs,
+                   '-P', cpu_count]
 
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         optimal = float(p.communicate()[0].decode('utf-8'))
@@ -165,7 +167,7 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
             args = ['java', '-cp', dir_with_chipmunk + 'chipmunk.jar',
                        'ru.autosome.ChIPMunk', str(motif_length), str(motif_length), 'yes', zoops,
                        'p:' + fasta + '/' + tag + '_' + str(training_sample_size) + '_WIG.fa',
-                      try_size, '10', '1', '4', 'random']
+                      try_size, '10', '1', cpu_count, 'random']
             path_out = chipmunk + '/RESULTS_' + str(motif_length) + '.txt'
             p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
             out = p.communicate()
@@ -185,7 +187,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                     '-t', '30000',
                     '-v', '0.5',
                    '-n', tag + '_' + str(motif_length),
-                   '-o', motifs]
+                   '-o', motifs,
+                   '-P', cpu_count]
 
             p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
             tmp = float(p.communicate()[0].decode('utf-8'))
@@ -235,7 +238,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
                 '-f', path_to_promoters,
                 '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
-                '-p', str(fpr_for_thr)]
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         thr_pwm = p.communicate()[0].decode('utf-8').strip()
 
@@ -245,7 +249,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                 '-f', '/home/anton/DATA/PROMOTERS/hg38.fa',
                 '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
-                '-p', str(fpr_for_thr)]
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         thr_bamm = p.communicate()[0].decode('utf-8').strip()
 
@@ -256,7 +261,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                 '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                 '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
                 '-t', thr_pwm,
-                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed']
+                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
         r = subprocess.call(args)
 
 
@@ -267,7 +273,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                 '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
                 '-t', thr_bamm,
-                '-o', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed']
+                '-o', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
         r = subprocess.call(args)
 
 
@@ -293,6 +300,7 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
     zoops = str(zoops)
     bamm_order = str(bamm_order)
     try_size=str(try_size)
+    cpu_count = str(cpu_count)
 
     if not path_to_python_tools[-1] == '/':
         path_to_python_tools += '/'
@@ -375,7 +383,7 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
         #Bed peaks to wig_fasta
         print('Bed peaks to wig_fasta for {0}'.format(tag))
         if wig_flag == 'bedgraph':
-            args = ['python3', path_to_python_tools + 'bed_to_bedGraph_fasta.py',
+            args = ['python3', path_to_python_tools + 'bed_to_bedgraph_fasta.py',
                    '-if', path_to_genome,
                    '-bed', bed + '/' + tag + '_' + str(training_sample_size) + '.bed',
                     '-w', wig_path,
@@ -409,7 +417,7 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
         args = ['java', '-cp', dir_with_chipmunk + 'chipmunk.jar',
                        'ru.autosome.di.ChIPMunk', str(motif_length), str(motif_length), 'yes', zoops,
                        'p:' + fasta + '/' + tag + '_'+ str(training_sample_size) + '_WIG.fa',
-                      try_size, '10', '1', '4', 'random']
+                      try_size, '10', '1', cpu_count, 'random']
         path_out = chipmunk + '/RESULTS_' + str(motif_length) + '.txt'
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         out = p.communicate()
@@ -429,7 +437,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
                     '-t', '30000',
                     '-v', '0.5',
                    '-n', tag + '_' + str(motif_length),
-                   '-o', motifs]
+                   '-o', motifs,
+                   '-P', cpu_count]
 
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         optimal = float(p.communicate()[0].decode('utf-8'))
@@ -443,7 +452,7 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
             args = ['java', '-cp', dir_with_chipmunk + 'chipmunk.jar',
                        'ru.autosome.di.ChIPMunk', str(motif_length), str(motif_length), 'yes', zoops,
                        'p:' + fasta + '/' + tag + '_' + str(training_sample_size) + '_WIG.fa',
-                      try_size, '10', '1', '4', 'random']
+                      try_size, '10', '1', cpu_count, 'random']
             path_out = chipmunk + '/RESULTS_' + str(motif_length) + '.txt'
             p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
             out = p.communicate()
@@ -464,7 +473,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
                     '-t', '30000',
                     '-v', '0.5',
                    '-n', tag + '_' + str(motif_length),
-                   '-o', motifs]
+                   '-o', motifs,
+                   '-P', cpu_count]
 
             p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
             tmp = float(p.communicate()[0].decode('utf-8'))
@@ -515,7 +525,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
         args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
                 '-f', path_to_promoters,
                 '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
-                '-p', str(fpr_for_thr)]
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         thr_pwm = p.communicate()[0].decode('utf-8').strip()
 
@@ -525,7 +536,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
                 '-f', '/home/anton/DATA/PROMOTERS/hg38.fa',
                 '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
-                '-p', str(fpr_for_thr)]
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
         p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
         thr_bamm = p.communicate()[0].decode('utf-8').strip()
 
@@ -536,7 +548,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
                 '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                 '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
                 '-t', thr_pwm,
-                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed']
+                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
         r = subprocess.call(args)
 
 
@@ -547,7 +560,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
                 '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
                 '-t', thr_bamm,
-                '-o', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed']
+                '-o', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
         r = subprocess.call(args)
 
 
@@ -602,6 +616,8 @@ def parse_args():
     parser.add_argument('-m', '--bamm_order_model', action='store', type=int, dest='bamm_order',
                         default=2, required=False,
                         help='Order of BaMM model. Default value = 2')
+    parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
+    required=False, default=2, help='Number of processes to use, default: 2')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -639,13 +655,14 @@ def main():
         wig_flag='wiggle'
 
     zoops=args.zoops
+    cpu_count = args.cpu_count
     try_size=args.try_limit
     bamm_order=args.bamm_order
     recalculate_model=True
 
     work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_sample_size,
                               list_fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
-                              path_to_promoters, path_to_genome,
+                              path_to_promoters, path_to_genome, cpu_count,
                               wig_flag='wiggle', zoops=1.0, try_size=100,
                               bamm_order=2, recalculate_model=True)
 

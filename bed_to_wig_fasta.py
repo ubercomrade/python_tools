@@ -244,12 +244,15 @@ def stat_of_wig_file(wig_path):
                            'chr': line[1].split('=')[1],
                            'start': int(line[2].split('=')[1]),
                            'end': None,
-                           'step': int(line[3].split('=')[1])}
+                           'step': int(line[3].split('=')[1]),
+                          'scores':np.array([], dtype=float)}
                     stat.append(rec)
-                if len(stat) >= 1:
+                elif len(stat) >= 1:
                     stat[-1]['end'] = int((count - stat[-1]['line_start']) *
                                           stat[-1]['step'] + stat[-1]['start'])
                     stat[-1]['line_end'] = count
+                    if not type(line) is list:
+                        stat[-1]['scores'] = np.append(stat[-1]['scores'], float(line.strip()))
         file.close()
 
     elif flag == 'variableStep':
@@ -285,8 +288,12 @@ def bed_to_wig_fasta_variable_step(record, wig, span):
     record_end = record['end']
     record['wig'] = []
 
-    index_start = int(np.searchsorted(wig['position'], record_start)) - 3
-    index_end = int(np.searchsorted(wig['position'], record_end)) + 3
+    index_start = int(np.searchsorted(wig['position'], record_start)) - 1
+    if index_start < 0:
+        index_start = 0
+    #print(index_start)
+    index_end = int(np.searchsorted(wig['position'], record_end))
+    #print(index_end)
 
     section = dict()
     for line in wig.iloc[index_start:index_end,].iterrows():
@@ -316,43 +323,29 @@ def bed_to_wig_fasta_variable_step(record, wig, span):
 
     return(record)
 
-def bed_to_wig_fasta_fixed_step(record, stat, wig_path):
-
-    chr_ = record['chr']
-    record_start = record['start']
-    record_end = record['end']
-    record['wig'] = []
-
-    index_start = stat[np.logical_and(np.logical_and(stat['chr'] == chr_,
-                                                         stat['start'] <= record_start),
-                                          stat['end'] > record_start)].index
-
-    line_number_start = int(stat.iloc[index_start]['line_start'])
-    line_number_end = int(stat.iloc[index_start]['line_end'])
-    step = int(stat.iloc[index_start]['step'])
-    start = int(stat.iloc[index_start]['start'])
-    end = int(stat.iloc[index_start]['end'])
-
-    with open(wig_path, 'r') as f:
-        res = []
-        try:
-            line = islice(f, int(line_number_start), int(line_number_end))
-            for i in line:
-                values = i.strip().split()
-                values = [int(i) for i in values]
-                res.append(array.array('i', values))
-        except StopIteration:
-                print('Not lines in file')
-    f.close()
-
-    res = [i for j in res for i in j] # unlist
-    scores = np.array([i for i in res for j in range(step)])
-    positions = np.array([i for i in range(start, end + 1)])
-    for i in range(record_start, record_end):
-        record['wig'].append(str(scores[np.searchsorted(positions, i)]))
-    record['wig'] = ' '.join(record['wig'])
-
-    return(record)
+#def bed_to_wig_fasta_fixed_step(record, stat):
+#
+#    chr_ = record['chr']
+#    record_start = record['start']
+#    record_end = record['end']
+#    record['wig'] = []
+#
+#    index_start = stat[np.logical_and(np.logical_and(stat['chr'] == chr_,
+#                                                         stat['start'] <= record_start),
+#                                          stat['end'] > record_start)].index
+#
+#    #line_number_start = int(stat.iloc[index_start]['line_start'])
+#    #line_number_end = int(stat.iloc[index_start]['line_end'])
+#    step = int(stat.iloc[index_start]['step'])
+#    start = int(stat.iloc[index_start]['start'])
+#    end = int(stat.iloc[index_start]['end'])
+#    scores = np.array(stat.iloc[index_start]['scores'])
+#    print(scores)
+#
+#    scores = [scores[i] for i in range(record_start - start, record_end - start) for s in range(step)]
+#    record['wig'] = ' '.join(scores)
+#
+#    return(record)
 
 
 def write_wig_fata(results, path_to_write):
@@ -408,9 +401,10 @@ def main():
             res += [bed_to_wig_fasta_variable_step(record, wig=sub_wig, span=span) for record in sub_results]
 
     elif wig_flag == 'fixedStep':
-        with mp.Pool(mp.cpu_count()) as p:
-            results = p.map(functools.partial(bed_to_wig_fasta_fixed_step, stat=stat,
-                                          wig_path=wig_path), results)
+        print('not finished')
+        #with mp.Pool(mp.cpu_count()) as p:
+        #    results = p.map(functools.partial(bed_to_wig_fasta_fixed_step, stat=stat,
+        #                                  wig_path=wig_path), results)
 
     write_wig_fata(res, output_fasta)
 
