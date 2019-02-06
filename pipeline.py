@@ -616,8 +616,8 @@ def parse_args():
     parser.add_argument('-m', '--bamm_order_model', action='store', type=int, dest='bamm_order',
                         default=2, required=False,
                         help='Order of BaMM model. Default value = 2')
-    parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
-    required=False, default=2, help='Number of processes to use, default: 2')
+    parser.add_argument('-C', '--processes', action='store', type=int, dest='cpu_count',
+                        required=False, default=2, help='Number of processes to use, default: 2')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
