@@ -214,8 +214,7 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
     else:
         print('File {0} already exists'.format(tag + '_OPTIMAL.pwm'))
 
-    if not os.path.isfile(motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp') \
-    or recalculate_model:
+    if not os.path.isfile(motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp'):
 
         #Get BaMM motif
         print('Get Bamm motifs for {0}'.format(tag))
@@ -664,7 +663,7 @@ def main():
                               list_fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
                               path_to_promoters, path_to_genome, cpu_count,
                               wig_flag='wiggle', zoops=1.0, try_size=100,
-                              bamm_order=2, recalculate_model=True)
+                              bamm_order=2, recalculate_model=False)
 
 if __name__ == '__main__':
     main()
