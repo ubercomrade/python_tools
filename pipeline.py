@@ -245,7 +245,7 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
         print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
         args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
-                '-f', '/home/anton/DATA/PROMOTERS/hg38.fa',
+                '-f', path_to_promoters,
                 '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
                 '-p', str(fpr_for_thr),
@@ -532,7 +532,7 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
         #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
         print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
         args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
-                '-f', '/home/anton/DATA/PROMOTERS/hg38.fa',
+                '-f', path_to_promoters,
                 '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
                 '-p', str(fpr_for_thr),
