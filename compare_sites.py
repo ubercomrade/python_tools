@@ -198,7 +198,7 @@ def main():
     sub_data = [get_top(i, data) for i in top]
 
     data = zip(sub_data, pwm_sub_sites, bamm_sub_sites)
-    with Pool(len(top)) as p:
+    with Pool(4) as p:
         total_results = p.starmap(calculate_fraction_of_sites, data)
 
     # Count data

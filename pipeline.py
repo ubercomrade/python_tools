@@ -232,60 +232,64 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
 
     for fpr_for_thr in list_fpr_for_thr:
 
-        #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
-        print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
-        args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
-                '-f', path_to_promoters,
-                '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
-                '-p', str(fpr_for_thr),
-                '-P', cpu_count]
-        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-        thr_pwm = p.communicate()[0].decode('utf-8').strip()
+        if os.path.isfile(compare_sites + '/' + tag + '_' + str(fpr_for_thr) + '_' + '_FREQUENCY.tsv'):
+            continue
+        else:
 
-        #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
-        print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
-        args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
-                '-f', path_to_promoters,
-                '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
-                '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
-                '-p', str(fpr_for_thr),
-                '-P', cpu_count]
-        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-        thr_bamm = p.communicate()[0].decode('utf-8').strip()
+            #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
+            print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
+            args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
+                    '-f', path_to_promoters,
+                    '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
+                    '-p', str(fpr_for_thr),
+                    '-P', cpu_count]
+            p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+            thr_pwm = p.communicate()[0].decode('utf-8').strip()
 
-        print('PWM = ',thr_pwm, 'BAMM = ', thr_bamm)
-        #Scan peaks by PWM with thr_pwm
-        print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
-        args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
-                '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-                '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
-                '-t', thr_pwm,
-                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-                '-P', cpu_count]
-        r = subprocess.call(args)
+            #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
+            print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
+            args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
+                    '-f', path_to_promoters,
+                    '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
+                    '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
+                    '-p', str(fpr_for_thr),
+                    '-P', cpu_count]
+            p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+            thr_bamm = p.communicate()[0].decode('utf-8').strip()
 
-
-        #Scan peaks by BAMM with thr_bamm
-        print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
-        args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
-                '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-                '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
-                '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
-                '-t', thr_bamm,
-                '-o', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-                '-P', cpu_count]
-        r = subprocess.call(args)
+            print('PWM = ',thr_pwm, 'BAMM = ', thr_bamm)
+            #Scan peaks by PWM with thr_pwm
+            print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
+            args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
+                    '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                    '-m', motifs + '/' + tag + '_OPTIMAL.pwm',
+                    '-t', thr_pwm,
+                    '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                    '-P', cpu_count]
+            r = subprocess.call(args)
 
 
-        #Compare sites
-        print('Compare sites ({0})'.format(tag))
-        args = ['python3', path_to_python_tools + 'compare_sites.py',
-                '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-                '-m', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-                '-b', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-                '-t', tag + '_' + str(fpr_for_thr) + '_BAMM_ORDER_' + bamm_order,
-                '-o', compare_sites]
-        r = subprocess.call(args)
+            #Scan peaks by BAMM with thr_bamm
+            print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
+            args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
+                    '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                    '-m', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp',
+                    '-b', motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '.hbcp',
+                    '-t', thr_bamm,
+                    '-o', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                    '-P', cpu_count]
+            r = subprocess.call(args)
+
+
+            #Compare sites
+            print('Compare sites ({0})'.format(tag))
+            args = ['python3', path_to_python_tools + 'compare_sites.py',
+                    '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+                    '-m', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                    '-b', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                    '-t', tag + '_' + str(fpr_for_thr) + '_BAMM_ORDER_' + bamm_order,
+                    '-o', compare_sites]
+            r = subprocess.call(args)
 
 
 
