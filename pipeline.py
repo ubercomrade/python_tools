@@ -203,8 +203,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
             else:
                 break
 
-        for file in os.listdir(motifs):
-            os.remove(motifs + '/' + file)
+        #for file in os.listdir(motifs):
+        #    os.remove(motifs + '/' + file)
 
         args = ['python3', path_to_python_tools + 'parse_chipmunk_results.py',
                 '-i', chipmunk + '/RESULTS_' + str(optimal_length) + '.txt',
@@ -214,7 +214,18 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
     else:
         print('File {0} already exists'.format(tag + '_OPTIMAL.pwm'))
 
-    if not os.path.isfile(motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp'):
+################################################################################
+    print('Calculate ROC for optimal matrix {0}'.format(tag))
+    args = ['python3', path_to_python_tools + 'calculate_roc_pwm.py', 'roc',
+                    '-f', motifs + '/' + tag + '_OPTIMAL.fasta',
+                    '-t', '30000',
+                   '-n', tag + '_' + 'OPTIMAL',
+                   '-o', motifs,
+                   '-P', cpu_count]
+    p = subprocess.call(args)
+################################################################################
+
+    if not os.path.isfile(motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp') or True:
 
         #Get BaMM motif
         print('Get Bamm motifs for {0}'.format(tag))
@@ -222,8 +233,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                 fasta + '/' + tag + '_' + str(training_sample_size) + '_WIG.fa',
                '--PWMFile', motifs + '/' + tag + '_OPTIMAL.meme',
                 '--basename', tag + '_OPTIMAL_ORDER_' + bamm_order,
-               '--EM',
-               '--CGS',
+               #'--EM',
+               #'--CGS',
                '--Order', bamm_order,
                '--order', bamm_order]
         r = subprocess.call(args)
@@ -493,8 +504,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
             else:
                 break
 
-        for file in os.listdir(motifs):
-            os.remove(motifs + '/' + file)
+        #for file in os.listdir(motifs):
+        #    os.remove(motifs + '/' + file)
 
         args = ['python3', path_to_python_tools + 'parse_dichipmunk_results.py',
                 '-i', chipmunk + '/RESULTS_' + str(optimal_length) + '.txt',
@@ -513,8 +524,8 @@ def work_with_tf_di_version(bed_path, wig_path, training_sample_size, testing_sa
                 fasta + '/' + tag + '_' + str(training_sample_size) + '_WIG.fa',
                '--PWMFile', motifs + '/' + tag + '_OPTIMAL.meme',
                 '--basename', tag + '_OPTIMAL_ORDER_' + bamm_order,
-               '--EM',
-               '--CGS',
+               #'--EM',
+               #'--CGS',
                '--Order', bamm_order,
                '--order', bamm_order]
         r = subprocess.call(args)
@@ -661,12 +672,12 @@ def main():
     cpu_count = args.cpu_count
     try_size=args.try_limit
     bamm_order=args.bamm_order
-    recalculate_model=True
+    recalculate_model=False
 
     work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_sample_size,
                               list_fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
                               path_to_promoters, path_to_genome, cpu_count,
-                              wig_flag='wiggle', zoops=1.0, try_size=100,
+                              wig_flag=wig_flag, zoops=zoops, try_size=try_size,
                               bamm_order=2, recalculate_model=False)
 
 if __name__ == '__main__':

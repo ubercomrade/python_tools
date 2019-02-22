@@ -229,6 +229,13 @@ def write_pwm(output, tag, pwm):
             file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
 
 
+def write_pfm(output, tag, pfm):
+    with open(output + '/' + tag + '.pfm', 'w') as file:
+        file.write('>{0}\n'.format(tag))
+        for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
+            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
+
+
 def write_sites(output, tag, sites):
     with open(output + '/' + tag + '.fasta', 'w') as file:
         for index, site in enumerate(sites):
@@ -261,6 +268,7 @@ def main():
 
     write_meme(output_, tag, pfm, background, nsites)
     write_pwm(output_, tag, pwm)
+    write_pfm(output_, tag, pfm)
     write_sites(output=output_, tag=tag, sites=seq)
 
 
