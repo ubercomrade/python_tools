@@ -21,16 +21,12 @@ import itertools
 import argparse
 import numpy as np
 
+
 def read_sites(path):
-    '''
-    Чтение мотивов из фаила, если это просто список строк с разделителем \n, то everyStr = True,
-    если это fasta формат, то everyStr = False
-    '''
     sequences = []
     with open(path, 'r') as file:
-        sequences = [i.strip().upper() for i in file]
+        sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
     return(sequences)
-
 
 
 def remove_equalent_seq(seq_list, homology=0.95):
@@ -53,23 +49,16 @@ def remove_equalent_seq(seq_list, homology=0.95):
     return(seq_list)
 
 
-def make_pcm(motifs):
-    '''
-    input - список мотивов одинаковой длины
-    output -  PCM
-    Создает PCM на основе списка мотивов
-    '''
-    matrix = {}
+def background_freq(seq):
+    s = ''.join(seq)
+    background = {}
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
-        matrix[i[0]] = []
-    len_of_motif = len(motifs[0])
-    for i in matrix.keys():
-        matrix[i] = [0]*len_of_motif
-    for i in range(len_of_motif):
-        for l in motifs:
-            matrix[l[i]][i] += 1
-    return(matrix)
+        background[i[0]] = s.count(i[0])
+    sum_of_nuc = sum(background.values())
+    for i in background.keys():
+        background[i] = background[i]/sum_of_nuc
+    return(background)
 
 
 def make_pfm_from_pcm(pcm, pseudocount='1/N'):
@@ -126,16 +115,77 @@ def make_pfm_from_pcm(pcm, pseudocount='1/N'):
     return(pfm)
 
 
-def background_freq(seq):
-    s = ''.join(seq)
-    background = {}
+def make_pwm_from_pcm(pcm, background, pseudocount='1/N'):
+    '''
+    Функиця, которая считает PWM (position weight matrix) на основе PCM (position count matrix)
+    с преобразованием log-odds (добавить новые)
+
+    Ref:
+    1)Wyeth W.Wasserman and Albin Sandelin
+      APPLIED BIOINFORMATICS FOR THE IDENTIFICATION OF REGULATORY ELEMENTS
+      doi:10.1038/nrg1315
+
+    2)Victor G Levitsky
+      Effective transcription factor binding site prediction using a
+      combination of optimization, a genetic algorithm and discriminant
+      analysis to capture distant interactions
+      doi:10.1186/1471-2105-8-481
+
+    3)Oliver D. King and Frederick P. Roth
+      A non-parametric model for transcription factor binding sites
+      doi: 10.1093/nar/gng117
+
+    '''
+    pwm = {}
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
-        background[i[0]] = s.count(i[0])
-    sum_of_nuc = sum(background.values())
-    for i in background.keys():
-        background[i] = background[i]/sum_of_nuc
-    return(background)
+        pwm[i[0]] = []
+
+    pfm = make_pfm_from_pcm(pcm, pseudocount)
+    first_key = list(pcm.keys())[0]
+    for i in range(len(pfm[first_key])):
+        for j in pfm.keys():
+            pwm[j].append(math.log(pfm[j][i] / background[j]))
+    return(pwm)
+
+
+def make_pcm(motifs):
+    '''
+    input - список мотивов одинаковой длины
+    output -  PCM
+    Создает PCM на основе списка мотивов
+    '''
+    matrix = {}
+    mono_nucleotides = itertools.product('ACGT', repeat=1)
+    for i in mono_nucleotides:
+        matrix[i[0]] = []
+    len_of_motif = len(motifs[0])
+    for i in matrix.keys():
+        matrix[i] = [0]*len_of_motif
+    for i in range(len_of_motif):
+        for l in motifs:
+            matrix[l[i]][i] += 1
+    return(matrix)
+
+
+def write_meme(output, tag, pfm, background, nsites):
+    with open(output + '/' + tag + '.meme', 'w') as file:
+        file.write('MEME version 4\n\nALPHABET= ACGT\n\nBackground letter frequencies\n')
+        file.write('A {0} C {1} G {2} T {3}\n\n'.format(background['A'], background['C'],
+                                                        background['G'], background['T']))
+        file.write('MOTIF {0}\n'.format(tag))
+        file.write(
+            'letter-probability matrix: alength= 4 w= {0} nsites= {1}\n'.format(len(pfm['A']), nsites))
+        for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
+            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
+
+
+def write_pwm(output, tag, pwm):
+    with open(output + '/' + tag + '.pwm', 'w') as file:
+        file.write('>{0}\n'.format(tag))
+        for i in zip(pwm['A'], pwm['C'], pwm['G'], pwm['T']):
+            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
+
 
 def write_pfm(output, tag, pfm):
     with open(output + '/' + tag + '.pfm', 'w') as file:
@@ -143,28 +193,45 @@ def write_pfm(output, tag, pfm):
         for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
             file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', action='store', dest='input',
-                        required=True, help='path to sites')
+                        required=True, help='path to fasta')
     parser.add_argument('-o', '--output', action='store', dest='output',
-                        required=True, help='dir to PFM output file')
+                        required=True, help='dir to MODEL output file')
     parser.add_argument('-t', '--tag', action='store', dest='tag',
                         required=True, help='TAG for output files')
+    parser.add_argument('-M', '--meme', action='store_true', dest='meme',
+                        required=False, help='if the flag is active model will be writen in meme format')
+    parser.add_argument('-P', '--pwm', action='store_true', dest='pwm',
+                        required=False, help='if the flag is active model will be writen in pwm format')
+    parser.add_argument('-p', '--pfm', action='store_true', dest='pfm',
+                        required=False, help='if the flag is active model will be writen in pfm format')
     return(parser.parse_args())
 
 
 def main():
     args = parse_args()
-    sites_path = args.input
+    fasta_path = args.input
     output_dir = args.output
     tag = args.tag
+    pwm_flag = args.pwm
+    pfm_flag = args.pfm
+    meme_flag = args.meme
 
-    seq = read_sites(sites_path)
+    seq = read_sites(fasta_path)
     seq = remove_equalent_seq(seq_list=seq, homology=0.95)
+    background = background_freq(seq)
+    nsites = len(seq)
+
     pcm = make_pcm(seq)
     pfm = make_pfm_from_pcm(pcm)
-    write_pfm(output_dir, tag, pfm)
+    pwm = make_pwm_from_pcm(pcm, background)
+
+    if pwm_flag: write_pwm(output_dir, tag, pwm)
+    if pfm_flag: write_pfm(output_dir, tag, pfm)
+    if meme_flag: write_meme(output_dir, tag, pfm, background, nsites)
 
 if __name__ == '__main__':
     main()
