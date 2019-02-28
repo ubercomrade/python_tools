@@ -241,10 +241,10 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
     results = np.array([])
 
     # scan first strand
-    results = np.append(results, np.array([score_bamm(seq[i:motif_length + i], log_odds_bamm, order) for i in range(len(seq) - motif_length + 1)]))
+    results = np.append(results, np.array([score_bamm(seq[i:motif_length + order + i], log_odds_bamm, order) for i in range(len(seq) - motif_length - order + 1)]))
 
     # scan second strand
-    results = np.append(results, np.array([score_bamm(reverse_seq[i:motif_length + i], log_odds_bamm, order) for i in range(len(seq) - motif_length + 1)]))
+    results = np.append(results, np.array([score_bamm(reverse_seq[i:motif_length + order + i], log_odds_bamm, order) for i in range(len(seq) - motif_length - order + 1)]))
 
     return(results)
 

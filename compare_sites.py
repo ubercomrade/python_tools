@@ -28,17 +28,6 @@ def read_bed_like_file(path):
     return(df)
 
 
-# def read_peaks(path):
-#    df = pd.read_csv(path, sep='\t', header=None, usecols=[0, 1, 2, 3, 4, 5],
-#                    names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
-#    if df['name'][0] == '.':
-#        name = 'peaks_'
-#        names = [name + str(i) for i in range(len(df))]
-#        df['name'] = names
-#    # print(df)
-#    return(df)
-
-
 def read_peaks(path):
     df = pd.read_csv(path,
                      sep='\t', header=None,
@@ -92,55 +81,6 @@ def get_coord(site):
     return(np.array(site['start'], site['end']))
 
 
-def calculate_fraction_of_sites(sub_data, sub_pwm_sites, sub_bamm_sites):
-
-    # Varable for write results
-    results = {'peaks': int(), 'no_sites': int(), 'pwm_sites': int(), 'bamm_sites': int(),
-               'overlap_sites': int(), 'not_overlap_sites': int()}
-    results['peaks'] = len(sub_data)
-    results['no_sites'] = len(set(sub_data['name']) -
-                              set(sub_bamm_sites['name']) - set(sub_pwm_sites['name']))
-    results['bamm_sites'] = len(set(sub_bamm_sites['name']) - set(sub_pwm_sites['name']))
-    results['pwm_sites'] = len(set(sub_pwm_sites['name']) - set(sub_bamm_sites['name']))
-
-    # Caclculation fraction of sites in peaks
-    both_method_peaks = set(sub_bamm_sites['name']) & set(sub_pwm_sites['name'])
-    common_peaks_results = pd.DataFrame()
-
-    for peak in both_method_peaks:
-        subset_bamm = pd.DataFrame(sub_bamm_sites[np.logical_and(
-            sub_bamm_sites['name'] == peak, sub_bamm_sites['strand'] == '+')])
-        subset_pwm = pd.DataFrame(sub_pwm_sites[np.logical_and(
-            sub_pwm_sites['name'] == peak, sub_pwm_sites['strand'] == '+')])
-        intersections_down = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
-        ) for index_bamm, row_bamm in subset_bamm.iterrows()]
-
-        subset_bamm = pd.DataFrame(sub_bamm_sites[np.logical_and(
-            sub_bamm_sites['name'] == peak, sub_bamm_sites['strand'] == '-')])
-        subset_pwm = pd.DataFrame(sub_pwm_sites[np.logical_and(
-            sub_pwm_sites['name'] == peak, sub_pwm_sites['strand'] == '-')])
-        intersections_up = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
-        ) for index_bamm, row_bamm in subset_bamm.iterrows()]
-
-        intersections = intersections_up + intersections_down
-        if sum(intersections) == 0:
-            results['not_overlap_sites'] += 1
-        else:
-            results['overlap_sites'] += 1
-    return(results)
-
-
-def get_sub_data(top, peaks, sites):
-    sub_data = peaks[:top]
-    names = set(sub_data['name'])
-    sub_sites = sites[[i in names for i in sites['name']]]
-    return(sub_sites)
-
-
-def get_top(top, peaks):
-    sub_data = peaks[:top]
-    return(sub_data)
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -161,12 +101,6 @@ def parse_args():
 
 
 def main():
-    # MAIN
-    #bamm_path = '~/DATA/TF/CEPBA_mm10_GSM2845732/SCAN/CEBPA_all_BAMM.tsv'
-    #pwm_path = '~/DATA/TF/CEPBA_mm10_GSM2845732/SCAN/CEBPA_all_PWM.tsv'
-    #peaks_path = '~/DATA/TF/CEPBA_mm10_GSM2845732/BED/CEBPA_all.bed'
-    #tag = '123'
-    #out_dir = '~/DATA/TEST'
 
     args = parse_args()
     bamm_path = args.bamm_path
@@ -178,50 +112,112 @@ def main():
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
-    # Read bamm sites
+    data = read_peaks(peaks_path)
+    names = [int(i.split('_')[1]) for i in data['name']]
+    data['name'] = names
+
     bamm_sites = read_bed_like_file(bamm_path)
     bamm_sites['type'] = 'bamm'
-    bamm_sites['overlaps'] = False
+    names = [int(i.split('_')[1]) for i in bamm_sites['name']]
+    bamm_sites['name'] = names
 
-    # Read pwm sites
     pwm_sites = read_bed_like_file(pwm_path)
     pwm_sites['type'] = 'pwm'
-    pwm_sites['overlaps'] = False
+    names = [int(i.split('_')[1]) for i in pwm_sites['name']]
+    pwm_sites['name'] = names
 
-    # Read peaks and give names to every peask
-    data = read_peaks(peaks_path)
 
-    # Get subdata by peak score (TOP 1000, 2000, ...)
+    id_pwm = np.unique(pwm_sites['name']) # ids of peaks where there are pwm_sites
+    id_bamm = np.unique(bamm_sites['name']) # ids of peaks where there are bamm_sites
+
+    only_pwm_sites_id = np.setdiff1d(id_pwm, id_bamm) # ids of peaks where there are only pwm_sites
+    only_bamm_sites_id = np.setdiff1d(id_bamm, id_pwm) # ids of peaks where there are only bamm_sites
+
+    only_pwm_sites = pwm_sites[np.in1d(pwm_sites['name'], only_pwm_sites_id)] # df with only pwm_sites
+    only_bamm_sites = bamm_sites[np.in1d(bamm_sites['name'], only_bamm_sites_id)]  # df with only only bamm_sites
+
+    only_pwm_peaks = data[np.in1d(data['name'], only_pwm_sites_id)] # df with only pwm_peaks
+    only_bamm_peaks = data[np.in1d(data['name'], only_bamm_sites_id)]  # df with only only bamm_peaks
+
+    id_no_sites = np.setdiff1d(np.setdiff1d(np.array(data['name']), id_bamm), id_pwm) # id of peaks where there are not sites
+    no_sites_peaks = data[np.in1d(data['name'], id_no_sites)] # peaks where there are not sites
+
+
+    #######
+    #Get peaks with overlap and not overlaped sites
+    perhaps_overlap_peaks = data[np.in1d(data['name'], np.intersect1d(id_pwm, id_bamm))]
+    peaks_with_not_overlap_sites = pd.DataFrame()
+    peaks_with_overlap_sites = pd.DataFrame()
+
+    for index, peak in perhaps_overlap_peaks.iterrows():
+        subset_bamm = pd.DataFrame(bamm_sites[np.logical_and(
+            bamm_sites['name'] == peak['name'], bamm_sites['strand'] == '+')])
+        subset_pwm = pd.DataFrame(pwm_sites[np.logical_and(
+            pwm_sites['name'] == peak['name'], pwm_sites['strand'] == '+')])
+        intersections_down = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
+            ) for index_bamm, row_bamm in subset_bamm.iterrows()]
+
+        subset_bamm = pd.DataFrame(bamm_sites[np.logical_and(
+            bamm_sites['name'] == peak['name'], bamm_sites['strand'] == '-')])
+        subset_pwm = pd.DataFrame(pwm_sites[np.logical_and(
+            pwm_sites['name'] == peak['name'], pwm_sites['strand'] == '-')])
+        intersections_up = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
+            ) for index_bamm, row_bamm in subset_bamm.iterrows()]
+
+        intersections = intersections_up + intersections_down
+        if sum(intersections) == 0:
+            peaks_with_not_overlap_sites = peaks_with_not_overlap_sites.append(peak)
+        else:
+            peaks_with_overlap_sites = peaks_with_overlap_sites.append(peak)
+
+    peaks_with_not_overlap_sites['name'] =  [int(i) for i in peaks_with_not_overlap_sites['name']]
+    peaks_with_overlap_sites['name'] =  [int(i) for i in peaks_with_overlap_sites['name']]
+    ########
+
+    ########
+    #Make table with count of diff kind of peaks
+    count = []
     top = [i * 1000 for i in range(1, len(data) // 1000 + 1)]
-    pwm_sub_sites = [get_sub_data(i, data, pwm_sites) for i in top]
-    bamm_sub_sites = [get_sub_data(i, data, bamm_sites) for i in top]
-    sub_data = [get_top(i, data) for i in top]
 
-    data = zip(sub_data, pwm_sub_sites, bamm_sub_sites)
-    with Pool(4) as p:
-        total_results = p.starmap(calculate_fraction_of_sites, data)
+    for i in range(len(top)):
+        subset_name_peaks = data.iloc[i*1000:(i+1)*1000]['name']
+        count_pwm_sites = len(np.intersect1d(only_pwm_sites['name'], subset_name_peaks))
+        count_bamm_sites = len(np.intersect1d(only_bamm_sites['name'], subset_name_peaks))
+        count_overlap_sites = len(np.intersect1d(peaks_with_overlap_sites['name'], subset_name_peaks))
+        count_not_overlap_sites = len(np.intersect1d(peaks_with_not_overlap_sites['name'], subset_name_peaks))
+        count_no_sites = len(np.intersect1d(no_sites_peaks['name'], subset_name_peaks))
 
-    # Count data
-    count = pd.DataFrame(total_results)
+        count.append({'no_sites': count_no_sites,
+         'pwm_sites': count_pwm_sites, 'bamm_sites': count_bamm_sites,
+         'overlap_sites': count_overlap_sites,
+         'not_overlap_sites': count_not_overlap_sites})
+
+    count_ = pd.DataFrame(count)
+    count = pd.DataFrame()
+    count = count.append(count_.iloc[0])
+    for i in range(1,len(count_)):
+        count = count.append(count.iloc[i - 1] + count_.iloc[i], ignore_index=True)
+    count['peaks'] = top
     count = count[['overlap_sites', 'pwm_sites', 'bamm_sites',
-                   'not_overlap_sites', 'no_sites', 'peaks']]
+                       'not_overlap_sites', 'no_sites', 'peaks']]
     count.to_csv(out_dir + '/' + tag + '_COUNT.tsv', sep='\t', index=False)
 
-    # Fraction data devided by fractiomal volume of peaks
-    frequency = pd.DataFrame(total_results)
-    frequency = frequency[['overlap_sites', 'pwm_sites',
-                           'bamm_sites', 'not_overlap_sites', 'no_sites', 'peaks']]
+    frequency = pd.DataFrame(count)
     for column in frequency:
         if column == 'peaks':
             continue
         frequency[column] = frequency[column] / frequency['peaks']
     frequency.to_csv(out_dir + '/' + tag + '_FREQUENCY.tsv', sep='\t', index=False)
 
-    # Picture
     ax = frequency.plot.bar(stacked=True, x='peaks')
     ax.legend(loc=[1.05, 0.62])
     fig = ax.get_figure()
     fig.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150,  bbox_inches='tight')
+
+    only_bamm_sites.to_csv(out_dir + '/' + tag + '_bamm.sites', sep='\t')
+    only_pwm_sites.to_csv(out_dir + '/' + tag + '_pwm.sites', sep='\t')
+    only_bamm_peaks.to_csv(out_dir + '/' + tag + '_bamm.peaks', sep='\t')
+    only_pwm_peaks.to_csv(out_dir + '/' + tag + '_pwm.peaks', sep='\t')
 
 
 if __name__ == '__main__':

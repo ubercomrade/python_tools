@@ -121,9 +121,11 @@ def score_bamm(seq, bamm, order):
     '''
     length_of_seq = len(seq)
     score = 0
+    site = ''
     for position in range(len(seq) - order):
         score += bamm[seq[position:position + order + 1]][position]
-    return(score)
+        site += seq[position:position + order + 1][-1]
+    return(score, site)
 
 
 def bamm_to_dict(log_odds_bamm, order, k_mers):
@@ -183,9 +185,9 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
     results = []
 
     # scan first strand
-    for i in range(len(seq) - motif_length + 1):
-        site_seq = seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, order)
+    for i in range(len(seq) - motif_length - order + 1):
+        site_seq = seq[i:motif_length + order + i]
+        s, site_seq = score_bamm(site_seq, log_odds_bamm, order)
         if s >= threshold:
             site_dict = dict()
             site_dict['name'] = record['name']
@@ -198,9 +200,9 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
             results.append(site_dict)
 
     # scan second strand
-    for i in range(len(seq) - motif_length + 1):
-        site_seq = reverse_seq[i:motif_length + i]
-        s = score_bamm(site_seq, log_odds_bamm, order)
+    for i in range(len(seq) - motif_length - order + 1):
+        site_seq = reverse_seq[i:motif_length + order + i]
+        s, site_seq = score_bamm(site_seq, log_odds_bamm, order)
         if s >= threshold:
             site_dict = dict()
             site_dict['name'] = record['name']
