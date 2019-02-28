@@ -214,10 +214,10 @@ def main():
     fig = ax.get_figure()
     fig.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150,  bbox_inches='tight')
 
-    only_bamm_sites.to_csv(out_dir + '/' + tag + '_bamm.sites', sep='\t')
-    only_pwm_sites.to_csv(out_dir + '/' + tag + '_pwm.sites', sep='\t')
-    only_bamm_peaks.to_csv(out_dir + '/' + tag + '_bamm.peaks', sep='\t')
-    only_pwm_peaks.to_csv(out_dir + '/' + tag + '_pwm.peaks', sep='\t')
+    only_bamm_sites.to_csv(out_dir + '/' + tag + '_bamm.sites', sep='\t', index=False, header=False)
+    only_pwm_sites.to_csv(out_dir + '/' + tag + '_pwm.sites', sep='\t', index=False, header=False)
+    only_bamm_peaks.to_csv(out_dir + '/' + tag + '_bamm.peaks', sep='\t', index=False, header=False)
+    only_pwm_peaks.to_csv(out_dir + '/' + tag + '_pwm.peaks', sep='\t', index=False, header=False)
 
 
 if __name__ == '__main__':
