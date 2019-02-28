@@ -241,11 +241,13 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
     else:
         print('File {0} already exists'.format(tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp'))
 
+
+    #open(compare_sites + '/' + tag + '_threshold.txt').close()
     for fpr_for_thr in list_fpr_for_thr:
 
-        if os.path.isfile(compare_sites + '/' + tag + '_' + str(fpr_for_thr) + '_' + '_FREQUENCY.tsv'):
-            continue
-        else:
+        #if os.path.isfile(compare_sites + '/' + tag + '_' + str(fpr_for_thr) + '_' + '_FREQUENCY.tsv'):
+        #    continue
+        #else:
 
             #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
             print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
