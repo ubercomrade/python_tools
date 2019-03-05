@@ -29,16 +29,18 @@ import numpy as np
 def read_bed(path):
     bed = pd.read_csv(path,
                       sep='\t', header=None,
-                      # usecols=[0, 1, 2, 3, 4, 5],
-                      names=['chromosome', 'start', 'end', 'name', 'score', 'strand'])
-    bed.loc[np.isnan(bed['strand']), 'strand'] = '.'
+                      usecols=[0, 1, 2, 3, 4, 5],
+                      names=['chromosome', 'start', 'end', 'name', 'score', 'strand'],
+                      dtype= {'chromosome': str})
+    bed['strand'] = '.'
     return(bed)
 
 
 def read_bed_graph(path):
     graph = pd.read_csv(path,
                         sep='\t', header=None,
-                        names=['chromosome', 'start', 'end', 'score'])
+                        names=['chromosome', 'start', 'end', 'score'],
+                        dtype= {'chromosome': str})
 
     return(graph)
 
@@ -171,6 +173,15 @@ def complement(seq):
     return(output)
 
 
+def chek_nucleotides(line):
+    flag = True
+    for char in line:
+        flag = char is 'A' or char is 'C' or char is 'G' or char is 'T'
+        if not flag:
+            break
+    return flag
+
+
 def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
     bed_peaks = read_bed(path_bed)
     bed_peaks = modify_bio_records(bed_peaks, to_min, to_max, to_size, tail)
@@ -219,7 +230,7 @@ def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
         position_end = bed_peaks.iloc[i]['end'] - bed_peaks.iloc[i]['start'] + position_start
         for line_number in range(peak_start_line, peak_end_line + 1):
             seq += linecache.getline(path_fasta, line_number).strip()
-        if not 'N' in seq[position_start:position_end]:
+        if chek_nucleotides(seq[position_start:position_end]):
             if rec['strand'] == '+':
                 rec['seq'] = seq[position_start:position_end]
             else:
@@ -235,15 +246,19 @@ def bed_to_graph_fasta(record, graph):
     record_start = record['start']
     record_end = record['end']
     record['graph'] = []
+    value = []
+    length = len(graph)
+    #positions = [int(np.searchsorted(graph['start'], coordinate)) for coordinate in range(record_start, record_end)]
+    #positions = [i - 1 if i == length else i for i in positions]
+    #value = [str(graph.iloc[i]) for i in positions]
+    for coordinate in range(record_start, record_end):
+        pos = int(np.searchsorted(graph['start'], coordinate))
+        if pos == len(graph):
+            pos -= 1
+        value.append(str(graph.iloc[pos]['score']))
 
-    # for coordinate in range(record_start, record_end):
-    #index = int(np.searchsorted(graph['start'], coordinate))
-    #    value = graph.iloc[index]['score']
-    #    record['graph'].append(str(value))
-    #record['graph'] = ' '.join(record['graph'])
-
-    value = [str(graph.iloc[int(np.searchsorted(graph['start'], coordinate))]['score'])
-             for coordinate in range(record_start, record_end)]
+    #value = [str(graph.iloc[int(np.searchsorted(graph['start'], coordinate))]['score']) \
+    #         for coordinate in range(record_start, record_end)]
     record['graph'] = ' '.join(value)
     return(record)
 

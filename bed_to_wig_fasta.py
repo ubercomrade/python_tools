@@ -154,6 +154,15 @@ def complement(seq):
     return(output)
 
 
+def chek_nucleotides(line):
+    flag = True
+    for char in line:
+        flag = char is 'A' or char is 'C' or char is 'G' or char is 'T'
+        if not flag:
+            break
+    return flag
+
+
 def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
     bed_peaks = read_bed(path_bed)
     bed_peaks = modify_bio_records(bed_peaks, to_min, to_max, to_size, tail)
@@ -202,7 +211,7 @@ def bed_to_fasta(path_fasta, path_bed, to_min, to_max, to_size, tail):
         position_end = bed_peaks.iloc[i]['end'] - bed_peaks.iloc[i]['start'] + position_start
         for line_number in range(peak_start_line, peak_end_line + 1):
             seq += linecache.getline(path_fasta, line_number).strip()
-        if not 'N' in seq[position_start:position_end]:
+        if chek_nucleotides(seq[position_start:position_end]):
             if rec['strand'] == '+':
                 rec['seq'] = seq[position_start:position_end].upper()
             else:
