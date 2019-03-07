@@ -214,10 +214,21 @@ def main():
     fig = ax.get_figure()
     fig.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150,  bbox_inches='tight')
 
+
+    only_bamm_sites = only_bamm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     only_bamm_sites.to_csv(out_dir + '/' + tag + '_bamm.sites', sep='\t', index=False, header=False)
+
+    only_pwm_sites = only_pwm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     only_pwm_sites.to_csv(out_dir + '/' + tag + '_pwm.sites', sep='\t', index=False, header=False)
+
+    only_bamm_peaks = only_bamm_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     only_bamm_peaks.to_csv(out_dir + '/' + tag + '_bamm.peaks', sep='\t', index=False, header=False)
+
+    only_pwm_peaks = only_pwm_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     only_pwm_peaks.to_csv(out_dir + '/' + tag + '_pwm.peaks', sep='\t', index=False, header=False)
+
+    peaks_with_overlap_sites = peaks_with_overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    peaks_with_overlap_sites.to_csv(out_dir + '/' + tag + '_overlap_sites.peaks', sep='\t', index=False, header=False)
 
 
 if __name__ == '__main__':
