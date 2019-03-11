@@ -215,14 +215,14 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         print('File {0} already exists'.format(tag + '_OPTIMAL.pwm'))
 
 ################################################################################
-    print('Calculate ROC for optimal matrix {0}'.format(tag))
-    args = ['python3', path_to_python_tools + 'calculate_roc_pwm.py', 'roc',
-                    '-f', motifs + '/' + tag + '_OPTIMAL.fasta',
-                    '-t', '30000',
-                   '-n', tag + '_' + 'OPTIMAL',
-                   '-o', motifs,
-                   '-P', cpu_count]
-    p = subprocess.call(args)
+    #print('Calculate ROC for optimal matrix {0}'.format(tag))
+    #args = ['python3', path_to_python_tools + 'calculate_roc_pwm.py', 'roc',
+    #                '-f', motifs + '/' + tag + '_OPTIMAL.fasta',
+    #                '-t', '30000',
+    #               '-n', tag + '_' + 'OPTIMAL',
+    #               '-o', motifs,
+#               '-P', cpu_count]
+#    p = subprocess.call(args)
 ################################################################################
 
     if not os.path.isfile(motifs + '/' + tag + '_OPTIMAL_ORDER_' + bamm_order + '_motif_1.ihbcp') or True:
