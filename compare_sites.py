@@ -49,7 +49,7 @@ def read_peaks(path):
         name = 'peaks_'
         names = [name + str(i) for i in range(len(df))]
         bed['name'] = names
-    return(df)
+    return(bed)
 
 
 def read_fasta_headers(path):
