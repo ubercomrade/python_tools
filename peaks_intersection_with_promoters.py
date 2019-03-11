@@ -99,9 +99,9 @@ def parse_args():
     parser.add_argument('-o', '--output', action='store', dest='genes_id',
                                   required=True, help='path to txt file to write genes_id')
     parser.add_argument('-l', '--left', action='store', type=int, dest='left',
-                                  default=5000, required=False, help='left_tail + TSS, default_value = 5000')
+                                  default=2000, required=False, help='left_tail + TSS, default_value = 2000')
     parser.add_argument('-r', '--right', action='store', type=int, dest='rigth',
-                                  default=-5000, required=False, help='TSS + rigth_tail, default_value = -5000')
+                                  default=-2000, required=False, help='TSS + rigth_tail, default_value = -2000')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)

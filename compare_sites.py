@@ -124,17 +124,17 @@ def main():
         os.mkdir(out_dir)
 
     data = read_peaks(peaks_path)
-    names = [int(i.split('k')[1]) for i in data['name']]
+    names = [int(i.split('_')[1]) for i in data['name']]
     data['name'] = names
 
     bamm_sites = read_bed_like_file(bamm_path)
     bamm_sites['type'] = 'bamm'
-    names = [int(i.split('k')[1]) for i in bamm_sites['name']]
+    names = [int(i.split('_')[1]) for i in bamm_sites['name']]
     bamm_sites['name'] = names
 
     pwm_sites = read_bed_like_file(pwm_path)
     pwm_sites['type'] = 'pwm'
-    names = [int(i.split('k')[1]) for i in pwm_sites['name']]
+    names = [int(i.split('_')[1]) for i in pwm_sites['name']]
     pwm_sites['name'] = names
 
 
