@@ -45,10 +45,10 @@ def read_peaks(path):
 
         bed['strand'] = '.'
 
-    if df['name'][0] == '.':
+    if bed['name'][0] == '.':
         name = 'peaks_'
         names = [name + str(i) for i in range(len(df))]
-        df['name'] = names
+        bed['name'] = names
     return(df)
 
 
