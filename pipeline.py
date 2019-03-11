@@ -248,7 +248,19 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         #if os.path.isfile(compare_sites + '/' + tag + '_' + str(fpr_for_thr) + '_' + '_FREQUENCY.tsv'):
         #    continue
         #else:
-
+        if os.path.isfile(scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed' and\
+        scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed'):
+            print(str(fpr_for_thr) + ' scan files already exist')
+            #Compare sites
+            print('Compare sites ({0})'.format(tag))
+            args = ['python3', path_to_python_tools + 'compare_sites.py',
+                    '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+                    '-m', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                    '-b', scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                    '-t', tag + '_' + str(fpr_for_thr) + '_BAMM_ORDER_' + bamm_order,
+                    '-o', compare_sites]
+            r = subprocess.call(args)
+        else:
             #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
             print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
             args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
