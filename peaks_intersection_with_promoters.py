@@ -1,3 +1,18 @@
+'''
+Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
+License: http://www.gnu.org/licenses/gpl.txt
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+'''
+
 import pandas as pd
 import numpy as np
 import argparse
@@ -5,27 +20,51 @@ import sys
 
 
 
+#def read_gtf(path):
+#
+#    gtf = pd.read_csv(path,
+#                      sep='\t',comment='#', header=None, dtype= {'chr': str},
+#                     names=['chr', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'])
+#    attribute = gtf['attribute'].str.split('; ')
+#    gtf = gtf.drop(columns=['attribute'])
+#
+#    res = []
+#    for record in attribute:
+#        rec = []
+#        for i in record:
+#            if i == '':
+#                continue
+#            (a,b) = i.strip().split(maxsplit=1)
+#            rec.append((a.strip(),b.strip(';\" ')))
+#        res.append(dict(rec))
+#    attribute = pd.DataFrame(res)
+#    gtf = pd.concat([gtf, attribute], axis=1, sort=False)
+#    return(gtf)
+
+
 def read_gtf(path):
 
     gtf = pd.read_csv(path,
                       sep='\t',comment='#', header=None, dtype= {'chr': str},
                      names=['chr', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'])
-    attribute = gtf['attribute'].str.split('; ')
-    gtf = gtf.drop(columns=['attribute'])
 
-    res = []
-    for record in attribute:
-        rec = []
-        for i in record:
-            if i == '':
-                continue
-            (a,b) = i.strip().split(maxsplit=1)
-            rec.append((a.strip(),b.strip(';\" ')))
-        res.append(dict(rec))
-    attribute = pd.DataFrame(res)
-    res = None
+    res = map(slpit_attribute, gtf['attribute'])
+    attribute = pd.DataFrame(list(res))
+    gtf = gtf.drop(columns=['attribute'])
     gtf = pd.concat([gtf, attribute], axis=1, sort=False)
+    del attribute
     return(gtf)
+
+
+def slpit_attribute(record):
+    record = record.split('; ')
+    rec = []
+    for i in record:
+        if i == '':
+            continue
+        (a,b) = i.strip().split(maxsplit=1)
+        rec.append((a.strip(),b.strip(';\" ')))
+    return(dict(rec))
 
 
 def read_peaks(path):
@@ -37,7 +76,12 @@ def read_peaks(path):
 
 
 def get_promoters(gtf, rigth=-5000, left=5000):
-    df = gtf[np.logical_and(gtf['feature'] == 'gene', gtf['gene_biotype'] == 'protein_coding')]
+    if 'gene_biotype' in gtf.columns:
+        df = gtf[np.logical_and(gtf['feature'] == 'gene', gtf['gene_biotype'] == 'protein_coding')]
+        #df = gtf[gtf['feature'] == 'gene']
+    if 'gene_type' in gtf.columns:
+        df = gtf[np.logical_and(gtf['feature'] == 'gene', gtf['gene_type'] == 'protein_coding')]
+        #df = gtf[gtf['feature'] == 'gene']
     promoters = {'chr': [], 'start': [], 'end': [],
                  'name': [], 'score': [], 'strand': [],
                  'signalValue': [], 'pValue': [], 'qValue': [],
@@ -111,7 +155,8 @@ def parse_args():
 
 
 def write_results(out, res):
-    res = [i.capitalize() for i in res]
+    #res = [i.capitalize() for i in res]
+    res = [i.split('.')[0] for i in res]
     with open(out, 'w') as file:
         for gene_id in res:
             file.write(gene_id + '\n')
@@ -132,7 +177,7 @@ def main():
     peaks = read_peaks(peaks_path)
     peaks = peaks.sort_values(by=['chr', 'start'])
     res = peaks_intersect_genes(peaks, promoters)
-    res = np.unique(res)
+    #res = np.unique(res)
     write_results(out, res)
 
 

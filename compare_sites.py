@@ -226,21 +226,40 @@ def main():
     fig.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150,  bbox_inches='tight')
 
 
+    overlap_bamm_sites = bamm_sites[np.in1d(bamm_sites['name'], peaks_with_overlap_sites['name'])]
+    overlap_pwm_sites = pwm_sites[np.in1d(pwm_sites['name'], peaks_with_overlap_sites['name'])]
+    overlap_sites = pd.concat([overlap_bamm_sites, overlap_pwm_sites])
+    overlap_sites = overlap_sites.sort_values(by=['name'])
+
+
     only_bamm_sites = only_bamm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    only_bamm_sites.to_csv(out_dir + '/' + tag + '_bamm.sites', sep='\t', index=False, header=False)
+    only_bamm_sites.to_csv(out_dir + '/' + tag + '_all_bamm.sites', sep='\t', index=False, header=False)
+    only_bamm_sites[only_bamm_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_bamm.sites',
+                                                             sep='\t', index=False, header=False)
 
     only_pwm_sites = only_pwm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    only_pwm_sites.to_csv(out_dir + '/' + tag + '_pwm.sites', sep='\t', index=False, header=False)
+    only_pwm_sites.to_csv(out_dir + '/' + tag + '_all_pwm.sites', sep='\t', index=False, header=False)
+    only_pwm_sites[only_pwm_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_pwm.sites',
+                                                             sep='\t', index=False, header=False)
+
+    overlap_sites = overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    overlap_sites.to_csv(out_dir + '/' + tag + '_all_overlap.sites', sep='\t', index=False, header=False)
+    overlap_sites[overlap_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_overlap.sites',
+                                                             sep='\t', index=False, header=False)
 
     only_bamm_peaks = only_bamm_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    only_bamm_peaks.to_csv(out_dir + '/' + tag + '_bamm.peaks', sep='\t', index=False, header=False)
+    only_bamm_peaks.to_csv(out_dir + '/' + tag + '_all_bamm.peaks', sep='\t', index=False, header=False)
+    only_bamm_peaks[only_bamm_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_bamm.peaks',
+                                                             sep='\t', index=False, header=False)
 
     only_pwm_peaks = only_pwm_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    only_pwm_peaks.to_csv(out_dir + '/' + tag + '_pwm.peaks', sep='\t', index=False, header=False)
+    only_pwm_peaks.to_csv(out_dir + '/' + tag + '_all_pwm.peaks', sep='\t', index=False, header=False)
+    only_pwm_peaks[only_pwm_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_pwm.peaks',
+                                                             sep='\t', index=False, header=False)
 
     peaks_with_overlap_sites = peaks_with_overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    peaks_with_overlap_sites.to_csv(out_dir + '/' + tag + '_overlap_sites.peaks', sep='\t', index=False, header=False)
-
-
+    peaks_with_overlap_sites.to_csv(out_dir + '/' + tag + '_all_overlap.peaks', sep='\t', index=False, header=False)
+    peaks_with_overlap_sites[peaks_with_overlap_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_overlap.peaks',
+                                                             sep='\t', index=False, header=False)
 if __name__ == '__main__':
     main()
