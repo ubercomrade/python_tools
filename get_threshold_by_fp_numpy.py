@@ -144,6 +144,7 @@ def make_log_odds_bamm(bamm, bg):
     log_odds_bamm = dict()
     for order in bamm.keys():
         log_odds_bamm[order] = np.array(np.log2(bamm[order] / bg[order]))
+    #log_odds_bamm[2] = np.array(np.log2(bamm[2] / bg[2]))
     return(log_odds_bamm)
 
 
@@ -375,6 +376,9 @@ def main():
 
         fasta = read_fasta(fasta_path)
         bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
+        #########
+        #order = 2
+        #########
         log_odds_bamm = make_log_odds_bamm(bamm, bg)
         k_mers = make_k_mers(order)
         log_odds_bamm = bamm_to_dict(log_odds_bamm, order, k_mers)

@@ -21,11 +21,11 @@ import argparse
 def read_matrix(path):
     with open(path, 'r') as file:
         tag = file.readline().strip('>\n')
-        pwm = {'A': [], 'C': [], 'G': [], 'T': []}
+        matrix = {'A': [], 'C': [], 'G': [], 'T': []}
         for line in file:
             line = line.strip().split('\t')
-            for letter, value in zip(pwm.keys(), line):
-                pwm[letter].append(float(value))
+            for letter, value in zip(matrix.keys(), line):
+                matrix[letter].append(float(value))
     file.close()
     return(matrix, tag)
 

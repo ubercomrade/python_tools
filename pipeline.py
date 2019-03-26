@@ -248,8 +248,9 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
                 fasta + '/' + tag + '_' + str(training_sample_size) + '_WIG.fa',
                '--PWMFile', motifs + '/' + tag + '_OPTIMAL.meme',
                 '--basename', tag + '_OPTIMAL_ORDER_' + bamm_order,
-               #'--EM',
+               '--EM',
                #'--CGS',
+               #'--extend', '2',
                '--Order', bamm_order,
                '--order', bamm_order]
         r = subprocess.call(args)
@@ -263,8 +264,8 @@ def work_with_tf_mono_version(bed_path, wig_path, training_sample_size, testing_
         #if os.path.isfile(compare_sites + '/' + tag + '_' + str(fpr_for_thr) + '_' + '_FREQUENCY.tsv'):
         #    continue
         #else:
-        if os.path.isfile(scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed' and\
-        scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed'):
+        if os.path.isfile(scan + '/' + tag + '_BAMM_ORDER_' + bamm_order + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed') and\
+        os.path.isfile(scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed'):
             print(str(fpr_for_thr) + ' scan files already exist')
             #Compare sites
             print('Compare sites ({0})'.format(tag))
@@ -708,7 +709,7 @@ def main():
                               list_fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
                               path_to_promoters, path_to_genome, cpu_count,
                               wig_flag=wig_flag, zoops=zoops, try_size=try_size,
-                              bamm_order=2, recalculate_model=False)
+                              bamm_order=bamm_order, recalculate_model=False)
 
 if __name__ == '__main__':
     main()
