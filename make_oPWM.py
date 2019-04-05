@@ -450,12 +450,13 @@ def main():
     chipmunk = parse_chipmunk_words(chipmunk_path)
     fasta = read_fasta(fasta_path)
     background = background_freq(fasta)
-
+    fprs = []
 
 
     optimal_motifs = chipmunk_motifs(fasta, chipmunk)
     optimal_motifs = remove_equalent_seq(optimal_motifs, homology=0.95)
     optimal_fpr = calculate_fpr(optimal_motifs, times, cpu_count, tpr=0.5)
+    fprs.append(optimal_fpr)
     print(optimal_fpr)
 
     chipmunk['start'] -= 1
@@ -463,6 +464,7 @@ def main():
     motifs = chipmunk_motifs(fasta, chipmunk)
     motifs = remove_equalent_seq(motifs, homology=0.95)
     fpr = calculate_fpr(motifs, times, cpu_count, tpr=0.5)
+    fprs.append(fpr)
     print(fpr)
 
     while fpr <= optimal_fpr:
@@ -473,6 +475,10 @@ def main():
         motifs = chipmunk_motifs(fasta, chipmunk)
         motifs = remove_equalent_seq(motifs, homology=0.95)
         fpr = calculate_fpr(motifs, times, cpu_count, tpr=0.5)
+        fprs.append(fpr)
+        if fpr <= optimal_fpr and 1 - fprs[-1]/fprs[-2] < 0.1:
+            print(fpr)
+            break
         print(fpr)
 
 
@@ -488,6 +494,10 @@ def main():
     write_pwm(output_dir, tag, pwm)
     write_pfm(output_dir, tag, pfm)
     write_sites(output=output_dir, tag=tag, sites=motifs)
+    with open(output_dir + '/fprs.txt', 'w') as file:
+        for i in fprs:
+            file.write(str(i) + '\n')
+    file.close()
 
 if __name__=='__main__':
     main()

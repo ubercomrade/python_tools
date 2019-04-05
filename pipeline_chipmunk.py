@@ -21,7 +21,7 @@ import argparse
 import numpy as np
 
 
-def pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_length,
+def pipeline_chipmunk(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
                       fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
                       path_to_promoters, path_to_genome, cpu_count,
                       zoops, try_size, bamm_order, recalculate_model):
@@ -31,7 +31,7 @@ def pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_
     bamm_order = str(bamm_order)
     try_size=str(try_size)
     cpu_count = str(cpu_count)
-    peak_length = str(peak_length)
+    shoulder = str(shoulder)
     motif_length_start = str(8)
     motif_length_end = str(12)
 
@@ -75,6 +75,14 @@ def pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_
                '-c', '4',
                '-t', tag + '_' + str(training_sample_size)]
         r = subprocess.call(args)
+
+        args = ['python3', path_to_python_tools + 'prepare_peaks.py',
+               '-b', bed + '/' + tag + '_' + str(training_sample_size) + '.bed',
+                '-w', bigwig_path,
+               '-o', bed,
+                '-s', shoulder,
+               '-t', tag + '_' + str(training_sample_size)]
+        r = subprocess.call(args)
     else:
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) + '.bed'))
 
@@ -97,8 +105,7 @@ def pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_
         args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
                '-if', path_to_genome,
                '-bed', bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
-               '-of', fasta + '/' + tag + '_' + str(training_sample_size) +'.fa',
-               '-l', peak_length]
+               '-of', fasta + '/' + tag + '_' + str(training_sample_size) +'.fa']
         r = subprocess.call(args)
     else:
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) +'.fa'))
@@ -143,15 +150,17 @@ def pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_
     ##############################################################################
     #Get oPWM from ChIPMunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta)#
     ##############################################################################
-
-    args = ['python3', path_to_python_tools + 'make_oPWM.py',
-            '-c', chipmunk + '/CHIPMUNK_MOTIF.txt',
-            '-f', fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-            '-n', '5000',
-            '-P', cpu_count,
-            '-o', chipmunk,
-            '-t', tag + '_' + 'OPTIMAL_MOTIF']
-    r = subprocess.call(args)
+    if not os.path.isfile(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.meme'):
+        args = ['python3', path_to_python_tools + 'make_oPWM.py',
+                '-c', chipmunk + '/CHIPMUNK_MOTIF.txt',
+                '-f', fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
+                '-n', '5000',
+                '-P', cpu_count,
+                '-o', motifs,
+                '-t', tag + '_' + 'OPTIMAL_MOTIF']
+        r = subprocess.call(args)
+    else:
+        print('File {0} already exists'.format(motifs + '/PEAKS039334_OPTIMAL_MOTIF.meme'))
 
 
 
@@ -161,7 +170,7 @@ def pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_
     #CALCULATE BAMM MODEL WITH EM ALG#
     ##################################
 
-    if not os.path.isfile(motifs + '/' + tag + '_' + bamm_order + '_motif_1.ihbcp') or True:
+    if not os.path.isfile(motifs + '/' + tag + '_' + bamm_order + '_motif_1.ihbcp'):
 
         #Get BaMM motif
         print('Get Bamm motifs for {0}'.format(tag))
@@ -273,6 +282,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bed', action='store', dest='bed_path',
                         required=True, help='path to BED file')
+    parser.add_argument('-w', '--bigwig', action='store', dest='wig_path',
+                        required=True, help='path to BIGWIG file')
     parser.add_argument('-P', '--promoters', action='store', dest='promoters',
                         required=True, help='path to promoters fasta file')
     parser.add_argument('-g', '--genome', action='store', dest='genome',
@@ -322,6 +333,7 @@ def main():
     path_to_promoters = args.promoters
     path_to_genome = args.genome
     bed_path = args.bed_path
+    bigwig_path = args.wig_path
     path_to_out = args.output
     training_sample_size = args.train_size
     testing_sample_size = args.test_size
@@ -332,9 +344,9 @@ def main():
     try_size=args.try_limit
     bamm_order=args.bamm_order
     recalculate_model=False
-    peak_length = 100
+    shoulder = 50
 
-    pipeline_chipmunk(bed_path, training_sample_size, testing_sample_size, peak_length,
+    pipeline_chipmunk(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
                       fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
                       path_to_promoters, path_to_genome, cpu_count,
                       zoops, try_size, bamm_order, recalculate_model)

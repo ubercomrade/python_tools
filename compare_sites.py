@@ -232,17 +232,17 @@ def main():
     overlap_sites = overlap_sites.sort_values(by=['name'])
 
 
-    only_bamm_sites = only_bamm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    only_bamm_sites = only_bamm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_bamm_sites.to_csv(out_dir + '/' + tag + '_all_bamm.sites', sep='\t', index=False, header=False)
     only_bamm_sites[only_bamm_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_bamm.sites',
                                                              sep='\t', index=False, header=False)
 
-    only_pwm_sites = only_pwm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    only_pwm_sites = only_pwm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_pwm_sites.to_csv(out_dir + '/' + tag + '_all_pwm.sites', sep='\t', index=False, header=False)
     only_pwm_sites[only_pwm_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_pwm.sites',
                                                              sep='\t', index=False, header=False)
 
-    overlap_sites = overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    overlap_sites = overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     overlap_sites['start'] = [int(i) for i in overlap_sites['start']]
     overlap_sites['end'] = [int(i) for i in overlap_sites['end']]
     overlap_sites.to_csv(out_dir + '/' + tag + '_all_overlap.sites', sep='\t', index=False, header=False)
