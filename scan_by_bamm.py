@@ -192,8 +192,8 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
             site_dict = dict()
             site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
-            site_dict['start'] = str(int(record['start']) + i)
-            site_dict['end'] = str(int(record['start']) + i + motif_length)
+            site_dict['start'] = str(int(record['start']) + i + order)
+            site_dict['end'] = str(int(record['start']) + i + motif_length + order)
             site_dict['site'] = site_seq
             site_dict['strand'] = record['strand']
             site_dict['score'] = s
@@ -207,8 +207,8 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
             site_dict = dict()
             site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
-            site_dict['start'] = str(int(record['end']) - i - motif_length)
-            site_dict['end'] = str(int(record['end']) - i)
+            site_dict['start'] = str(int(record['end']) - i - motif_length - order)
+            site_dict['end'] = str(int(record['end']) - i - order)
             site_dict['site'] = site_seq
             site_dict['strand'] = reverse_record['strand']
             site_dict['score'] = s
