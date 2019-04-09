@@ -88,7 +88,7 @@ def read_inmode_bed(path):
                       names=['id', 'start', 'end', 'strand', 'score'])
     bed['chr'] = '.'
     bed['site'] = '.'
-    bed = bed[['chr', 'start', 'end', 'id', 'strand', 'score', 'site']]
+    bed = bed[['chr', 'start', 'end', 'id',  'score', 'strand', 'site']]
     return(bed)
 
 
@@ -114,22 +114,21 @@ def main():
     input_bed = args.input_bed
     output = args.output
 
-    fasta = read_fasta()
-    bed = read_inmode_bed()
+    fasta = read_fasta(input_fasta)
+    bed = read_inmode_bed(input_bed)
 
     for index, line in bed.iterrows():
         if line['strand'] == '-':
             bed.loc[index, 'site'] = complement(fasta[line['id']]['seq'])[line['start']:line['end']]
         else:
             bed.loc[index, 'site'] = fasta[line['id']]['seq'][line['start']:line['end']]
-    bed.loc[index, 'chr'] = fasta[line['id']]['chr']
-    bed.loc[index, 'id'] = 'peaks_' + str(line['id'])
-    bed.loc[index, 'start'] = int(line['start']) + int(fasta[line['id']]['start'])
-    bed.loc[index, 'end'] = int(line['end']) + int(fasta[line['id']]['start'])
+        bed.loc[index, 'chr'] = fasta[line['id']]['chr']
+        bed.loc[index, 'id'] = 'peaks_' + str(line['id'])
+        bed.loc[index, 'start'] = int(line['start']) + int(fasta[line['id']]['start'])
+        bed.loc[index, 'end'] = int(line['end']) + int(fasta[line['id']]['start'])
 
     bed.to_csv(output, sep='\t', header=False, index=False)
 
 
 if __name__ == '__main__':
     main()
-    
