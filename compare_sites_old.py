@@ -97,10 +97,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--peaks', action='store', dest='input_peaks',
                         required=True, help='path to peaks in BED format or like BED format that contain all scaned peaks coordinates')
-    parser.add_argument('-m', '--first_model', action='store', dest='first_model_path',
-                        required=True, help='path to file that contain sites obtained by first_model in peaks file')
-    parser.add_argument('-b', '--second_model', action='store', dest='second_model_path',
-                        required=True, help='path to file that contain sites obtained by_second_model in peaks file')
+    parser.add_argument('-m', '--pwm', action='store', dest='pwm_path',
+                        required=True, help='path to file that contain sites obtained by PWM in peaks file')
+    parser.add_argument('-b', '--bamm', action='store', dest='bamm_path',
+                        required=True, help='path to file that contain sites obtained by BAMM in peaks file')
     parser.add_argument('-t', '--tag', action='store', dest='tag',
                         required=True, help='TAG for output files')
     parser.add_argument('-o', '--out', action='store', dest='out_dir',
@@ -114,8 +114,8 @@ def parse_args():
 def main():
 
     args = parse_args()
-    second_model_path = args_second_model_path
-    first_model_path = args.first_model_path
+    bamm_path = args.bamm_path
+    pwm_path = args.pwm_path
     peaks_path = args.input_peaks
     tag = args.tag
     out_dir = args.out_dir
@@ -127,45 +127,55 @@ def main():
     names = [int(i.split('_')[1]) for i in data['name']]
     data['name'] = names
 
-    second_model_sites = read_bed_like_file(second_model_path)
-    second_model_sites['type'] = 'second_model'
-    names = [int(i.split('_')[1]) for i in second_model_sites['name']]
-    second_model_sites['name'] = names
+    bamm_sites = read_bed_like_file(bamm_path)
+    bamm_sites['type'] = 'bamm'
+    names = [int(i.split('_')[1]) for i in bamm_sites['name']]
+    bamm_sites['name'] = names
 
-    first_model_sites = read_bed_like_file(first_model_path)
-    first_model_sites['type'] = 'first_model'
-    names = [int(i.split('_')[1]) for i in first_model_sites['name']]
-    first_model_sites['name'] = names
+    pwm_sites = read_bed_like_file(pwm_path)
+    pwm_sites['type'] = 'pwm'
+    names = [int(i.split('_')[1]) for i in pwm_sites['name']]
+    pwm_sites['name'] = names
 
 
-    id_first_model = np.unique(first_model_sites['name']) # ids of peaks where there are first_model_sites
-    id_second_model = np.unique(second_model_sites['name']) # ids of peaks where there are second_model_sites
+    id_pwm = np.unique(pwm_sites['name']) # ids of peaks where there are pwm_sites
+    id_bamm = np.unique(bamm_sites['name']) # ids of peaks where there are bamm_sites
 
-    only_first_model_sites_id = np.setdiff1d(id_first_model, id_second_model) # ids of peaks where there are only first_model_sites
-    only_second_model_sites_id = np.setdiff1d(id_second_model, id_first_model) # ids of peaks where there are only second_model_sites
+    only_pwm_sites_id = np.setdiff1d(id_pwm, id_bamm) # ids of peaks where there are only pwm_sites
+    only_bamm_sites_id = np.setdiff1d(id_bamm, id_pwm) # ids of peaks where there are only bamm_sites
 
-    only_first_model_sites = first_model_sites[np.in1d(first_model_sites['name'], only_first_model_sites_id)] # df with only first_model_sites
-    only_second_model_sites = second_model_sites[np.in1d(second_model_sites['name'], only_second_model_sites_id)]  # df with only only second_model_sites
+    only_pwm_sites = pwm_sites[np.in1d(pwm_sites['name'], only_pwm_sites_id)] # df with only pwm_sites
+    only_bamm_sites = bamm_sites[np.in1d(bamm_sites['name'], only_bamm_sites_id)]  # df with only only bamm_sites
 
-    only_first_model_peaks = data[np.in1d(data['name'], only_first_model_sites_id)] # df with only first_model_peaks
-    only_second_model_peaks = data[np.in1d(data['name'], only_second_model_sites_id)]  # df with only only_second_model_peaks
+    only_pwm_peaks = data[np.in1d(data['name'], only_pwm_sites_id)] # df with only pwm_peaks
+    only_bamm_peaks = data[np.in1d(data['name'], only_bamm_sites_id)]  # df with only only bamm_peaks
 
-    id_no_sites = np.setdiff1d(np.setdiff1d(np.array(data['name']), id_second_model), id_first_model) # id of peaks where there are not sites
+    id_no_sites = np.setdiff1d(np.setdiff1d(np.array(data['name']), id_bamm), id_pwm) # id of peaks where there are not sites
     no_sites_peaks = data[np.in1d(data['name'], id_no_sites)] # peaks where there are not sites
 
 
     #######
     #Get peaks with overlap and not overlaped sites
-    perhaps_overlap_peaks = data[np.in1d(data['name'], np.intersect1d(id_first_model, id_second_model))]
+    perhaps_overlap_peaks = data[np.in1d(data['name'], np.intersect1d(id_pwm, id_bamm))]
     peaks_with_not_overlap_sites = pd.DataFrame()
     peaks_with_overlap_sites = pd.DataFrame()
 
     for index, peak in perhaps_overlap_peaks.iterrows():
-        subset_second_model = pd.DataFrame(second_model_sites[second_model_sites['name'] == peak['name']])
-        subset_first_model = pd.DataFrame(first_model_sites[first_model_sites['name'] == peak['name']])
-        intersections = [overlap(row_first_model, row_second_model) for index_first_model, row_first_model in subset_first_model.iterrows(
-            ) for index_second_model, row_second_model in subset_second_model.iterrows()]
+        subset_bamm = pd.DataFrame(bamm_sites[np.logical_and(
+            bamm_sites['name'] == peak['name'], bamm_sites['strand'] == '+')])
+        subset_pwm = pd.DataFrame(pwm_sites[np.logical_and(
+            pwm_sites['name'] == peak['name'], pwm_sites['strand'] == '+')])
+        intersections_down = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
+            ) for index_bamm, row_bamm in subset_bamm.iterrows()]
 
+        subset_bamm = pd.DataFrame(bamm_sites[np.logical_and(
+            bamm_sites['name'] == peak['name'], bamm_sites['strand'] == '-')])
+        subset_pwm = pd.DataFrame(pwm_sites[np.logical_and(
+            pwm_sites['name'] == peak['name'], pwm_sites['strand'] == '-')])
+        intersections_up = [overlap(row_pwm, row_bamm) for index_pwm, row_pwm in subset_pwm.iterrows(
+            ) for index_bamm, row_bamm in subset_bamm.iterrows()]
+
+        intersections = intersections_up + intersections_down
         if sum(intersections) == 0:
             peaks_with_not_overlap_sites = peaks_with_not_overlap_sites.append(peak)
         else:
@@ -182,14 +192,14 @@ def main():
 
     for i in range(len(top)):
         subset_name_peaks = data.iloc[i*1000:(i+1)*1000]['name']
-        count_first_model_sites = len(np.intersect1d(only_first_model_sites['name'], subset_name_peaks))
-        count_second_model_sites = len(np.intersect1d(only_second_model_sites['name'], subset_name_peaks))
+        count_pwm_sites = len(np.intersect1d(only_pwm_sites['name'], subset_name_peaks))
+        count_bamm_sites = len(np.intersect1d(only_bamm_sites['name'], subset_name_peaks))
         count_overlap_sites = len(np.intersect1d(peaks_with_overlap_sites['name'], subset_name_peaks))
         count_not_overlap_sites = len(np.intersect1d(peaks_with_not_overlap_sites['name'], subset_name_peaks))
         count_no_sites = len(np.intersect1d(no_sites_peaks['name'], subset_name_peaks))
 
         count.append({'no_sites': count_no_sites,
-         'first_model_sites': count_first_model_sites, 'second_model_sites': count_second_model_sites,
+         'pwm_sites': count_pwm_sites, 'bamm_sites': count_bamm_sites,
          'overlap_sites': count_overlap_sites,
          'not_overlap_sites': count_not_overlap_sites})
 
@@ -199,7 +209,7 @@ def main():
     for i in range(1,len(count_)):
         count = count.append(count.iloc[i - 1] + count_.iloc[i], ignore_index=True)
     count['peaks'] = top
-    count = count[['overlap_sites', 'first_model_sites', 'second_model_sites',
+    count = count[['overlap_sites', 'pwm_sites', 'bamm_sites',
                        'not_overlap_sites', 'no_sites', 'peaks']]
     count.to_csv(out_dir + '/' + tag + '_COUNT.tsv', sep='\t', index=False)
 
@@ -216,20 +226,20 @@ def main():
     fig.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150,  bbox_inches='tight')
 
 
-    overlap_second_model_sites = second_model_sites[np.in1d(second_model_sites['name'], peaks_with_overlap_sites['name'])]
-    overlap_first_model_sites = first_model_sites[np.in1d(first_model_sites['name'], peaks_with_overlap_sites['name'])]
-    overlap_sites = pd.concat([overlap_second_model_sites, overlap_first_model_sites])
+    overlap_bamm_sites = bamm_sites[np.in1d(bamm_sites['name'], peaks_with_overlap_sites['name'])]
+    overlap_pwm_sites = pwm_sites[np.in1d(pwm_sites['name'], peaks_with_overlap_sites['name'])]
+    overlap_sites = pd.concat([overlap_bamm_sites, overlap_pwm_sites])
     overlap_sites = overlap_sites.sort_values(by=['name'])
 
 
-    only_second_model_sites = only_second_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    only_second_model_sites.to_csv(out_dir + '/' + tag + '_all_second_model.sites', sep='\t', index=False, header=False)
-    only_second_model_sites[only_second_model_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_second_model.sites',
+    only_bamm_sites = only_bamm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
+    only_bamm_sites.to_csv(out_dir + '/' + tag + '_all_bamm.sites', sep='\t', index=False, header=False)
+    only_bamm_sites[only_bamm_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_bamm.sites',
                                                              sep='\t', index=False, header=False)
 
-    only_first_model_sites = only_first_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    only_first_model_sites.to_csv(out_dir + '/' + tag + '_all_first_model.sites', sep='\t', index=False, header=False)
-    only_first_model_sites[only_first_model_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_first_model.sites',
+    only_pwm_sites = only_pwm_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
+    only_pwm_sites.to_csv(out_dir + '/' + tag + '_all_pwm.sites', sep='\t', index=False, header=False)
+    only_pwm_sites[only_pwm_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_pwm.sites',
                                                              sep='\t', index=False, header=False)
 
     overlap_sites = overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
@@ -239,14 +249,14 @@ def main():
     overlap_sites[overlap_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_overlap.sites',
                                                              sep='\t', index=False, header=False)
 
-    only_second_model_peaks = only_second_model_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    only_second_model_peaks.to_csv(out_dir + '/' + tag + '_all_second_model.peaks', sep='\t', index=False, header=False)
-    only_second_model_peaks[only_second_model_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_second_model.peaks',
+    only_bamm_peaks = only_bamm_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    only_bamm_peaks.to_csv(out_dir + '/' + tag + '_all_bamm.peaks', sep='\t', index=False, header=False)
+    only_bamm_peaks[only_bamm_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_bamm.peaks',
                                                              sep='\t', index=False, header=False)
 
-    only_first_model_peaks = only_first_model_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
-    only_first_model_peaks.to_csv(out_dir + '/' + tag + '_all_first_model.peaks', sep='\t', index=False, header=False)
-    only_first_model_peaks[only_first_model_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_first_model.peaks',
+    only_pwm_peaks = only_pwm_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
+    only_pwm_peaks.to_csv(out_dir + '/' + tag + '_all_pwm.peaks', sep='\t', index=False, header=False)
+    only_pwm_peaks[only_pwm_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_pwm.peaks',
                                                              sep='\t', index=False, header=False)
 
     peaks_with_overlap_sites = peaks_with_overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
