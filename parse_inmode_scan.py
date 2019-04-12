@@ -123,7 +123,7 @@ def main():
         else:
             bed.loc[index, 'site'] = fasta[line['id']]['seq'][line['start']:line['end']]
         bed.loc[index, 'chr'] = fasta[line['id']]['chr']
-        bed.loc[index, 'id'] = 'peaks_' + str(line['id'])
+        bed.loc[index, 'id'] = 'peaks_' + str(fasta[line['id']]['name'])
         bed.loc[index, 'start'] = int(line['start']) + int(fasta[line['id']]['start'])
         bed.loc[index, 'end'] = int(line['end']) + int(fasta[line['id']]['start'])
 
