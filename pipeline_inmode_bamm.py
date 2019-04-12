@@ -256,7 +256,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             '-m', motifs + '/' + tag + '_motif_1.ihbcp',
             '-b', motifs + '/' + tag + '.hbcp',
             '-t', thr_bamm,
-            '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+            '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
             '-P', cpu_count]
     r = subprocess.call(args)
 
@@ -275,7 +275,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
             '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
             '-bed', glob.glob(scan + '/*.BED')[0],
-            '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed']
+            '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
     r = subprocess.call(args)
 
 
@@ -287,8 +287,8 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     print('Compare sites ({0})'.format(tag))
     args = ['python3', path_to_python_tools + 'compare_sites.py',
             '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-            '-m', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-            '-b', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+            '-m', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+            '-b', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
             '-t', tag + '_' + str(fpr_for_thr),
             '-o', compare_sites]
     r = subprocess.call(args)

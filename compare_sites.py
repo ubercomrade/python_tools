@@ -114,7 +114,7 @@ def parse_args():
 def main():
 
     args = parse_args()
-    second_model_path = args_second_model_path
+    second_model_path = args.second_model_path
     first_model_path = args.first_model_path
     peaks_path = args.input_peaks
     tag = args.tag
