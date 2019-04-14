@@ -326,7 +326,7 @@ def main():
     recalculate_model=False
     shoulder = 50
 
-    pipeline_chipmunk(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
+    pipeline_chipmunk_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
                       fpr_for_thr, path_to_out, path_to_python_tools, dir_with_chipmunk,
                       path_to_promoters, path_to_genome, cpu_count,
                       zoops, try_size, model_order, recalculate_model)
