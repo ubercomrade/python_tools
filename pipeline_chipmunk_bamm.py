@@ -236,7 +236,7 @@ def pipeline_chipmunk_bamm(bed_path, bigwig_path, training_sample_size, testing_
             '-m', motifs + '/' + tag + '_motif_1.ihbcp',
             '-b', motifs + '/' + tag + '.hbcp',
             '-t', thr_bamm,
-            '-o', scan + '/' + tag + '_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+            '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
             '-P', cpu_count]
     r = subprocess.call(args)
 
