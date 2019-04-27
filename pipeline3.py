@@ -37,7 +37,7 @@ def InMoDeCLI_denovo(path_to_inmode, fasta_path, motif_length,
 def InMoDeCLI_scan(path_to_inmode, input_data, input_model, backgroud_path,
                      fpr_for_thr, outdir):
 
-    args = ['java', '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
+    args = ['/home/anton/Programs/jdk-9/bin/java', '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
             'i={}'.format(input_model),
             'id={}'.format(input_data),
             'b={}'.format('From file'),

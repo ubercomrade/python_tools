@@ -126,11 +126,11 @@ def parse_args():
 
 
 def peak_classification(peak, first_model_sites, second_model_sites, third_model_sites):
-    
+
     first_model = first_model_sites[first_model_sites['name'] == peak['name']]
     second_model = second_model_sites[second_model_sites['name'] == peak['name']]
     third_model = third_model_sites[third_model_sites['name'] == peak['name']]
-    
+
     if len(first_model) == 0 and len(second_model) == 0 and len(third_model) == 0:
         return('no_sites')
     elif len(first_model) != 0 and len(second_model) == 0 and len(third_model) == 0:
@@ -152,12 +152,12 @@ def peak_classification(peak, first_model_sites, second_model_sites, third_model
     elif len(first_model) == 0 and len(second_model) != 0 and len(third_model) != 0:
         if sum(overlap(second_model, third_model)) > 0:
             return('overlap_second_third_models')
-        else: 
+        else:
             return('not_overlap_second_third_models')
     elif len(first_model) != 0 and len(second_model) != 0 and len(third_model) != 0:
         if sum([i and j for i in overlap(first_model, second_model) for j in overlap(first_model, third_model)]) > 0:
             return('overlap_all_models')
-        
+
         if sum(overlap(first_model, second_model)) > 0 and sum(overlap(first_model, third_model)) == 0 and sum(overlap(second_model, third_model)) == 0:
             return('overlap_first_second_models')
         elif sum(overlap(first_model, second_model)) == 0 and sum(overlap(first_model, third_model)) > 0 and sum(overlap(second_model, third_model)) == 0:
@@ -166,13 +166,14 @@ def peak_classification(peak, first_model_sites, second_model_sites, third_model
             return('overlap_second_third_models')
         else:
             return('no_sites')
-        
+
 
 def main():
 
     args = parse_args()
-    second_model_path = args.second_model_path
     first_model_path = args.first_model_path
+    second_model_path = args.second_model_path
+    third_model_path = args.third_model_path
     peaks_path = args.input_peaks
     tag = args.tag
     out_dir = args.out_dir
@@ -188,7 +189,7 @@ def main():
     first_model_sites['type'] = 'first_model'
     names = [int(i.split('_')[1]) for i in first_model_sites['name']]
     first_model_sites['name'] = names
-    
+
     second_model_sites = read_bed_like_file(second_model_path)
     second_model_sites['type'] = 'second_model'
     names = [int(i.split('_')[1]) for i in second_model_sites['name']]
@@ -200,7 +201,7 @@ def main():
     third_model_sites['name'] = names
 
     classification = []
-    for index, peak in data:
+    for index, peak in data.iterrows():
         classification.append(peak_classification(peak, first_model_sites, second_model_sites, third_model_sites))
 
 
@@ -213,7 +214,7 @@ def main():
     for i in range(len(top)):
         subset_classification = classification[i*1000:(i+1)*1000]
         count_first_model_sites = sum(['first_model' == i for i in subset_classification])
-        count_second_model_sites = sum(['second_model' == i for i in subset_classification]) 
+        count_second_model_sites = sum(['second_model' == i for i in subset_classification])
         count_third_model_sites = sum(['third_model' == i for i in subset_classification])
         count_no_sites = sum(['no_sites' == i for i in subset_classification])
         overlap_first_second_models = sum(['overlap_first_second_models' == i for i in subset_classification])
@@ -247,22 +248,24 @@ def main():
         if column == 'peaks':
             continue
         frequency[column] = frequency[column] / frequency['peaks']
+    frequency.to_csv(out_dir + '/' + tag + '_FREQUENCY.tsv', sep='\t', index=False)
 
-        
+
     venn3(subsets=np.around(np.array(frequency.iloc[4,:7]), 3), set_labels = ('PWM', 'BAMM', 'INMODE'))
     plt.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150)
-    
+
     ##################################
-    only_first_model_sites = first_model_sites[np.array(i == 'first_model_sites' for i in classification)]
-    only_second_model_sites = second_model_sites[np.array(i == 'second_model_sites' for i in classification)]
-    only_third_model_sites = third_model_sites[np.array(i == 'third_model_sites' for i in classification)]
+    only_first_model_sites = first_model_sites.loc[first_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'first_model']))]
+    only_second_model_sites = second_model_sites.loc[second_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'second_model']))]
+    only_third_model_sites = third_model_sites.loc[third_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'third_model']))]
+
 
     only_first_model_sites = only_first_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_first_model_sites.to_csv(out_dir + '/' + tag + '_all_first_model.sites', sep='\t', index=False, header=False)
 
     only_second_model_sites = only_second_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_second_model_sites.to_csv(out_dir + '/' + tag + '_all_second_model.sites', sep='\t', index=False, header=False)
-    
+
     only_third_model_sites = only_third_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_third_model_sites.to_csv(out_dir + '/' + tag + '_all_third_model.sites', sep='\t', index=False, header=False)
 
