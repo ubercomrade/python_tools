@@ -20,6 +20,7 @@ import random
 import itertools
 import argparse
 import functools
+import re
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
@@ -32,31 +33,66 @@ def read_sites(path):
     return(sequences)
 
 
+# def read_fasta(path):
+#     '''
+#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
+#     Все экземпляры хранятся в списке
+#     Функция возвращает список экземпляров класса BioRecord
+
+#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
+#     '''
+#     fasta = list()
+#     with open(path, 'r') as file:
+#         for line in file:
+#             if line.startswith('>'):
+#                 line = line[1:].strip().split('|')
+#                 record = dict()
+#                 record['name'] = line[0]
+#                 record['chromosome'] = line[1]
+#                 record['start'] = line[2].split('-')[0]
+#                 record['end'] = line[2].split('-')[1]
+#                 try:
+#                     record['strand'] = line[3]
+#                 except:
+#                     # print('Record with out strand. Strand is +')
+#                     record['strand'] = '+'
+#                 continue
+#             record['seq'] = line.strip().upper()
+#             fasta.append(record)
+#     file.close()
+#     return(fasta)
+
+
 def read_fasta(path):
     '''
     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
     Все экземпляры хранятся в списке
     Функция возвращает список экземпляров класса BioRecord
 
-    Шапка для FASTA: >uniq_id|chromosome|start-end|strand
+    Шапка для FASTA: >uniq_id::chromosome:start-end(strand)
     '''
     fasta = list()
     with open(path, 'r') as file:
         for line in file:
+            #print(line)
             if line.startswith('>'):
-                line = line[1:].strip().split('|')
+                line = line[1:].strip().split(':')
                 record = dict()
-                record['name'] = line[0].split('_')[1]
-                record['chr'] = line[1]
-                record['start'] = line[2].split('-')[0]
-                record['end'] = line[2].split('-')[1]
-                try:
-                    record['strand'] = line[3]
-                except:
-                    # print('Record with out strand. Strand is +')
+                record['name'] = int(line[0].split('_')[1])
+                record['chr'] = line[2]
+                coordinates_strand = line[3]
+                
+                start, end = re.findall(r'\d*-\d*', coordinates_strand)[0].split('-')
+                record['start'] = start
+                record['end'] = end
+                
+                strand = re.findall(r'\(.\)', coordinates_strand[:-3])
+                if not strand == []:
+                    record['strand'] = strand[0].strip('()')
+                else:
                     record['strand'] = '+'
-                continue
-            record['seq'] = line.strip().upper()
+            else:
+                record['seq'] = line.strip().upper()
             fasta.append(record)
     file.close()
     return(fasta)
@@ -91,6 +127,10 @@ def read_inmode_bed(path):
     bed = bed[['chr', 'start', 'end', 'id',  'score', 'strand', 'site']]
     return(bed)
 
+def get_record(fasta, id):
+    record = fasta[id]
+    return(record)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -118,14 +158,15 @@ def main():
     bed = read_inmode_bed(input_bed)
 
     for index, line in bed.iterrows():
+        record = get_record(fasta, line['id'])
         if line['strand'] == '-':
-            bed.loc[index, 'site'] = complement(fasta[line['id']]['seq'])[line['start']:line['end']]
+            bed.loc[index, 'site'] = complement(record['seq'])[line['start']:line['end']]
         else:
-            bed.loc[index, 'site'] = fasta[line['id']]['seq'][line['start']:line['end']]
-        bed.loc[index, 'chr'] = fasta[line['id']]['chr']
-        bed.loc[index, 'id'] = 'peaks_' + str(fasta[line['id']]['name'])
-        bed.loc[index, 'start'] = int(line['start']) + int(fasta[line['id']]['start'])
-        bed.loc[index, 'end'] = int(line['end']) + int(fasta[line['id']]['start'])
+            bed.loc[index, 'site'] = record['seq'][line['start']:line['end']]
+        bed.loc[index, 'chr'] = record['chr']
+        bed.loc[index, 'id'] = 'peaks_' + str(record['name'])
+        bed.loc[index, 'start'] = int(line['start']) + int(record['start'])
+        bed.loc[index, 'end'] = int(line['end']) + int(record['start'])
 
     bed.to_csv(output, sep='\t', header=False, index=False)
 

@@ -21,6 +21,37 @@ import multiprocessing as mp
 import functools
 import pandas as pd
 import numpy as np
+import re
+
+
+# def read_fasta(path):
+#     '''
+#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
+#     Все экземпляры хранятся в списке
+#     Функция возвращает список экземпляров класса BioRecord
+
+#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
+#     '''
+#     fasta = list()
+#     with open(path, 'r') as file:
+#         for line in file:
+#             if line.startswith('>'):
+#                 line = line[1:].strip().split('|')
+#                 record = dict()
+#                 record['name'] = line[0]
+#                 record['chromosome'] = line[1]
+#                 record['start'] = line[2].split('-')[0]
+#                 record['end'] = line[2].split('-')[1]
+#                 try:
+#                     record['strand'] = line[3]
+#                 except:
+#                     # print('Record with out strand. Strand is +')
+#                     record['strand'] = '+'
+#                 continue
+#             record['seq'] = line.strip().upper()
+#             fasta.append(record)
+#     file.close()
+#     return(fasta)
 
 
 def read_fasta(path):
@@ -29,25 +60,30 @@ def read_fasta(path):
     Все экземпляры хранятся в списке
     Функция возвращает список экземпляров класса BioRecord
 
-    Шапка для FASTA: >uniq_id|chromosome|start-end|strand
+    Шапка для FASTA: >uniq_id::chromosome:start-end(strand)
     '''
     fasta = list()
     with open(path, 'r') as file:
         for line in file:
+            #print(line)
             if line.startswith('>'):
-                line = line[1:].strip().split('|')
+                line = line[1:].strip().split(':')
                 record = dict()
                 record['name'] = line[0]
-                record['chromosome'] = line[1]
-                record['start'] = line[2].split('-')[0]
-                record['end'] = line[2].split('-')[1]
-                try:
-                    record['strand'] = line[3]
-                except:
-                    # print('Record with out strand. Strand is +')
+                record['chromosome'] = line[2]
+                coordinates_strand = line[3]
+                
+                start, end = re.findall(r'\d*-\d*', coordinates_strand)[0].split('-')
+                record['start'] = start
+                record['end'] = end
+                
+                strand = re.findall(r'\(.\)', coordinates_strand[:-3])
+                if not strand == []:
+                    record['strand'] = strand[0].strip('()')
+                else:
                     record['strand'] = '+'
-                continue
-            record['seq'] = line.strip().upper()
+            else:
+                record['seq'] = line.strip().upper()
             fasta.append(record)
     file.close()
     return(fasta)
@@ -118,6 +154,8 @@ def scan_seq_by_pwm(record, pwm, threshold):
     # first strand
     for i in range(len(seq) - length_pwm + 1):
         site_seq = seq[i:length_pwm + i]
+        if 'N' in site_seq:
+            continue
         s = score(site_seq, pwm)
         if s >= threshold:
             site_dict = dict()
@@ -133,6 +171,8 @@ def scan_seq_by_pwm(record, pwm, threshold):
     # second strand
     for i in range(len(seq) - length_pwm + 1):
         site_seq = reverse_seq[i:length_pwm + i]
+        if 'N' in site_seq:
+            continue
         s = score(site_seq, pwm)
         if s >= threshold:
             site_dict = dict()

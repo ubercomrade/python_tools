@@ -34,10 +34,22 @@ def InMoDeCLI_denovo(path_to_inmode, fasta_path, motif_length,
     pass
 
 
+def bedToFasta(path_to_fa, path_to_bed, out):
+
+    args = ['bedtools', 'getfasta' , '-s', '-name+',
+            '-fi', path_to_fa,
+            '-bed', path_to_bed,
+            '-fo', out]
+    r = subprocess.call(args)
+    pass
+
+
+
 def InMoDeCLI_scan(path_to_inmode, input_data, input_model, backgroud_path,
                      fpr_for_thr, outdir):
 
-    args = ['/home/anton/Programs/jdk-9/bin/java', '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
+    #args = ['/home/anton/Programs/jdk-9/bin/java', '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
+    args = ['/Users/anton/Documents/Programs/jre-9.0.4.jre/Contents/Home/bin/java', '-Xmx3072m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
             'i={}'.format(input_model),
             'id={}'.format(input_data),
             'b={}'.format('From file'),
@@ -129,197 +141,227 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     if not os.path.isfile(fasta + '/' + tag + '_' + str(training_sample_size) +'.fa'):
         #Bed peaks to fasta
         print('Bed peaks to fasta for {0}'.format(tag))
-        args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
-               '-if', path_to_genome,
-               '-bed', bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
-               '-of', fasta + '/' + tag + '_' + str(training_sample_size) +'.fa']
-        r = subprocess.call(args)
+        # args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
+        #        '-if', path_to_genome,
+        #        '-bed', bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
+        #        '-of', fasta + '/' + tag + '_' + str(training_sample_size) +'.fa']
+        # r = subprocess.call(args)
+        bedToFasta(path_to_genome,
+            bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
+            fasta + '/' + tag + '_' + str(training_sample_size) +'.fa')
+
     else:
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) +'.fa'))
 
     if not os.path.isfile(fasta + '/' + tag + '_' + str(testing_sample_size) +'.fa'):
         #Bed peaks to fasta
-        args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
-               '-if', path_to_genome,
-               '-bed', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-               '-of', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa']
-        r = subprocess.call(args)
+        # args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
+        #        '-if', path_to_genome,
+        #        '-bed', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+        #        '-of', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa']
+        # r = subprocess.call(args)
+        bedToFasta(path_to_genome,
+            bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+            fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa')
+
     else:
         print('File {0} already exists'.format(tag + '_' + str(testing_sample_size) +'.fa'))
 
 
-    ########################
-    #FIND MODEL BY ChIPMunk#
-    ########################
-    if not os.path.isfile(chipmunk + '/CHIPMUNK_MOTIF.txt'):
-        print('ChIPMunk find motifs for {0}'.format(tag))
-        args = ['java', '-cp', dir_with_chipmunk + 'chipmunk.jar',
-                       'ru.autosome.ChIPMunk', str(motif_length_start), str(motif_length_end), 'yes', zoops,
-                       's:' + fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-                      try_size, '10', '1', cpu_count, 'random']
-        path_out = chipmunk + '/CHIPMUNK_MOTIF.txt'
-        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-        out = p.communicate()
-        with open(path_out, 'wb') as file:
-            file.write(out[0])
-    else:
-        print('File {0} already exists'.format(chipmunk + '/CHIPMUNK_MOTIF.txt'))
+    if not os.path.isfile(scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed') and \
+    not os.path.isfile(scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed'):
+        ########################
+        #FIND MODEL BY ChIPMunk#
+        ########################
+        if not os.path.isfile(chipmunk + '/CHIPMUNK_MOTIF.txt'):
+            print('ChIPMunk find motifs for {0}'.format(tag))
+            args = ['java', '-cp', dir_with_chipmunk + 'chipmunk.jar',
+                           'ru.autosome.ChIPMunk', str(motif_length_start), str(motif_length_end), 'yes', zoops,
+                           's:' + fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
+                          try_size, '10', '1', cpu_count, 'random']
+            path_out = chipmunk + '/CHIPMUNK_MOTIF.txt'
+            p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+            out = p.communicate()
+            with open(path_out, 'wb') as file:
+                file.write(out[0])
+        else:
+            print('File {0} already exists'.format(chipmunk + '/CHIPMUNK_MOTIF.txt'))
 
-    ###########################################################################
-    #Parse results of ChIPMunk into files .meme, .pwm and .fasta (multi fasta)#
-    ###########################################################################
-    args = ['python3', path_to_python_tools + 'parse_chipmunk_results.py',
-           '-i', chipmunk + '/CHIPMUNK_MOTIF.txt',
-           '-o', chipmunk,
-           '-t', tag + '_' + 'CHIPMUNK_MOTIF']
-    r = subprocess.call(args)
-
-
-    ##############################################################################
-    #Get oPWM from ChIPMunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta)#
-    ##############################################################################
-    if not os.path.isfile(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.meme'):
-        args = ['python3', path_to_python_tools + 'make_oPWM.py',
-                '-c', chipmunk + '/CHIPMUNK_MOTIF.txt',
-                '-f', fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-                '-n', '5000',
-                '-P', cpu_count,
-                '-o', motifs,
-                '-t', tag + '_' + 'OPTIMAL_MOTIF']
+        ###########################################################################
+        #Parse results of ChIPMunk into files .meme, .pwm and .fasta (multi fasta)#
+        ###########################################################################
+        args = ['python3', path_to_python_tools + 'parse_chipmunk_results.py',
+               '-i', chipmunk + '/CHIPMUNK_MOTIF.txt',
+               '-o', chipmunk,
+               '-t', tag + '_' + 'CHIPMUNK_MOTIF']
         r = subprocess.call(args)
+
+
+        ##############################################################################
+        #Get oPWM from ChIPMunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta)#
+        ##############################################################################
+        if not os.path.isfile(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.meme'):
+            args = ['python3', path_to_python_tools + 'make_oPWM.py',
+                    '-c', chipmunk + '/CHIPMUNK_MOTIF.txt',
+                    '-f', fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
+                    '-n', '5000',
+                    '-P', cpu_count,
+                    '-o', motifs,
+                    '-t', tag + '_' + 'OPTIMAL_MOTIF']
+            r = subprocess.call(args)
+        else:
+            print('File {0} already exists'.format(motifs + '/PEAKS039334_OPTIMAL_MOTIF.meme'))
+
+
+        ##################
+        #GET MOTIF LENGTH#
+        ##################
+
+        with open(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.fasta', 'r') as file:
+            for i in file:
+                if i.startswith('>'):
+                    continue
+                else:
+                    motif_length = len(i.strip())
+                    break
+        file.close()
+
+
+        ####################################
+        #CALCULATE INMODE MODEL WITH EM ALG#
+        ####################################
+
+        InMoDeCLI_denovo(path_to_inmode,
+                         fasta_path=fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
+                         motif_length=motif_length,
+                         model_order=model_order,
+                         outdir=motifs)
+
+
+        ##################################
+        #CALCULATE BAMM MODEL WITH EM ALG#
+        ##################################
+
+        #Get BaMM motif
+        print('Get Bamm motifs for {0}'.format(tag))
+        args = ['BaMMmotif', motifs,
+                fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+               '--PWMFile', motifs + '/' + tag + '_OPTIMAL_MOTIF.meme',
+                '--basename', tag,
+               '--EM',
+               #'--CGS',
+               #'--extend', '2',
+               '--Order', model_order,
+               '--order', model_order]
+        r = subprocess.call(args)
+
+
+        #############################################
+        #CALCULATE THRESHOLDS FOR BAMM MODEL AND SCAN#
+        #############################################
+
+        #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
+        print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
+        args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
+                '-f', path_to_promoters,
+                '-m', motifs + '/' + tag + '_motif_1.ihbcp',
+                '-b', motifs + '/' + tag + '.hbcp',
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
+        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+        thr_bamm = p.communicate()[0].decode('utf-8').strip()
+
+        #Scan peaks by BAMM with thr_bamm
+        print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
+        args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
+                '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-m', motifs + '/' + tag + '_motif_1.ihbcp',
+                '-b', motifs + '/' + tag + '.hbcp',
+                '-t', thr_bamm,
+                '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
+        r = subprocess.call(args)
+
+
+        #############################################
+        #CALCULATE THRESHOLDS FOR PWM MODEL AND SCAN#
+        #############################################
+
+        #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
+        print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
+        args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
+                '-f', path_to_promoters,
+                '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
+        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+        thr_pwm = p.communicate()[0].decode('utf-8').strip()
+
+        #Scan peaks by PWM with thr_pwm
+        print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
+        args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
+                '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
+                '-t', thr_pwm,
+                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
+        r = subprocess.call(args)
+
+        print('PWM = ',thr_pwm)
+
+
+        ################################################
+        #CALCULATE THRESHOLDS FOR INMODE MODEL AND SCAN#
+        ################################################
+
+        InMoDeCLI_scan(path_to_inmode,
+                       input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                       input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
+                       backgroud_path=path_to_promoters,
+                       fpr_for_thr=fpr_for_thr,
+                       outdir=scan)
+
+        args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
+                '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-bed', glob.glob(scan + '/*.BED')[0],
+                '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
+        r = subprocess.call(args)
+
+
+        ##############################
+        #COMPARE SITES OF DIFF MODELS#
+        ##############################
+
+        #Compare sites
+        print('Compare sites ({0})'.format(tag))
+        args = ['python3', path_to_python_tools + 'compare_sites3.py',
+                '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+                '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-t', tag + '_' + str(fpr_for_thr),
+                '-o', compare_sites]
+        r = subprocess.call(args)
+
     else:
-        print('File {0} already exists'.format(motifs + '/PEAKS039334_OPTIMAL_MOTIF.meme'))
 
+        args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
+                '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-bed', glob.glob(scan + '/*.BED')[0],
+                '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
+        r = subprocess.call(args)
 
-    ##################
-    #GET MOTIF LENGTH#
-    ##################
+        #Compare sites
+        print('Compare sites ({0})'.format(tag))
+        args = ['python3', path_to_python_tools + 'compare_sites3.py',
+                '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+                '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-t', tag + '_' + str(fpr_for_thr),
+                '-o', compare_sites]
+        r = subprocess.call(args)
 
-    with open(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.fasta', 'r') as file:
-        for i in file:
-            if i.startswith('>'):
-                continue
-            else:
-                motif_length = len(i.strip())
-                break
-    file.close()
-
-
-    ####################################
-    #CALCULATE INMODE MODEL WITH EM ALG#
-    ####################################
-
-    InMoDeCLI_denovo(path_to_inmode,
-                     fasta_path=fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-                     motif_length=motif_length,
-                     model_order=model_order,
-                     outdir=motifs)
-
-
-    ##################################
-    #CALCULATE BAMM MODEL WITH EM ALG#
-    ##################################
-
-    #Get BaMM motif
-    print('Get Bamm motifs for {0}'.format(tag))
-    args = ['BaMMmotif', motifs,
-            fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
-           '--PWMFile', motifs + '/' + tag + '_OPTIMAL_MOTIF.meme',
-            '--basename', tag,
-           '--EM',
-           #'--CGS',
-           #'--extend', '2',
-           '--Order', model_order,
-           '--order', model_order]
-    r = subprocess.call(args)
-
-
-    #############################################
-    #CALCULATE THRESHOLDS FOR BAMM MODEL AND SCAN#
-    #############################################
-
-    #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
-    print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
-    args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
-            '-f', path_to_promoters,
-            '-m', motifs + '/' + tag + '_motif_1.ihbcp',
-            '-b', motifs + '/' + tag + '.hbcp',
-            '-p', str(fpr_for_thr),
-            '-P', cpu_count]
-    p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-    thr_bamm = p.communicate()[0].decode('utf-8').strip()
-
-    #Scan peaks by BAMM with thr_bamm
-    print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
-            '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-            '-m', motifs + '/' + tag + '_motif_1.ihbcp',
-            '-b', motifs + '/' + tag + '.hbcp',
-            '-t', thr_bamm,
-            '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-P', cpu_count]
-    r = subprocess.call(args)
-
-
-    #############################################
-    #CALCULATE THRESHOLDS FOR PWM MODEL AND SCAN#
-    #############################################
-
-    #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
-    print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
-    args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
-            '-f', path_to_promoters,
-            '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-            '-p', str(fpr_for_thr),
-            '-P', cpu_count]
-    p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-    thr_pwm = p.communicate()[0].decode('utf-8').strip()
-
-    #Scan peaks by PWM with thr_pwm
-    print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
-            '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-            '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-            '-t', thr_pwm,
-            '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-            '-P', cpu_count]
-    r = subprocess.call(args)
-
-    print('PWM = ',thr_pwm)
-
-
-    ################################################
-    #CALCULATE THRESHOLDS FOR INMODE MODEL AND SCAN#
-    ################################################
-
-    InMoDeCLI_scan(path_to_inmode,
-                   input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-                   input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
-                   backgroud_path=path_to_promoters,
-                   fpr_for_thr=fpr_for_thr,
-                   outdir=scan)
-
-    args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
-            '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-            '-bed', glob.glob(scan + '/*.BED')[0],
-            '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
-    r = subprocess.call(args)
-
-
-    ##############################
-    #COMPARE SITES OF DIFF MODELS#
-    ##############################
-
-    #Compare sites
-    print('Compare sites ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'compare_sites3.py',
-            '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-            '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-t', tag + '_' + str(fpr_for_thr),
-            '-o', compare_sites]
-    r = subprocess.call(args)
 
 
 def parse_args():
