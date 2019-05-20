@@ -143,17 +143,20 @@ def peak_classification(peak, first_model_sites, second_model_sites, third_model
         if sum(overlap(first_model, second_model)) > 0:
             return('overlap_first_second_models')
         else:
-            return('not_overlap_first_second_models')
+            #return('not_overlap_first_second_models')
+            return('no_sites')
     elif len(first_model) != 0 and len(second_model) == 0 and len(third_model) != 0:
         if sum(overlap(first_model, third_model)) > 0:
             return('overlap_first_third_models')
         else:
-            return('not_overlap_first_third_models')
+            #return('not_overlap_first_third_models')
+            return('no_sites')
     elif len(first_model) == 0 and len(second_model) != 0 and len(third_model) != 0:
         if sum(overlap(second_model, third_model)) > 0:
             return('overlap_second_third_models')
         else:
-            return('not_overlap_second_third_models')
+            #return('not_overlap_second_third_models')
+            return('no_sites')
     elif len(first_model) != 0 and len(second_model) != 0 and len(third_model) != 0:
         if sum([i and j for i in overlap(first_model, second_model) for j in overlap(first_model, third_model)]) > 0:
             return('overlap_all_models')
