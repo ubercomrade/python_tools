@@ -48,8 +48,8 @@ def bedToFasta(path_to_fa, path_to_bed, out):
 def InMoDeCLI_scan(path_to_inmode, input_data, input_model, backgroud_path,
                      fpr_for_thr, outdir):
 
-    #args = ['/home/anton/Programs/jdk-9/bin/java', '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
-    args = ['/Users/anton/Documents/Programs/jre-9.0.4.jre/Contents/Home/bin/java', '-Xmx3072m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
+    args = ['/home/anton/Programs/jdk-9/bin/java', '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
+    #args = ['/Users/anton/Documents/Programs/jre-9.0.4.jre/Contents/Home/bin/java', '-Xmx3072m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode + 'InMoDeCLI-1.1.jar', 'scan',
             'i={}'.format(input_model),
             'id={}'.format(input_data),
             'b={}'.format('From file'),
@@ -170,6 +170,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
 
     if not os.path.isfile(scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed') and \
     not os.path.isfile(scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed'):
+
         ########################
         #FIND MODEL BY ChIPMunk#
         ########################
@@ -344,12 +345,35 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         r = subprocess.call(args)
 
     else:
-
+        ##########################################################################
+        # with open(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.fasta', 'r') as file:
+        #     for i in file:
+        #         if i.startswith('>'):
+        #             continue
+        #         else:
+        #             motif_length = len(i.strip())
+        #             break
+        # file.close()
+        #
+        # InMoDeCLI_denovo(path_to_inmode,
+        #                  fasta_path=fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
+        #                  motif_length=motif_length,
+        #                  model_order=model_order,
+        #                  outdir=motifs)
+        #
+        # InMoDeCLI_scan(path_to_inmode,
+        #                input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+        #                input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
+        #                backgroud_path=path_to_promoters,
+        #                fpr_for_thr=fpr_for_thr,
+        #                outdir=scan)
+        ##########################################################################
         args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
                 '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                 '-bed', glob.glob(scan + '/*.BED')[0],
                 '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
         r = subprocess.call(args)
+
 
         #Compare sites
         print('Compare sites ({0})'.format(tag))

@@ -144,31 +144,34 @@ def peak_classification(peak, first_model_sites, second_model_sites, third_model
             return('overlap_first_second_models')
         else:
             #return('not_overlap_first_second_models')
-            return('no_sites')
+            #return('no_sites')
+            return('not_overlap')
     elif len(first_model) != 0 and len(second_model) == 0 and len(third_model) != 0:
         if sum(overlap(first_model, third_model)) > 0:
             return('overlap_first_third_models')
         else:
             #return('not_overlap_first_third_models')
-            return('no_sites')
+            #return('no_sites')
+            return('not_overlap')
     elif len(first_model) == 0 and len(second_model) != 0 and len(third_model) != 0:
         if sum(overlap(second_model, third_model)) > 0:
             return('overlap_second_third_models')
         else:
             #return('not_overlap_second_third_models')
-            return('no_sites')
+            #return('no_sites')
+            return('not_overlap')
     elif len(first_model) != 0 and len(second_model) != 0 and len(third_model) != 0:
         if sum([i and j for i in overlap(first_model, second_model) for j in overlap(first_model, third_model)]) > 0:
             return('overlap_all_models')
-
-        if sum(overlap(first_model, second_model)) > 0 and sum(overlap(first_model, third_model)) == 0 and sum(overlap(second_model, third_model)) == 0:
+        elif sum(overlap(first_model, second_model)) > 0 and sum(overlap(first_model, third_model)) == 0 and sum(overlap(second_model, third_model)) == 0:
             return('overlap_first_second_models')
         elif sum(overlap(first_model, second_model)) == 0 and sum(overlap(first_model, third_model)) > 0 and sum(overlap(second_model, third_model)) == 0:
             return('overlap_first_third_models')
         elif sum(overlap(first_model, second_model)) == 0 and sum(overlap(first_model, third_model)) == 0 and sum(overlap(second_model, third_model)) > 0:
             return('overlap_second_third_models')
         else:
-            return('no_sites')
+            #return('no_sites')
+            return('not_overlap')
 
 
 def main():
@@ -224,9 +227,11 @@ def main():
         overlap_first_third_models = sum(['overlap_first_third_models' == i for i in subset_classification])
         overlap_second_third_models = sum(['overlap_second_third_models' == i for i in subset_classification])
         overlap_all_models = sum(['overlap_all_models' == i for i in subset_classification])
+        not_overlap = sum(['not_overlap' == i for i in subset_classification])
 
 
         count.append({'no_sites': count_no_sites,
+                      'not_overlap': not_overlap,
                       'first_model_sites': count_first_model_sites,
                       'second_model_sites': count_second_model_sites,
                       'third_model_sites': count_third_model_sites,
@@ -243,7 +248,7 @@ def main():
     count['peaks'] = top
     count = count[['first_model_sites', 'second_model_sites', 'overlap_first_second_models', 'third_model_sites',
                    'overlap_first_third_models', 'overlap_second_third_models',
-                   'overlap_all_models', 'no_sites', 'peaks']]
+                   'overlap_all_models', 'no_sites', 'not_overlap', 'peaks']]
     count.to_csv(out_dir + '/' + tag + '_COUNT.tsv', sep='\t', index=False)
 
     frequency = pd.DataFrame(count).copy()
