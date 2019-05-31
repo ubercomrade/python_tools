@@ -115,13 +115,14 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
                '-t', tag + '_' + str(training_sample_size)]
         r = subprocess.call(args)
 
-        args = ['python3', path_to_python_tools + 'prepare_peaks.py',
-               '-b', bed + '/' + tag + '_' + str(training_sample_size) + '.bed',
-                '-w', bigwig_path,
-               '-o', bed,
-                '-s', shoulder,
-               '-t', tag + '_' + str(training_sample_size)]
-        r = subprocess.call(args)
+        if shoulder != '-1':
+            args = ['python3', path_to_python_tools + 'prepare_peaks.py',
+                   '-b', bed + '/' + tag + '_' + str(training_sample_size) + '.bed',
+                    '-w', bigwig_path,
+                   '-o', bed,
+                    '-s', shoulder,
+                   '-t', tag + '_' + str(training_sample_size)]
+            r = subprocess.call(args)
     else:
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) + '.bed'))
 
@@ -459,7 +460,7 @@ def main():
     try_size=args.try_limit
     model_order=args.model_order
     recalculate_model=False
-    shoulder = 50
+    shoulder = -1
 
     pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
                       fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, dir_with_chipmunk,

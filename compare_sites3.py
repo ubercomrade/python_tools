@@ -266,7 +266,7 @@ def main():
     only_first_model_sites = first_model_sites.loc[first_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'first_model']))]
     only_second_model_sites = second_model_sites.loc[second_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'second_model']))]
     only_third_model_sites = third_model_sites.loc[third_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'third_model']))]
-
+    overlap_model_sites = third_model_sites.loc[third_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'overlap_all_models']))]
 
     only_first_model_sites = only_first_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_first_model_sites.to_csv(out_dir + '/' + tag + '_all_first_model.sites', sep='\t', index=False, header=False)
@@ -276,6 +276,9 @@ def main():
 
     only_third_model_sites = only_third_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_third_model_sites.to_csv(out_dir + '/' + tag + '_all_third_model.sites', sep='\t', index=False, header=False)
+
+    overlap_model_sites = overlap_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
+    overlap_model_sites.to_csv(out_dir + '/' + tag + '_overlap_model_sites.sites', sep='\t', index=False, header=False)
 
 if __name__ == '__main__':
     main()
