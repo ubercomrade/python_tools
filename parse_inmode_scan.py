@@ -93,7 +93,7 @@ def read_fasta(path):
                     record['strand'] = '+'
             else:
                 record['seq'] = line.strip().upper()
-            fasta.append(record)
+                fasta.append(record)
     file.close()
     return(fasta)
 
@@ -127,9 +127,9 @@ def read_inmode_bed(path):
     bed = bed[['chr', 'start', 'end', 'id',  'score', 'strand', 'site']]
     return(bed)
 
-def get_record(fasta, id):
-    record = fasta[id]
-    return(record)
+#def get_record(fasta, id):
+#    record = fasta[id]
+#    return(record)
 
 
 def parse_args():
@@ -158,9 +158,9 @@ def main():
     bed = read_inmode_bed(input_bed)
 
     for index, line in bed.iterrows():
-        record = get_record(fasta, line['id'])
+        record = fasta[int(line['id'])]
         if line['strand'] == '-':
-            bed.loc[index, 'site'] = complement(record['seq'])[line['start']:line['end']]
+            bed.loc[index, 'site'] = complement(record['seq'][line['start']:line['end']])
         else:
             bed.loc[index, 'site'] = record['seq'][line['start']:line['end']]
         bed.loc[index, 'chr'] = record['chr']
