@@ -28,33 +28,40 @@ import random
 
 
 
-def read_fasta(path):
-    '''
-    Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-    Все экземпляры хранятся в списке
-    Функция возвращает список экземпляров класса BioRecord
+# def read_fasta(path):
+#     '''
+#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
+#     Все экземпляры хранятся в списке
+#     Функция возвращает список экземпляров класса BioRecord
 
-    Шапка для FASTA: >uniq_id|chromosome|start-end|strand
-    '''
-    fasta = list()
+#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
+#     '''
+#     fasta = list()
+#     with open(path, 'r') as file:
+#         for line in file:
+#             if line.startswith('>'):
+#                 line = line[1:].strip().split('|')
+#                 record = dict()
+#                 record['id'] = line[0]
+#                 record['chromosome'] = line[1]
+#                 record['start'] = line[2].split('-')[0]
+#                 record['end'] = line[2].split('-')[1]
+#                 try:
+#                     record['strand'] = line[3]
+#                 except:
+#                     # print('Record with out strand. Strand is +')
+#                     record['strand'] = '+'
+#                 continue
+#             record['seq'] = line.strip().upper()
+#             fasta.append(record)
+#     return(fasta)
+
+
+def read_fasta(path):
+    sequences = []
     with open(path, 'r') as file:
-        for line in file:
-            if line.startswith('>'):
-                line = line[1:].strip().split('|')
-                record = dict()
-                record['id'] = line[0]
-                record['chromosome'] = line[1]
-                record['start'] = line[2].split('-')[0]
-                record['end'] = line[2].split('-')[1]
-                try:
-                    record['strand'] = line[3]
-                except:
-                    # print('Record with out strand. Strand is +')
-                    record['strand'] = '+'
-                continue
-            record['seq'] = line.strip().upper()
-            fasta.append(record)
-    return(fasta)
+        sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
+    return(sequences)
 
 
 def read_pwm(path):
@@ -163,6 +170,8 @@ def score(seq, pwm):
     Вспомагательная функция, считает score для строки с такой же длиной как и PWM
     тип monoPWM
     '''
+    if 'N' in seq:
+        return(np.nan)
     length_of_seq = len(seq)
     position = 0
     score = 0
@@ -177,6 +186,8 @@ def score_dipwm(seq, dipwm):
     Вспомагательная функция, считает score для строки с такой же длиной как и PWM
     тип diPWM
     '''
+    if 'N' in seq:
+        return(np.nan)
     length_of_seq = len(seq)
     score = 0
     for i in range(length_of_seq - 1):
@@ -188,6 +199,8 @@ def score_bamm(seq, bamm, order):
     '''
     Вспомагательная функция, считает score для строки с такой же длиной как и bamm
     '''
+    if 'N' in seq:
+        return(np.nan)
     length_of_seq = len(seq)
     score = 0
     for position in range(len(seq) - order):
@@ -209,36 +222,32 @@ def make_k_mers(order):
     return(k_mer_dict)
 
 
-def complement(record):
+def complement(seq):
     '''
     Make reverse and compelent
     '''
-    output = dict(record)
-    strand = record['strand']
-    seq = str()
-    if strand == '+':
-        output['strand'] = '-'
-    else:
-        output['strand'] = '+'
-    for letter in output['seq']:
+    output = str()
+    # if strand == '+':
+    #     output['strand'] = '-'
+    # else:
+    #     output['strand'] = '+'
+    for letter in seq:
         if letter == 'A':
-            seq += 'T'
+            output += 'T'
         elif letter == 'C':
-            seq += 'G'
+            output += 'G'
         elif letter == 'G':
-            seq += 'C'
+            output += 'C'
         elif letter == 'T':
-            seq += 'A'
-    output['seq'] = seq[::-1]
+            output += 'A'
+    output = output[::-1]
     return(output)
 
 
-def scan_seq_by_bamm(record, log_odds_bamm, order):
+def scan_seq_by_bamm(seq, log_odds_bamm, order):
 
     motif_length = len(log_odds_bamm[list(log_odds_bamm.keys())[0]])
-    reverse_record = complement(record)
-    seq = record['seq']
-    reverse_seq = reverse_record['seq']
+    reverse_seq = complement(seq)
     results = np.array([])
 
     # scan first strand
@@ -246,39 +255,35 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
 
     # scan second strand
     results = np.append(results, np.array([score_bamm(reverse_seq[i:motif_length + order + i], log_odds_bamm, order) for i in range(len(seq) - motif_length - order + 1)]))
-
+    results = results[np.logical_not(np.isnan(results))]
     return(results)
 
 
-def scan_seq_by_pwm(record, pwm):
+def scan_seq_by_pwm(seq, pwm):
     results = np.array([])
-    reverse_record = complement(record)
+    reverse_seq = complement(seq)
     length_pwm = len(pwm['A'])
-    seq = record['seq']
-    reverse_seq = reverse_record['seq']
 
     # first strand
     results = np.append(results, np.array([score(seq[i:length_pwm + i], pwm) for i in range(len(seq) - length_pwm + 1)]))
 
     # second strand
     results = np.append(results, np.array([score(reverse_seq[i:length_pwm + i], pwm) for i in range(len(seq) - length_pwm + 1)]))
-
+    results = results[np.logical_not(np.isnan(results))]
     return(results)
 
 
-def scan_seq_by_dipwm(record, dipwm):
+def scan_seq_by_dipwm(seq, dipwm):
     results = np.array([])
-    reverse_record = complement(record)
+    reverse_seq = complement(seq)
     length_pwm = len(dipwm['AA'])
-    seq = record['seq']
-    reverse_seq = reverse_record['seq']
 
     # scan first strand
     results = np.append(results, np.array([score_dipwm(seq[i:length_pwm + i], dipwm) for i in range(len(seq) - length_pwm + 1)]))
 
     # scan second strand
     results = np.append(results, np.array([score_dipwm(reverse_seq[i:length_pwm + i], dipwm) for i in range(len(seq) - length_pwm + 1)]))
-
+    results = results[np.logical_not(np.isnan(results))]
     return(results)
 
 

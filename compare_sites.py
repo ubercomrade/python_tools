@@ -224,36 +224,36 @@ def main():
 
     only_second_model_sites = only_second_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_second_model_sites.to_csv(out_dir + '/' + tag + '_all_second_model.sites', sep='\t', index=False, header=False)
-    only_second_model_sites[only_second_model_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_second_model.sites',
+    only_second_model_sites[only_second_model_sites['name'] <= 10000 ].to_csv(out_dir + '/' + tag + '_10000_second_model.sites',
                                                              sep='\t', index=False, header=False)
 
     only_first_model_sites = only_first_model_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     only_first_model_sites.to_csv(out_dir + '/' + tag + '_all_first_model.sites', sep='\t', index=False, header=False)
-    only_first_model_sites[only_first_model_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_first_model.sites',
+    only_first_model_sites[only_first_model_sites['name'] <= 10000 ].to_csv(out_dir + '/' + tag + '_10000_first_model.sites',
                                                              sep='\t', index=False, header=False)
 
     overlap_sites = overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
     overlap_sites['start'] = [int(i) for i in overlap_sites['start']]
     overlap_sites['end'] = [int(i) for i in overlap_sites['end']]
     overlap_sites.to_csv(out_dir + '/' + tag + '_all_overlap.sites', sep='\t', index=False, header=False)
-    overlap_sites[overlap_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_overlap.sites',
+    overlap_sites[overlap_sites['name'] <= 10000 ].to_csv(out_dir + '/' + tag + '_10000_overlap.sites',
                                                              sep='\t', index=False, header=False)
 
     only_second_model_peaks = only_second_model_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     only_second_model_peaks.to_csv(out_dir + '/' + tag + '_all_second_model.peaks', sep='\t', index=False, header=False)
-    only_second_model_peaks[only_second_model_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_second_model.peaks',
+    only_second_model_peaks[only_second_model_peaks['name'] <= 10000 ].to_csv(out_dir + '/' + tag + '_10000_second_model.peaks',
                                                              sep='\t', index=False, header=False)
 
     only_first_model_peaks = only_first_model_peaks[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     only_first_model_peaks.to_csv(out_dir + '/' + tag + '_all_first_model.peaks', sep='\t', index=False, header=False)
-    only_first_model_peaks[only_first_model_peaks['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_first_model.peaks',
+    only_first_model_peaks[only_first_model_peaks['name'] <= 10000 ].to_csv(out_dir + '/' + tag + '_10000_first_model.peaks',
                                                              sep='\t', index=False, header=False)
 
     peaks_with_overlap_sites = peaks_with_overlap_sites[['chromosome', 'start', 'end', 'name', 'score', 'strand']]
     peaks_with_overlap_sites['start'] = [int(i) for i in peaks_with_overlap_sites['start']]
     peaks_with_overlap_sites['end'] = [int(i) for i in peaks_with_overlap_sites['end']]
     peaks_with_overlap_sites.to_csv(out_dir + '/' + tag + '_all_overlap.peaks', sep='\t', index=False, header=False)
-    peaks_with_overlap_sites[peaks_with_overlap_sites['name'] >= 5000 ].to_csv(out_dir + '/' + tag + '_5000_overlap.peaks',
+    peaks_with_overlap_sites[peaks_with_overlap_sites['name'] <= 10000 ].to_csv(out_dir + '/' + tag + '_10000_overlap.peaks',
                                                              sep='\t', index=False, header=False)
 if __name__ == '__main__':
     main()
