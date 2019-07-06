@@ -34,7 +34,7 @@ def get_summit_regions(bedwig, peaks, shoulder=50):
         summits.append(summit)
         start = summit - shoulder
         end = summit + shoulder
-        
+
         begin = df.loc[i, 'start']
         df.loc[i, 'start'] = begin + start
         df.loc[i, 'end'] = begin + end
@@ -78,7 +78,7 @@ def main():
 
     get_bed3_form_bed6(bed6, bed3)
     get_bed_wig(bed3, bigwig, bedwig)
-    get_summit_regions(bedwig, peaks, shoulder=50)
+    get_summit_regions(bedwig, peaks, shoulder=shoulder)
     os.remove(bed3)
     os.remove(bedwig)
 

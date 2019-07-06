@@ -71,6 +71,7 @@ def chipmunk_motifs(fasta, chipmunk):
                 continue
             else:
                 motifs.append(complement(fasta[line['name']])[start:end])
+    motifs = [i for i in motifs if not 'N' in i]
     return(motifs)
 
 
@@ -95,6 +96,8 @@ def complement(seq):
             out_seq += 'C'
         elif letter == 'T':
             out_seq += 'A'
+        elif letter == 'N':
+            out_seq += 'N'
     out_seq = out_seq[::-1]
     return(out_seq)
 
