@@ -60,9 +60,9 @@ def InMoDeCLI_scan(path_to_inmode, input_data, input_model, backgroud_path,
     pass
 
 
-def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
+def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
                       fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, dir_with_chipmunk,
-                      path_to_promoters, path_to_genome, cpu_count,
+                      path_to_promoters, path_to_genome, cpu_count, shoulder,
                       zoops, try_size, model_order, recalculate_model):
 
     main_out = path_to_out + '/' + os.path.basename(bed_path).split('.')[0]
@@ -431,6 +431,8 @@ def parse_args():
                         help='Order of model. Default value = 2')
     parser.add_argument('-C', '--processes', action='store', type=int, dest='cpu_count',
                         required=False, default=2, help='Number of processes to use, default: 2')
+    parser.add_argument('-s', '--shoulder', action='store', dest='shoulder', default=50,
+                        required=False, type=int, help='summit +/- shoulder (extend peak) default=50')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -453,6 +455,7 @@ def main():
     training_sample_size = args.train_size
     testing_sample_size = args.test_size
     fpr_for_thr = args.fpr
+    shoulder = args.shoulder
 
 
     zoops=args.zoops
@@ -460,11 +463,11 @@ def main():
     try_size=args.try_limit
     model_order=args.model_order
     recalculate_model=False
-    shoulder = -1
+    #shoulder = 250
 
-    pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size, shoulder,
+    pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
                       fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, dir_with_chipmunk,
-                      path_to_promoters, path_to_genome, cpu_count,
+                      path_to_promoters, path_to_genome, cpu_count, shoulder,
                       zoops, try_size, model_order, recalculate_model)
 
 if __name__ == '__main__':
