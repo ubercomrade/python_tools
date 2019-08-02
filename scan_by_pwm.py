@@ -216,9 +216,9 @@ def main():
     fasta = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
 
-    # results = []
-    # for record in fasta:
-    #    results += scan_seq_by_pwm(record, pwm, threshold)
+    #results = []
+    #for record in fasta:
+    #   results += scan_seq_by_pwm(record, pwm, threshold)
 
     with mp.Pool(cpu_count) as p:
         results = p.map(functools.partial(scan_seq_by_pwm,
