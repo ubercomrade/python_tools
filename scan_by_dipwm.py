@@ -73,11 +73,11 @@ def read_fasta(path):
                 record['name'] = line[0]
                 record['chromosome'] = line[2]
                 coordinates_strand = line[3]
-                
+
                 start, end = re.findall(r'\d*-\d*', coordinates_strand)[0].split('-')
                 record['start'] = start
                 record['end'] = end
-                
+
                 strand = re.findall(r'\(.\)', coordinates_strand[:-3])
                 if not strand == []:
                     record['strand'] = strand[0].strip('()')
@@ -85,7 +85,7 @@ def read_fasta(path):
                     record['strand'] = '+'
             else:
                 record['seq'] = line.strip().upper()
-            fasta.append(record)
+                fasta.append(record)
     file.close()
     return(fasta)
 

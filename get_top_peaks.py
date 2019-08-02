@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 '''
 Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
 License: http://www.gnu.org/licenses/gpl.txt
