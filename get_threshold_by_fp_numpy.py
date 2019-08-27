@@ -33,11 +33,6 @@ import random
 #     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
 #     Все экземпляры хранятся в списке
 #     Функция возвращает список экземпляров класса BioRecord
-<<<<<<< HEAD
-#
-=======
-
->>>>>>> 18a55ac3e26ae50b54d22372b2a5239f952fade3
 #     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
 #     '''
 #     fasta = list()
@@ -59,7 +54,6 @@ import random
 #             record['seq'] = line.strip().upper()
 #             fasta.append(record)
 #     return(fasta)
-<<<<<<< HEAD
 
 def read_fasta(path):
 
@@ -73,15 +67,6 @@ def read_fasta(path):
                 if not 'N' in line.strip().upper():
                     fasta.append(record)
     return(fasta)
-=======
-
-
-def read_fasta(path):
-    sequences = []
-    with open(path, 'r') as file:
-        sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
-    return(sequences)
->>>>>>> 18a55ac3e26ae50b54d22372b2a5239f952fade3
 
 
 def read_pwm(path):
