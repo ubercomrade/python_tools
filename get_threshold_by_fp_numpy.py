@@ -28,32 +28,45 @@ import random
 
 
 
-def read_fasta(path):
-    '''
-    Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-    Все экземпляры хранятся в списке
-    Функция возвращает список экземпляров класса BioRecord
+# def read_fasta(path):
+#     '''
+#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
+#     Все экземпляры хранятся в списке
+#     Функция возвращает список экземпляров класса BioRecord
+#
+#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
+#     '''
+#     fasta = list()
+#     with open(path, 'r') as file:
+#         for line in file:
+#             if line.startswith('>'):
+#                 line = line[1:].strip().split('|')
+#                 record = dict()
+#                 record['id'] = line[0]
+#                 record['chromosome'] = line[1]
+#                 record['start'] = line[2].split('-')[0]
+#                 record['end'] = line[2].split('-')[1]
+#                 try:
+#                     record['strand'] = line[3]
+#                 except:
+#                     # print('Record with out strand. Strand is +')
+#                     record['strand'] = '+'
+#                 continue
+#             record['seq'] = line.strip().upper()
+#             fasta.append(record)
+#     return(fasta)
 
-    Шапка для FASTA: >uniq_id|chromosome|start-end|strand
-    '''
+def read_fasta(path):
+
     fasta = list()
     with open(path, 'r') as file:
         for line in file:
-            if line.startswith('>'):
-                line = line[1:].strip().split('|')
+            if not line.startswith('>'):
                 record = dict()
-                record['id'] = line[0]
-                record['chromosome'] = line[1]
-                record['start'] = line[2].split('-')[0]
-                record['end'] = line[2].split('-')[1]
-                try:
-                    record['strand'] = line[3]
-                except:
-                    # print('Record with out strand. Strand is +')
-                    record['strand'] = '+'
-                continue
-            record['seq'] = line.strip().upper()
-            fasta.append(record)
+                record['seq'] = line.strip().upper()
+                record['strand'] = '+'
+                if not 'N' in line.strip().upper():
+                    fasta.append(record)
     return(fasta)
 
 

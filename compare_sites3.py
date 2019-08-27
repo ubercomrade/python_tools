@@ -20,7 +20,7 @@ from multiprocessing import Pool
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib_venn import venn3
+from matplotlib_venn import venn3, venn3_unweighted
 
 
 def read_bed_like_file(path):
@@ -272,7 +272,7 @@ def main():
     frequency.to_csv(out_dir + '/' + tag + '_FREQUENCY.tsv', sep='\t', index=False)
 
 
-    venn3(subsets=np.around(np.array(frequency.iloc[2,:7]), 3), set_labels = ('PWM', 'BAMM', 'INMODE'))
+    venn3_unweighted(subsets=np.around(np.array(frequency.iloc[0,:7]), 3), set_labels = ('PWM', 'BAMM', 'INMODE'))
     plt.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150)
 
     ##################################
