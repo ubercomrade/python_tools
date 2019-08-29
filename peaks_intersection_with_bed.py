@@ -29,10 +29,13 @@ def read_bed_file(path):
 
 
 def read_peaks(path):
-    df = pd.read_csv(path,
-                     sep='\t', header=None,
-                     usecols=[0, 1, 2, 3, 4, 5, 6], dtype= {'chr': str},
-                     names=['chr', 'start', 'end', 'name', 'score', 'strand', 'sites'])
+    # df = pd.read_csv(path,
+    #                  sep='\t', header=None,
+    #                  usecols=[0, 1, 2, 3, 4, 5, 6], dtype= {'chr': str},
+    #                  names=['chr', 'start', 'end', 'name', 'score', 'strand', 'sites'])
+    df = pd.read_csv(path, sep='\t', header=None)
+    
+    df = df.rename(columns={0:'chr', 1:'start', 2:'end', 3:'name', 5:'strand'})
     return(df)
 
 
@@ -108,8 +111,9 @@ def write_results(out, res):
     #res = [i.capitalize() for i in res]
     #res = [i.split('.')[0] for i in res]
     with open(out, 'w') as file:
-        for gene_id in res:
-            file.write(gene_id + '\n')
+        for ID in res:
+            if ID != '-':
+                file.write(ID + '\n')
 
 
 def main():
@@ -141,8 +145,8 @@ def main():
     #res = [item for sublist in res for item in sublist]
     #res = set(res)
     peaks['name'] = res
-    peaks.to_csv(out, sep='\t', header=None, index=False)
-    #write_results(out, res)
+    #peaks.to_csv(out, sep='\t', header=None, index=False)
+    write_results(out, res)
 
 
 if __name__ == '__main__':
