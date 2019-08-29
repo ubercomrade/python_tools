@@ -33,7 +33,6 @@ import random
 #     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
 #     Все экземпляры хранятся в списке
 #     Функция возвращает список экземпляров класса BioRecord
-
 #     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
 #     '''
 #     fasta = list()
@@ -56,12 +55,15 @@ import random
 #             fasta.append(record)
 #     return(fasta)
 
-
 def read_fasta(path):
-    sequences = []
+
+    fasta = list()
     with open(path, 'r') as file:
-        sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
-    return(sequences)
+        for line in file:
+            if not line.startswith('>'):
+                if not 'N' in line.strip().upper():
+                    fasta.append(line.strip().upper())
+    return(fasta)
 
 
 def read_pwm(path):
@@ -334,12 +336,15 @@ def get_threshold(scores, fp):
     #scores = np.array(results)
     scores.sort()
     scores = scores[::-1]  # sorted score from big to small
+    #print(scores, '################################################### scores')
     i = int(len(scores) * fp) - 10  # position of score value
+    #print(i, '################################################ iiiiiiiiiiiiiii')
     step = 0
     while abs((scores >= scores[i + step]).sum() / len(scores) - fp) \
         >= abs((scores >= scores[i + step + 1]).sum() / len(scores) - fp) \
             or scores[i + step] == scores[i + step + 1]:
         step += 1
+        #print(step, '########################################### step')
     thr = scores[i + step]  # possible threshold score
     calc_fp = (scores >= thr).sum() / len(scores)  # p-value with possible threshold score
     # delta = abs(calc_pval - pval)  # diff between p-value and calculated p-value

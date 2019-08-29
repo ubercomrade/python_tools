@@ -136,6 +136,15 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
                '-c', '4',
                '-t', tag + '_' + str(testing_sample_size)]
         r = subprocess.call(args)
+
+        if shoulder != '-1':
+            args = ['python3', path_to_python_tools + 'prepare_peaks.py',
+                   '-b', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+                    '-w', bigwig_path,
+                   '-o', bed,
+                    '-s', shoulder,
+                   '-t', tag + '_' + str(testing_sample_size)]
+            r = subprocess.call(args)
     else:
         print('File {0} already exists'.format(tag + '_' + str(testing_sample_size) + '.bed'))
 
@@ -278,6 +287,8 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
     thr_bamm = p.communicate()[0].decode('utf-8').strip()
 
+    print('BAMM = ',thr_bamm)
+
     #Scan peaks by BAMM with thr_bamm
     print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
     args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
@@ -288,7 +299,6 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
             '-P', cpu_count]
     r = subprocess.call(args)
-
 
     #############################################
     #CALCULATE THRESHOLDS FOR PWM MODEL AND SCAN#
@@ -304,6 +314,8 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
     thr_pwm = p.communicate()[0].decode('utf-8').strip()
 
+    print('PWM = ',thr_pwm)
+
     #Scan peaks by PWM with thr_pwm
     print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
     args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
@@ -313,9 +325,6 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
             '-P', cpu_count]
     r = subprocess.call(args)
-
-    print('PWM = ',thr_pwm)
-
 
     ################################################
     #CALCULATE THRESHOLDS FOR INMODE MODEL AND SCAN#

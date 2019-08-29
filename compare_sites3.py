@@ -20,7 +20,7 @@ from multiprocessing import Pool
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib_venn import venn3
+from matplotlib_venn import venn3, venn3_unweighted
 
 
 def read_bed_like_file(path):
@@ -132,6 +132,12 @@ def parse_args():
                         required=True, help='TAG for output files')
     parser.add_argument('-o', '--out', action='store', dest='out_dir',
                         required=True, help='OUT_DIR')
+    parser.add_argument('-fname', '--first_name', action='store', dest='fname',
+                        required=False, default='First', help='First data name for plot')
+    parser.add_argument('-sname', '--second_name', action='store', dest='sname',
+                        required=False, default='Second', help='Second data name for plot')
+    parser.add_argument('-tname', '--third_name', action='store', dest='tname',
+                        required=False, default='Third', help='Third data name for plot')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -196,6 +202,9 @@ def main():
     peaks_path = args.input_peaks
     tag = args.tag
     out_dir = args.out_dir
+    fname = args.fname
+    sname = args.sname
+    tname = args.tname
 
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
@@ -272,7 +281,7 @@ def main():
     frequency.to_csv(out_dir + '/' + tag + '_FREQUENCY.tsv', sep='\t', index=False)
 
 
-    venn3(subsets=np.around(np.array(frequency.iloc[2,:7]), 3), set_labels = ('PWM', 'BAMM', 'INMODE'))
+    venn3_unweighted(subsets=np.around(np.array(frequency.iloc[0,:7]), 3), set_labels = (fname, sname, tname))
     plt.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150)
 
     ##################################
@@ -291,7 +300,7 @@ def main():
 
     only_second_and_third_model_sites_3 = third_model_sites.loc[third_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'overlap_second_third_models']))]
     only_second_and_third_model_sites_2 = second_model_sites.loc[second_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'overlap_second_third_models']))]
-    
+
 
     overlap_model_sites = third_model_sites.loc[third_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'overlap_all_models']))]
 
