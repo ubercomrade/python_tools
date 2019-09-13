@@ -25,7 +25,7 @@ import numpy as np
 def InMoDeCLI_denovo(path_to_inmode, fasta_path, motif_length,
                  model_order, outdir):
 
-    args = ['java', '-jar' ,path_to_inmode + 'InMoDeCLI-1.1.jar', 'denovo',
+    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind', '-jar' ,path_to_inmode + 'InMoDeCLI-1.1.jar', 'denovo',
             'i={}'.format(fasta_path),
             'm={}'.format(motif_length),
            'mo={}'.format(model_order),
@@ -61,9 +61,9 @@ def InMoDeCLI_scan(path_to_inmode, input_data, input_model, backgroud_path,
 
 
 def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
-                      fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, dir_with_chipmunk,
-                      path_to_promoters, path_to_genome, cpu_count, shoulder,
-                      zoops, try_size, model_order, recalculate_model):
+                      fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, path_to_imd, dir_with_chipmunk,
+                      path_to_promoters, path_to_genome, path_to_tss, cpu_count, shoulder,
+                      zoops, try_size, model_order):
 
     main_out = path_to_out + '/' + os.path.basename(bed_path).split('.')[0]
     zoops = str(zoops)
@@ -73,6 +73,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     shoulder = str(shoulder)
     motif_length_start = str(8)
     motif_length_end = str(12)
+    path_to_tss = str(path_to_tss)
 
     if not path_to_python_tools[-1] == '/':
         path_to_python_tools += '/'
@@ -89,7 +90,12 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     fasta = main_out + '/FASTA'
     bed = main_out + '/BED'
     compare_sites = main_out + '/COMPARE_SITES'
+    gene_ids =  main_out + '/IDs_COMPARE'
     tag = os.path.basename(bed_path).split('.')[0]
+
+    fname = 'PWM'
+    sname = 'BAMM'
+    tname = 'INMODE'
 
     if not os.path.isdir(main_out + '/CHIPMUNK'):
         os.mkdir(main_out + '/CHIPMUNK')
@@ -103,6 +109,8 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         os.mkdir(main_out + '/BED')
     if not os.path.isdir(main_out + '/COMPARE_SITES'):
         os.mkdir(main_out + '/COMPARE_SITES')
+    if not os.path.isdir(main_out + '/IDs_COMPARE'):
+        os.mkdir(main_out + '/IDs_COMPARE')
 
     if not os.path.isfile(bed + '/' + tag + '_' + str(training_sample_size) + '.bed'):
         #Get top training_sample_size bed peaks
@@ -177,9 +185,6 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     else:
         print('File {0} already exists'.format(tag + '_' + str(testing_sample_size) +'.fa'))
 
-
-    # if not os.path.isfile(scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed') and \
-    # not os.path.isfile(scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed'):
 
         ########################
         #FIND MODEL BY ChIPMunk#
@@ -276,73 +281,83 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     #CALCULATE THRESHOLDS FOR BAMM MODEL AND SCAN#
     #############################################
 
-    #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
-    print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
-    args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
-            '-f', path_to_promoters,
-            '-m', motifs + '/' + tag + '_motif_1.ihbcp',
-            '-b', motifs + '/' + tag + '.hbcp',
-            '-p', str(fpr_for_thr),
-            '-P', cpu_count]
-    p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-    thr_bamm = p.communicate()[0].decode('utf-8').strip()
+    if not os.path.isfile(scan + '/' + tag + '_BAMM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed'):
+        #Calculate threshold for BAMM based on promoters and FPR = fpr_for_thr
+        print('Calculate threshold for BAMM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
+        args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'bamm',
+                '-f', path_to_promoters,
+                '-m', motifs + '/' + tag + '_motif_1.ihbcp',
+                '-b', motifs + '/' + tag + '.hbcp',
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
+        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+        thr_bamm = p.communicate()[0].decode('utf-8').strip()
 
-    print('BAMM = ',thr_bamm)
+        print('BAMM = ',thr_bamm)
 
-    #Scan peaks by BAMM with thr_bamm
-    print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
-            '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-            '-m', motifs + '/' + tag + '_motif_1.ihbcp',
-            '-b', motifs + '/' + tag + '.hbcp',
-            '-t', thr_bamm,
-            '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-P', cpu_count]
-    r = subprocess.call(args)
+        #Scan peaks by BAMM with thr_bamm
+        print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
+        args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
+                '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-m', motifs + '/' + tag + '_motif_1.ihbcp',
+                '-b', motifs + '/' + tag + '.hbcp',
+                '-t', thr_bamm,
+                '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
+        r = subprocess.call(args)
+    else:
+        print(tag + '_BAMM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed', '- EXISTS')
 
     #############################################
     #CALCULATE THRESHOLDS FOR PWM MODEL AND SCAN#
     #############################################
 
-    #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
-    print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
-    args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
-            '-f', path_to_promoters,
-            '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-            '-p', str(fpr_for_thr),
-            '-P', cpu_count]
-    p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
-    thr_pwm = p.communicate()[0].decode('utf-8').strip()
+    if not os.path.isfile(scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed'):
+        #Calculate threshold for PWM based on promoters and FPR = fpr_for_thr
+        print('Calculate threshold for PWM based on promoters and FPR = {0} ({1})'.format(fpr_for_thr, tag))
+        args = ['python3', path_to_python_tools + 'get_threshold_by_fp_numpy.py', 'pwm',
+                '-f', path_to_promoters,
+                '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
+                '-p', str(fpr_for_thr),
+                '-P', cpu_count]
+        p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
+        thr_pwm = p.communicate()[0].decode('utf-8').strip()
 
-    print('PWM = ',thr_pwm)
+        print('PWM = ',thr_pwm)
 
-    #Scan peaks by PWM with thr_pwm
-    print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
-            '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-            '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-            '-t', thr_pwm,
-            '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
-            '-P', cpu_count]
-    r = subprocess.call(args)
+        #Scan peaks by PWM with thr_pwm
+        print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
+        args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
+                '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
+                '-t', thr_pwm,
+                '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
+                '-P', cpu_count]
+        r = subprocess.call(args)
+    else:
+        print(tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed', '- EXISTS')
+
 
     ################################################
     #CALCULATE THRESHOLDS FOR INMODE MODEL AND SCAN#
     ################################################
 
-    print('Scan by inmode model')
-    InMoDeCLI_scan(path_to_inmode,
-                   input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-                   input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
-                   backgroud_path=path_to_promoters,
-                   fpr_for_thr=fpr_for_thr,
-                   outdir=scan)
+    if not os.path.isfile(scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed'):
+        print('Scan by inmode model')
+        InMoDeCLI_scan(path_to_inmode,
+                       input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                       input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
+                       backgroud_path=path_to_promoters,
+                       fpr_for_thr=fpr_for_thr,
+                       outdir=scan)
 
-    args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
-            '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-            '-bed', glob.glob(scan + '/*.BED')[0],
-            '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
-    r = subprocess.call(args)
+        args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
+                '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+                '-bed', glob.glob(scan + '/*.BED')[0],
+                '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
+        r = subprocess.call(args)
+    else:
+        print(tag + '_INMODE_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed', '- EXISTS')
 
 
     ##############################
@@ -357,50 +372,87 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
             '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
             '-t', tag + '_' + str(fpr_for_thr),
-            '-o', compare_sites]
+            '-o', compare_sites,
+            '-fname', fname,
+            '-sname', sname,
+            '-tname', tname]
     r = subprocess.call(args)
 
-    # else:
-    #     ##########################################################################
-    #     # with open(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.fasta', 'r') as file:
-    #     #     for i in file:
-    #     #         if i.startswith('>'):
-    #     #             continue
-    #     #         else:
-    #     #             motif_length = len(i.strip())
-    #     #             break
-    #     # file.close()
-    #     #
-    #     # InMoDeCLI_denovo(path_to_inmode,
-    #     #                  fasta_path=fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-    #     #                  motif_length=motif_length,
-    #     #                  model_order=model_order,
-    #     #                  outdir=motifs)
-    #     #
-    #     # InMoDeCLI_scan(path_to_inmode,
-    #     #                input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-    #     #                input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
-    #     #                backgroud_path=path_to_promoters,
-    #     #                fpr_for_thr=fpr_for_thr,
-    #     #                outdir=scan)
-    #     ##########################################################################
-    #     args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
-    #             '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-    #             '-bed', glob.glob(scan + '/*.BED')[0],
-    #             '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed']
-    #     r = subprocess.call(args)
-    #
-    #
-    #     #Compare sites
-    #     print('Compare sites ({0})'.format(tag))
-    #     args = ['python3', path_to_python_tools + 'compare_sites3.py',
-    #             '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-    #             '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    #             '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    #             '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    #             '-t', tag + '_' + str(fpr_for_thr),
-    #             '-o', compare_sites]
-    #     r = subprocess.call(args)
+
+
+    ### GET GEN IDS ###
+    print('GET GEN IDS ({0})'.format(tag))
+    args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+    path_to_tss,
+    scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    gene_ids + '/' + 'pwm.only.ids.txt']
+    r = subprocess.call(args)
+
+    print('GET GEN IDS ({0})'.format(tag))
+    args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+    path_to_tss,
+    scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    gene_ids + '/' + 'bamm.only.ids.txt']
+    r = subprocess.call(args)
+
+    print('GET GEN IDS ({0})'.format(tag))
+    args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+    path_to_tss,
+    scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    gene_ids + '/' + 'inmode.only.ids.txt']
+    r = subprocess.call(args)
+
+    ### COMPARE IDS ###
+
+    print('Compare sites ({0})'.format(tag))
+    args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
+            '-first', gene_ids + '/' + 'pwm.only.ids.txt',
+            '-second', gene_ids + '/' + 'bamm.only.ids.txt',
+            '-third', gene_ids + '/' + 'inmode.only.ids.txt',
+            '-o', gene_ids,
+            '-fname', fname,
+            '-sname', sname,
+            '-tname', tname]
+    r = subprocess.call(args)
+
+    ### IMD FOR SITES ###
+
+    print('EXTRACT SITES ({0})'.format(tag))
+
+    args = ['python3', path_to_python_tools + 'extract_sites.py',
+    '-p', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    '-o', scan + '/' + 'pwm.all.sites.txt']
+    r = subprocess.call(args)
+
+    args = ['python3', path_to_python_tools + 'extract_sites.py',
+    '-p', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    '-o', scan + '/' + 'bamm.all.sites.txt']
+    r = subprocess.call(args)
+
+    args = ['python3', path_to_python_tools + 'extract_sites.py',
+    '-p', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    '-o', scan + '/' + 'inmode.all.sites.txt']
+    r = subprocess.call(args)
+
+
+    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+    '-jar', path_to_imd, 'imd',
+    'i=' + scan + '/' + 'pwm.all.sites.txt',
+    'outdir=' + scan + '/pwm']
+    r = subprocess.call(args)
+
+    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+    '-jar', path_to_imd, 'imd',
+    'i=' + scan + '/' + 'bamm.all.sites.txt',
+    'outdir=' + scan + '/bamm']
+    r = subprocess.call(args)
+
+    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+    '-jar', path_to_imd, 'imd',
+    'i=' + scan + '/' + 'inmode.all.sites.txt',
+    'outdir=' + scan + '/inmode']
+    r = subprocess.call(args)
+
 
 
 
@@ -426,7 +478,7 @@ def parse_args():
     parser.add_argument('-p', '--python', action='store', dest='python_tools',
                         required=True, help='dir with python tools')
     parser.add_argument('-I', '--InMoDe', action='store', dest='inmode',
-                        required=True, help='dir with InMoDe')
+                        required=True, help='path to InMoDe')
     parser.add_argument('-c', '--chipmunk', action='store', dest='chipmunk',
                         required=True, help='dir with chipmunk')
     parser.add_argument('-o', '--output', action='store', dest='output',
@@ -448,6 +500,10 @@ def parse_args():
                         required=False, default=2, help='Number of processes to use, default: 2')
     parser.add_argument('-s', '--shoulder', action='store', dest='shoulder', default=50,
                         required=False, type=int, help='summit +/- shoulder (extend peak) default=50')
+    parser.add_argument('-tss', action='store', dest='path_to_tss',
+                        required=True, help='path to BED file with transcripts')
+    parser.add_argument('-i', '--imd', action='store', dest='path_to_imd',
+                        required=True, help='path to DisentanglerCLI to run imd')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -459,11 +515,8 @@ def parse_args():
 def main():
 
     args = parse_args()
-    path_to_python_tools = args.python_tools
-    path_to_inmode = args.inmode
+
     dir_with_chipmunk = args.chipmunk
-    path_to_promoters = args.promoters
-    path_to_genome = args.genome
     bed_path = args.bed_path
     bigwig_path = args.wig_path
     path_to_out = args.output
@@ -473,17 +526,25 @@ def main():
     shoulder = args.shoulder
 
 
+    path_to_python_tools = args.python_tools
+    path_to_inmode = args.inmode
+    path_to_promoters = args.promoters
+    path_to_genome = args.genome
+    path_to_imd = args.path_to_imd
+    path_to_tss = args.path_to_tss
+
+
     zoops=args.zoops
     cpu_count = args.cpu_count
     try_size=args.try_limit
     model_order=args.model_order
-    recalculate_model=False
+    #recalculate_model=False
     #shoulder = 250
 
     pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
-                      fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, dir_with_chipmunk,
-                      path_to_promoters, path_to_genome, cpu_count, shoulder,
-                      zoops, try_size, model_order, recalculate_model)
+                          fpr_for_thr, path_to_out, path_to_python_tools, path_to_inmode, path_to_imd, dir_with_chipmunk,
+                          path_to_promoters, path_to_genome, path_to_tss, cpu_count, shoulder,
+                          zoops, try_size, model_order)
 
 if __name__ == '__main__':
     main()

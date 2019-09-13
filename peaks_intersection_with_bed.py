@@ -34,18 +34,18 @@ def read_peaks(path):
     #                  usecols=[0, 1, 2, 3, 4, 5, 6], dtype= {'chr': str},
     #                  names=['chr', 'start', 'end', 'name', 'score', 'strand', 'sites'])
     df = pd.read_csv(path, sep='\t', header=None)
-    
+
     df = df.rename(columns={0:'chr', 1:'start', 2:'end', 3:'name', 5:'strand'})
     return(df)
 
 
 def get_site_near_tss(record):
 
-    right=5000
-    left=-5000
     start = record[0]
     end = record[1]
     strand = record[2]
+    right=record[3] #5000
+    left=record[4] #-5000
 
     if strand == '+':
         out_start = start + left
@@ -68,7 +68,7 @@ def overlap(peak, sites):
         return('-')
     else:
         #print(str(overlaps['name']))
-        return(overlaps.iloc[0,3])
+        return(overlaps.iloc[0,3].split())
 
 
 def peaks_intersect_with_sites(bed, sites):
@@ -81,7 +81,8 @@ def peaks_intersect_with_sites(bed, sites):
         chr_bed = pd.DataFrame(bed[bed['chr'] == chr_])
         chr_sites = pd.DataFrame(sites[sites['chr'] == chr_])
         for index, site in chr_sites.iterrows():
-            genes_id.append(overlap(site, chr_bed))
+            for i in overlap(site, chr_bed):
+                genes_id.append(i)
     return(genes_id)
 
 
@@ -96,9 +97,9 @@ def parse_args():
     parser.add_argument('output', action='store',
                         help='path to txt file to write genes_id')
     parser.add_argument('-l', '--left', action='store', type=int, dest='left',
-                                  default=-2000, required=False, help='left_tail + TSS, default_value = 2000')
+                                  default=-5000, required=False, help='left_tail + TSS, default_value = -5000')
     parser.add_argument('-r', '--right', action='store', type=int, dest='right',
-                                  default=2000, required=False, help='TSS + right_tail, default_value = -2000')
+                                  default=5000, required=False, help='TSS + right_tail, default_value = 5000')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -133,10 +134,14 @@ def main():
 
     starts = list(bed['start'])
     ends = list(bed['end'])
+    lefts = [left for i in range(len(bed))]
+    rights = [right for i in range(len(bed))]
     starts, ends = zip(*list(map(get_site_near_tss,
                                  zip(list(bed['start']),
                                      list(bed['end']),
-                                     list(bed['strand'])))))
+                                     list(bed['strand']),
+                                     rights,
+                                     lefts))))
     bed['start'] = starts
     bed['end'] = ends
     res = peaks_intersect_with_sites(bed, peaks)

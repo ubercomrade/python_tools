@@ -77,15 +77,17 @@ def read_fasta(path):
             #print(line)
             if line.startswith('>'):
                 line = line[1:].strip().split(':')
-                record = dict()
+                record = dict())
                 record['name'] = int(line[0].split('_')[1])
+                #record['name'] = line[0]
+
                 record['chr'] = line[2]
                 coordinates_strand = line[3]
-                
+
                 start, end = re.findall(r'\d*-\d*', coordinates_strand)[0].split('-')
                 record['start'] = start
                 record['end'] = end
-                
+
                 strand = re.findall(r'\(.\)', coordinates_strand[:-3])
                 if not strand == []:
                     record['strand'] = strand[0].strip('()')
@@ -165,6 +167,7 @@ def main():
             bed.loc[index, 'site'] = record['seq'][line['start']:line['end']]
         bed.loc[index, 'chr'] = record['chr']
         bed.loc[index, 'id'] = 'peaks_' + str(record['name'])
+        #bed.loc[index, 'id'] = str(record['name'])
         bed.loc[index, 'start'] = int(line['start']) + int(record['start'])
         bed.loc[index, 'end'] = int(line['end']) + int(record['start'])
 
