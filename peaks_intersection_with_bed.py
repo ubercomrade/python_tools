@@ -113,7 +113,7 @@ def write_results(out, res):
     with open(out, 'w') as file:
         for ID in res:
             if ID != '-':
-                file.write(ID + '\n')
+                file.write('{0}\n'.format(ID))
 
 
 def main():

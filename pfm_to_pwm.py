@@ -25,7 +25,7 @@ def read_homer(path):
         header = file.readline()
         pfm = {'A': [], 'C': [], 'G': [], 'T': []}
         for line in file:
-            line = line.strip().split('\t')
+            line = line.strip().split()
             for letter, value in zip(pfm.keys(), line):
                 pfm[letter].append(float(value))
     file.close()
