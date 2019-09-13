@@ -25,7 +25,7 @@ def read_homer(path):
         header = file.readline()
         pfm = {'A': [], 'C': [], 'G': [], 'T': []}
         for line in file:
-            line = line.strip().split('\t')
+            line = line.strip().split()
             for letter, value in zip(pfm.keys(), line):
                 pfm[letter].append(float(value))
     file.close()
@@ -177,7 +177,7 @@ def read_fasta(path):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', action='store', dest='input',
-                        required=True, help='path to HOMER matrix file')
+                        required=True, help='path to PFM file')
     parser.add_argument('-o', '--output', action='store', dest='output',
                         required=True, help='path to PWM output file')
     parser.add_argument('-f', '--fasta', action='store', dest='fasta',
