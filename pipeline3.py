@@ -385,30 +385,30 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
     path_to_tss,
     scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    gene_ids + '/' + 'pwm.only.ids.txt']
+    gene_ids + '/' + 'pwm.ids.txt']
     r = subprocess.call(args)
 
     print('GET GEN IDS ({0})'.format(tag))
     args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
     path_to_tss,
     scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    gene_ids + '/' + 'bamm.only.ids.txt']
+    gene_ids + '/' + 'bamm.ids.txt']
     r = subprocess.call(args)
 
     print('GET GEN IDS ({0})'.format(tag))
     args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
     path_to_tss,
     scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    gene_ids + '/' + 'inmode.only.ids.txt']
+    gene_ids + '/' + 'inmode.ids.txt']
     r = subprocess.call(args)
 
     ### COMPARE IDS ###
 
     print('Compare sites ({0})'.format(tag))
     args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
-            '-first', gene_ids + '/' + 'pwm.only.ids.txt',
-            '-second', gene_ids + '/' + 'bamm.only.ids.txt',
-            '-third', gene_ids + '/' + 'inmode.only.ids.txt',
+            '-first', gene_ids + '/' + 'pwm.ids.txt',
+            '-second', gene_ids + '/' + 'bamm.ids.txt',
+            '-third', gene_ids + '/' + 'inmode.ids.txt',
             '-o', gene_ids,
             '-fname', fname,
             '-sname', sname,
