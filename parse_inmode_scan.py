@@ -77,7 +77,7 @@ def read_fasta(path):
             #print(line)
             if line.startswith('>'):
                 line = line[1:].strip().split(':')
-                record = dict())
+                record = dict()
                 record['name'] = int(line[0].split('_')[1])
                 #record['name'] = line[0]
 
