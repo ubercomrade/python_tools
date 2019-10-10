@@ -108,7 +108,7 @@ def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
         number_of_sites += pcm[i][0]
 
     if kind == 'di':
-        PFM = {}
+        pfm = {}
         di_nucleotides = itertools.product('ACGT', repeat=2)
         for i in di_nucleotides:
             pfm[''.join(i)] = []
@@ -116,7 +116,7 @@ def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
         pfm = {}
         mono_nucleotides = itertools.product('ACGT', repeat=1)
         for i in mono_nucleotides:
-            PFM[i[0]] = []
+            pfm[i[0]] = []
     else:
         print('ALARM!')
         pass
@@ -127,7 +127,7 @@ def make_pfm_from_pcm(pcm, kind, pseudocount='1/N'):
         for i in range(len(pcm[first_key])):
             for nuc in pcm.keys():
                 pfm[nuc].append((pcm[nuc][i] + nuc_pseudo) / (number_of_sites + 1))
-        return(PFM)
+        return(pfm)
 
     elif pseudocount == 'sqroot':
         total_sq_root = int()
@@ -367,7 +367,7 @@ def main(path, homology, kind):
     k = 10
     all_motifs = read_fasta(path, everyStr=False)
     print(len(all_motifs))
-    all_motifs = [i[50:-50] for i in all_motifs]  # for JASPAR
+    #all_motifs = [i[50:-50] for i in all_motifs]  # for JASPAR
     #all_motifs = remove_equalent_seq(all_motifs, homology=homology)
     print(len(all_motifs))
     all_motifs = random.sample(all_motifs, len(all_motifs))
@@ -439,7 +439,7 @@ if __name__ == '__main__':
     # Допустимый уровень гомологии между мотивами (если уровень гомологии выше, то последовательность выбрасывается)
     homology = float(args.homology)
     kind = args.kind  # Тип матрицы (mono or di)
-    output = args.output  # Путь к фаилу для записи результатов
+    output_path = args.output  # Путь к фаилу для записи результатов
 
     #fileInput = '/Users/anton/Documents/Python/JASPAR/MA0491.1.sites'
     #everyStr = False
@@ -447,8 +447,8 @@ if __name__ == '__main__':
     #kind = 'mono'
     #fileOutput = 'test.csv'
 
-    output = main(fileInput=fileInput, everyStr=everyStr, homology=homology, kind=kind)
-    with open(fileOutput, 'w', newline='') as csvfile:
+    output = main(path, homology, kind)
+    with open(output_path, 'w', newline='') as csvfile:
         fieldnames = ['FPR', 'TPR', 'Score', 'Norm_score']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
