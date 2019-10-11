@@ -131,7 +131,7 @@ function insert_sort(v::Vector, x)
 end
 
 
-function calculate_scores(peaks::Array{String, 1}, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
+function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
     scores = Float64[]
     for peak in peaks
         for i in 1:length(peak) - len_of_site
@@ -203,10 +203,10 @@ function main()
     output = args["output"]
     order = args["order"]
     
-    peaks = read_fasta(fasta)
+    peaks = read_fasta(fasta_path)
     bamm = read_bamm(bamm_path, bg_path, order)
     len_of_site = length(bamm["A"])
-    res = calculate_scores(peaks, bamm, order, len_of_site)
+    res = calculate_thresholds(peaks, bamm, order, len_of_site)
     CSV.write(output, res, delim='\t')
     
 end

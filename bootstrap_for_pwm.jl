@@ -60,7 +60,7 @@ function calculate_background(sites)
             background[nuc] += 1
         end
     end
-    
+
     for nuc in keys(background)
         background[nuc] = background[nuc] / l
     end
@@ -101,7 +101,7 @@ function bootstrap_pwm(sites, size_of::Int64)
     true_scores = Float64[]
     false_scores = Float64[]
     number_of_sites = length(sites)
-    
+
     for i in 1:10
         index_train = Random.randsubseq(1:number_of_sites, 0.9)
         index_test = setdiff(1:number_of_sites, index_train)
@@ -110,21 +110,21 @@ function bootstrap_pwm(sites, size_of::Int64)
         pwm = make_pwm(sites[index_train])
         true_scores = vcat(true_scores, calculate_scores(sites[index_test], pwm))
         false_scores = vcat(false_scores, calculate_scores(
-                Random.shuffle.(sites[index_shuffle]), 
+                Random.shuffle.(sites[index_shuffle]),
                 pwm))
     end
 
-    
-    true_scores = sort(true_scores, rev=true)
-    false_scores = sort(false_scores, rev=true)
+
+    true_scores = sort(true_scores)
+    false_scores = sort(false_scores)
 
     tpr = Float64[]
     tpr_actual = Float64[]
     fpr = Float64[]
     scores = Float64[]
 
-    false_length = length(false_scores)
-    true_length = length(true_scores)
+    false_length = length(false_scores, rev=true)
+    true_length = length(true_scores, rev=true)
 
     for i in 0.05:0.05:1.0
         s = true_scores[Int(round(true_length * i))]
@@ -132,7 +132,7 @@ function bootstrap_pwm(sites, size_of::Int64)
         tpr = push!(tpr, i)
         fpr = push!(fpr, sum(false_scores .>= s) / false_length)
         scores = push!(scores, s)
-    end    
+    end
 
     df = DataFrames.DataFrame(Scores = scores, TPR = tpr, ACTUAL_TPR = tpr_actual, FPR = fpr)
 
@@ -180,6 +180,6 @@ end
 #     for (arg,val) in s
 #         println("  $arg  =>  $val")
 #     end
-# end    
+# end
 
 main()
