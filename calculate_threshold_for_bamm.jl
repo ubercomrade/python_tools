@@ -2,6 +2,7 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
+using Distributed
 
 
 function read_fasta(path)
@@ -126,11 +127,6 @@ function calculate_score(site::String, bamm::Dict{String,Array{Float64, 1}}, ord
 end
 
 
-function insert_sort(v::Vector, x)
-    return((splice!(v, searchsorted(v,x), [x]); v))
-end
-
-
 function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
     scores = Float64[]
     for peak in peaks
@@ -141,10 +137,10 @@ function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{F
             end
             score = calculate_score(site, bamm, order, len_of_site)
             scores = push!(scores, score)
-            #scores = insert_sort(scores, score)
+            
             score = calculate_score(reverse_complement(site), bamm, order, len_of_site)
             scores = push!(scores, score)
-            #scores = insert_sort(scores, score)
+            
         end
     end
     
