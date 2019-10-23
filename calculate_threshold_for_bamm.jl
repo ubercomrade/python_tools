@@ -131,7 +131,7 @@ function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{F
     scores = Float64[]
     for peak in peaks
         for i in 1:length(peak) - len_of_site
-            site = peak[i:i + len_of_site]
+            site = peak[i:i + len_of_site - 1]
             if 'N' in site
                 continue
             end
