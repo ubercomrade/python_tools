@@ -159,11 +159,6 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     if not os.path.isfile(fasta + '/' + tag + '_' + str(training_sample_size) +'.fa'):
         #Bed peaks to fasta
         print('Bed peaks to fasta for {0}'.format(tag))
-        # args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
-        #        '-if', path_to_genome,
-        #        '-bed', bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
-        #        '-of', fasta + '/' + tag + '_' + str(training_sample_size) +'.fa']
-        # r = subprocess.call(args)
         bedToFasta(path_to_genome,
             bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
             fasta + '/' + tag + '_' + str(training_sample_size) +'.fa')
@@ -172,12 +167,6 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) +'.fa'))
 
     if not os.path.isfile(fasta + '/' + tag + '_' + str(testing_sample_size) +'.fa'):
-        #Bed peaks to fasta
-        # args = ['python3', path_to_python_tools + 'bed_to_fasta.py',
-        #        '-if', path_to_genome,
-        #        '-bed', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-        #        '-of', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa']
-        # r = subprocess.call(args)
         bedToFasta(path_to_genome,
             bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
             fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa')
@@ -381,39 +370,39 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
 
 
     ### GET GEN IDS ###
-    print('GET GEN IDS ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-    path_to_tss,
-    scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    gene_ids + '/' + 'pwm.ids.txt']
-    r = subprocess.call(args)
-
-    print('GET GEN IDS ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-    path_to_tss,
-    scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    gene_ids + '/' + 'bamm.ids.txt']
-    r = subprocess.call(args)
-
-    print('GET GEN IDS ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-    path_to_tss,
-    scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-    gene_ids + '/' + 'inmode.ids.txt']
-    r = subprocess.call(args)
-
-    ### COMPARE IDS ###
-
-    print('Compare sites ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
-            '-first', gene_ids + '/' + 'pwm.ids.txt',
-            '-second', gene_ids + '/' + 'bamm.ids.txt',
-            '-third', gene_ids + '/' + 'inmode.ids.txt',
-            '-o', gene_ids,
-            '-fname', fname,
-            '-sname', sname,
-            '-tname', tname]
-    r = subprocess.call(args)
+    # print('GET GEN IDS ({0})'.format(tag))
+    # args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+    # path_to_tss,
+    # scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    # gene_ids + '/' + 'pwm.ids.txt']
+    # r = subprocess.call(args)
+    #
+    # print('GET GEN IDS ({0})'.format(tag))
+    # args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+    # path_to_tss,
+    # scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    # gene_ids + '/' + 'bamm.ids.txt']
+    # r = subprocess.call(args)
+    #
+    # print('GET GEN IDS ({0})'.format(tag))
+    # args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+    # path_to_tss,
+    # scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    # gene_ids + '/' + 'inmode.ids.txt']
+    # r = subprocess.call(args)
+    #
+    # ### COMPARE IDS ###
+    #
+    # print('Compare sites ({0})'.format(tag))
+    # args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
+    #         '-first', gene_ids + '/' + 'pwm.ids.txt',
+    #         '-second', gene_ids + '/' + 'bamm.ids.txt',
+    #         '-third', gene_ids + '/' + 'inmode.ids.txt',
+    #         '-o', gene_ids,
+    #         '-fname', fname,
+    #         '-sname', sname,
+    #         '-tname', tname]
+    # r = subprocess.call(args)
 
     ### IMD FOR SITES ###
 
@@ -433,25 +422,25 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     '-p', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
     '-o', scan + '/' + 'inmode.all.sites.txt']
     r = subprocess.call(args)
-
-
-    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
-    '-jar', path_to_imd, 'imd',
-    'i=' + scan + '/' + 'pwm.all.sites.txt',
-    'outdir=' + scan + '/pwm']
-    r = subprocess.call(args)
-
-    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
-    '-jar', path_to_imd, 'imd',
-    'i=' + scan + '/' + 'bamm.all.sites.txt',
-    'outdir=' + scan + '/bamm']
-    r = subprocess.call(args)
-
-    args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
-    '-jar', path_to_imd, 'imd',
-    'i=' + scan + '/' + 'inmode.all.sites.txt',
-    'outdir=' + scan + '/inmode']
-    r = subprocess.call(args)
+    #
+    #
+    # args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+    # '-jar', path_to_imd, 'imd',
+    # 'i=' + scan + '/' + 'pwm.all.sites.txt',
+    # 'outdir=' + scan + '/pwm']
+    # r = subprocess.call(args)
+    #
+    # args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+    # '-jar', path_to_imd, 'imd',
+    # 'i=' + scan + '/' + 'bamm.all.sites.txt',
+    # 'outdir=' + scan + '/bamm']
+    # r = subprocess.call(args)
+    #
+    # args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+    # '-jar', path_to_imd, 'imd',
+    # 'i=' + scan + '/' + 'inmode.all.sites.txt',
+    # 'outdir=' + scan + '/inmode']
+    # r = subprocess.call(args)
 
 
 
