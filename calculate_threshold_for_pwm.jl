@@ -18,7 +18,7 @@ function read_fasta(path)
 end
 
 
-function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
+@everywhere function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
     score = 0.0
     for (index, nuc) in enumerate(site)
         score += pwm[nuc][index]
@@ -27,7 +27,7 @@ function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
 end
 
 
-function reverse_complement(site::String)
+@everywhere function reverse_complement(site::String)
     complement = ""
     for i in site
         if i == 'C'
@@ -90,8 +90,47 @@ function split_to_sites_atom(peak::String, len_of_site::Int)
 end
 
 
-function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
+@everywhere function support_for_scan(peak, len_of_site, pwm)
+    sites = String[]
     scores = Float64[]
+    for i in 1:length(peak) - len_of_site
+      site = peak[i:i + len_of_site - 1]
+      if 'N' in site
+          continue
+      end
+      sites = push!(sites, site)
+      sites = push!(sites, reverse_complement(site))
+    end
+
+    for i in sites
+      scores = push!(scores, calculate_score(i, pwm))
+    end
+    return(scores)
+end
+
+
+@everywhere function support_for_scan_2(peak, len_of_site, pwm)
+    scores = Float64[]
+    for i in 1:length(peak) - len_of_site
+        site = peak[i:i + len_of_site - 1]
+        if 'N' in site
+            continue
+        end
+
+        score = calculate_score(site, pwm)
+        scores = push!(scores, score)
+
+        score = calculate_score(reverse_complement(site), pwm)
+        scores = push!(scores, score)
+
+    end
+    return(scores)
+end
+
+
+function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
+    
+#    scores = Float64[]
     
 #    for peak in peaks
 #        for i in 1:length(peak) - len_of_site
@@ -99,32 +138,43 @@ function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Floa
 #            if 'N' in site
 #                continue
 #            end
-
+#
 #            score = calculate_score(site, pwm)
 #            scores = push!(scores, score)
-
+#
 #            score = calculate_score(reverse_complement(site), pwm)
 #            scores = push!(scores, score)
-
+#
 #        end
 #    end
     
-    for peak in peaks
-          sites = String[]
-          for i in 1:length(peak) - len_of_site
-              site = peak[i:i + len_of_site - 1]
-              if 'N' in site
-                  continue
-              end
-              sites = push!(sites, site)
-              sites = push!(sites, reverse_complement(site))
-          end
+#    for peak in peaks
+#          global sites = String[]
+#          for i in 1:length(peak) - len_of_site
+#              site = peak[i:i + len_of_site - 1]
+#              if 'N' in site
+#                  continue
+#              end
+#              sites = push!(sites, site)
+#              sites = push!(sites, reverse_complement(site))
+#          end
+#
+#          for i in sites
+#              scores = push!(scores, calculate_score(i, pwm))
+#          end
+#    end
 
-          for i in sites
-              scores = push!(scores, calculate_score(i, pwm))
-          end
-    end
+
     
+    container = pmap(peak -> support_for_scan_2(peak, len_of_site, pwm), peaks)
+    
+
+#    global container = Array{Array{Float64, 1}, 1}()
+#    Threads.@threads for peak in peaks
+#        container = push!(container, support_for_scan(peak, len_of_site, pwm))
+#    end
+    
+    scores = reduce(vcat, container)
     scores = sort(scores, rev=true)
     
     fpr_actual = Float64[]
