@@ -55,7 +55,7 @@ end
 
 
 function calculate_thresholds(path_to_inmode::String, path_to_model::String,
-    path_to_fasta::String, path_to_java::String tmp_dir::String)
+    path_to_fasta::String, path_to_java::String, tmp_dir::String)
 
     scores = calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir)
     scores = sort(scores, rev=true)
