@@ -1,7 +1,6 @@
 import CSV
 import DataFrames
 import Random
-import Base.Threads.@spawn
 using ArgParse
 using Distributed
 
@@ -89,7 +88,7 @@ end
 
 function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
     scores = Array{Array{Float64, 1}, 1}()
-    @spawn for peak in peaks
+    Threads.@spawn for peak in peaks
         scores = push!(scores, scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
     end
     return(scores)
