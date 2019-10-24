@@ -9,11 +9,30 @@ function read_fasta(path)
     container = String[]
     for line in eachline(path)
         if '>' != line[1]
-            container = push!(container, (uppercase(line)))
+            line = uppercase(line)
+            container = push!(container, line)
+            rc_line = reverse_complement(line)
+            container = push!(container, rc_line)
         else
             continue
         end
     end
+    return(container)
+end
+
+
+function read_promoters(path::String, len_of_site::Int64)
+    container = String[]
+    for line in eachline(path)
+        if '>' != line[1]
+            line = uppercase(line)
+            container = push!(container, string(line, repeat('N', len_of_site),
+            reverse_complement(line), repeat('N', len_of_site)))
+        else
+            continue
+        end
+    end
+    container = join(container::Array{String, 1})
     return(container)
 end
 
@@ -27,20 +46,20 @@ end
 end
 
 
-@everywhere function reverse_complement(site::String)
-    complement = ""
+function reverse_complement(site::String)
+    complement = Char[]
     for i in site
         if i == 'C'
-            complement = string('G', complement)
+            complement = push!(complement, 'G')
         elseif i == 'G'
-            complement = string('C', complement)
+            complement = push!(complement, 'C')
         elseif i == 'A'
-            complement = string('T', complement)
+            complement = push!(complement, 'T')
         elseif i == 'T'
-            complement = string('A', complement)
+            complement = push!(complement, 'A')
         end
     end
-    return(complement)
+    return(join(reverse(complement)))
 end
 
 
@@ -49,7 +68,7 @@ function read_pwm(path::String)
     'C' => Float64[],
     'G' => Float64[],
     'T' => Float64[])
-    
+
     open(path) do file
         for ln in eachline(file)
             if ln[1] == '>'
@@ -67,116 +86,43 @@ function read_pwm(path::String)
 end
 
 
-function scan_sites(sites::Array{String, 1}, pwm)
-    scores = Float64[]
-    for i in sites
-        scores = push!(scores, calculate_score(i, pwm))
-    end
-    return(scores)
-end
-
-
-function split_to_sites_atom(peak::String, len_of_site::Int)
-    sites = String[]
-    for i in 1:length(peak) - len_of_site
-        site = peak[i:i + len_of_site - 1]
-        if 'N' in site
-            continue
-        end
-        sites = push!(sites, site)
-        sites = push!(sites, reverse_complement(site))
-    end
-    return(sites)
-end
-
-
-@everywhere function support_for_scan(peak, len_of_site, pwm)
-    sites = String[]
+@everywhere function scan_peak(peak, len_of_site, pwm)
     scores = Float64[]
     for i in 1:length(peak) - len_of_site
       site = peak[i:i + len_of_site - 1]
       if 'N' in site
           continue
       end
-      sites = push!(sites, site)
-      sites = push!(sites, reverse_complement(site))
-    end
-
-    for i in sites
-      scores = push!(scores, calculate_score(i, pwm))
+      scores = push!(scores, calculate_score(site, pwm))
     end
     return(scores)
 end
 
 
-@everywhere function support_for_scan_2(peak, len_of_site, pwm)
+function calculate_scores(fasta::String, pwm, len_of_site)
     scores = Float64[]
-    for i in 1:length(peak) - len_of_site
-        site = peak[i:i + len_of_site - 1]
+    len = length(fasta)
+    for i in 1:len - len_of_site
+        site = fasta[i:i + len_of_site - 1]
         if 'N' in site
             continue
         end
-
-        score = calculate_score(site, pwm)
-        scores = push!(scores, score)
-
-        score = calculate_score(reverse_complement(site), pwm)
-        scores = push!(scores, score)
-
+        scores = push!(scores, calculate_score(site, pwm))
     end
     return(scores)
 end
 
 
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
-    
-#    scores = Float64[]
-    
-#    for peak in peaks
-#        for i in 1:length(peak) - len_of_site
-#            site = peak[i:i + len_of_site - 1]
-#            if 'N' in site
-#                continue
-#            end
-#
-#            score = calculate_score(site, pwm)
-#            scores = push!(scores, score)
-#
-#            score = calculate_score(reverse_complement(site), pwm)
-#            scores = push!(scores, score)
-#
-#        end
-#    end
-    
-#    for peak in peaks
-#          global sites = String[]
-#          for i in 1:length(peak) - len_of_site
-#              site = peak[i:i + len_of_site - 1]
-#              if 'N' in site
-#                  continue
-#              end
-#              sites = push!(sites, site)
-#              sites = push!(sites, reverse_complement(site))
-#          end
-#
-#          for i in sites
-#              scores = push!(scores, calculate_score(i, pwm))
-#          end
-#    end
 
+    scores = pmap(peak -> scan_peak(peak, len_of_site, pwm), peaks)
+    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1})
 
-    
-    container = pmap(peak -> support_for_scan_2(peak, len_of_site, pwm), peaks)
-    
+    # fasta = read_promoters(fasta_path, len_of_site);
+    # scores = calculate_scores(fasta::String, pwm, len_of_site);
 
-#    global container = Array{Array{Float64, 1}, 1}()
-#    Threads.@threads for peak in peaks
-#        container = push!(container, support_for_scan(peak, len_of_site, pwm))
-#    end
-    
-    scores = reduce(vcat, container)
     scores = sort(scores, rev=true)
-    
+
     fpr_actual = Float64[]
     fpr = Float64[]
     scores_to_write = Float64[]
@@ -188,7 +134,7 @@ function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Floa
         #fpr_actual = push!(fpr_actual, sum(res .>= s) / res_length)
         fpr = push!(fpr, i)
         scores_to_write = push!(scores_to_write, s)
-    end    
+    end
 
     df = DataFrames.DataFrame(Scores = scores_to_write, FPR = fpr)
     return(df)
@@ -218,14 +164,14 @@ function main()
     fasta_path = args["fasta"]
     pwm_path = args["pwm"]
     output = args["output"]
-    
-    pwm = read_pwm(pwm_path);
-    fasta = read_fasta(fasta_path);
-    len_of_site = length(pwm['A']);
 
-    res = calculate_thresholds(fasta, pwm, len_of_site)
+    pwm = read_pwm(pwm_path);
+    len_of_site = length(pwm['A']);
+    peaks = read_fasta(fasta_path);
+
+    res = calculate_thresholds(peaks, pwm, len_of_site)
     CSV.write(output, res, delim='\t')
-    
+
 end
 
 main()
