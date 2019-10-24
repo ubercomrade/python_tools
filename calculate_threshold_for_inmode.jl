@@ -11,10 +11,10 @@ function parse_commandline()
             help = "path to fasta file"
             required = true
         "input"
-            help = "path to xml file InMoDe model"
+            help = "path to xml file (InMoDe model)"
             required = true
         "inmode"
-            help = "path to inmode program"
+            help = "path to InMoDe java program"
             required = true
         "output"
             help = "path to write results"
@@ -24,15 +24,22 @@ function parse_commandline()
             required = false
             arg_type = String
             default = "./tmp"
+        "--java", "-j"
+            help = "path to java"
+            required = false
+            arg_type = String
+            default = "java"
+
 
     end
     return parse_args(s)
 end
 
 
-function calculate_scores(path_to_inmode::String, path_to_model::String, path_to_fasta::String, tmp_dir::String)
+function calculate_scores(path_to_inmode::String, path_to_model::String,
+    path_to_fasta::String, path_to_java::String, tmp_dir::String)
     container = Float64[]
-    run(`/Users/anton/Documents/Programs/jre-9.0.4.jre/Contents/Home/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
+    run(`$path_to_java -Xmx8096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
     i="$path_to_model"
     id="$path_to_fasta"
     f=1.0
@@ -47,9 +54,10 @@ end
 
 
 
-function calculate_thresholds(path_to_inmode::String, path_to_model::String, path_to_fasta::String, tmp_dir::String)
+function calculate_thresholds(path_to_inmode::String, path_to_model::String,
+    path_to_fasta::String, path_to_java::String tmp_dir::String)
 
-    scores = calculate_scores(path_to_inmode, path_to_model, path_to_fasta, tmp_dir)
+    scores = calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir)
     scores = sort(scores, rev=true)
     fpr_actual = Float64[]
     fpr = Float64[]
@@ -62,7 +70,7 @@ function calculate_thresholds(path_to_inmode::String, path_to_model::String, pat
         #fpr_actual = push!(fpr_actual, sum(res .>= s) / res_length)
         fpr = push!(fpr, i)
         scores_to_write = push!(scores_to_write, s)
-    end    
+    end
 
     df = DataFrames.DataFrame(Scores = scores_to_write, FPR = fpr)
     return(df)
@@ -76,16 +84,17 @@ function main()
     path_to_fasta = args["fasta"]
     tmp_dir = args["tmp"]
     path_to_inmode = args["inmode"]
-    
+    path_to_java = args["java"]
+
     if !isdir(tmp_dir)
         mkdir(tmp_dir)
     end
-    
-    res = calculate_thresholds(path_to_inmode, path_to_model, path_to_fasta, tmp_dir)
+
+    res = calculate_thresholds(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir)
     CSV.write(output, res, delim='\t')
-    
+
     rm(tmp_dir, recursive=true)
-    
+
 end
 
 main()

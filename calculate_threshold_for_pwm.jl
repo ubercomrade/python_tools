@@ -2,7 +2,6 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
-using Distributed
 
 
 function read_fasta(path)
@@ -21,7 +20,7 @@ function read_fasta(path)
 end
 
 
-@everywhere function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
+function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
     score = 0.0
     for (index, nuc) in enumerate(site)
         score += pwm[nuc][index]
@@ -72,7 +71,7 @@ function read_pwm(path::String)
 end
 
 
-@everywhere function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
+function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
     scores = Float64[]
     len = length(peak)
     for i in 1:len - len_of_site
@@ -86,19 +85,9 @@ end
 end
 
 
-function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
-    scores = Array{Array{Float64, 1}, 1}()
-    Threads.@spawn for peak in peaks
-        scores = push!(scores, scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
-    end
-    return(scores)
-end
-
-
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
-    scores = broadcast(peak -> scan_peak(peak, len_of_site, pwm), peaks)
-    #scores = scan_peaks(peaks, len_of_site, pwm)
+    scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
     scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
     scores = sort(scores, rev=true)
 
@@ -153,4 +142,4 @@ function main()
 
 end
 
-#main()
+main()

@@ -2,14 +2,16 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
-using Distributed
 
 
 function read_fasta(path)
     container = String[]
     for line in eachline(path)
         if '>' != line[1]
-            container = push!(container, (uppercase(line)))
+            line = uppercase(line)
+            container = push!(container, line)
+            rc_line = reverse_complement(line)
+            container = push!(container, rc_line)
         else
             continue
         end
@@ -41,7 +43,7 @@ end
 
 
 function support_read_bamm_logodds(bamm_path::String, bg_path::String, order::Int64)
-    
+
     bamm = Dict{String, Array{Float64, 1}}()
     nucleotides = product_of_nucleotides(order)
     for i in nucleotides
@@ -61,9 +63,9 @@ function support_read_bamm_logodds(bamm_path::String, bg_path::String, order::In
             end
         end
     end
-    
+
     index = 0
-    
+
     bg = Dict{String, Array{Float64, 1}}()
     for i in nucleotides
         bg[i] = Float64[]
@@ -80,11 +82,11 @@ function support_read_bamm_logodds(bamm_path::String, bg_path::String, order::In
             end
         end
     end
-    
+
     for nuc in nucleotides
     bamm[nuc] = log2.(bamm[nuc] ./ bg[nuc])
     end
-    
+
     return(bamm)
 end
 
@@ -99,26 +101,29 @@ end
 
 
 function reverse_complement(site::String)
-    complement = ""
+    complement = Char[]
     for i in site
         if i == 'C'
-            complement = string('G', complement)
+            complement = push!(complement, 'G')
         elseif i == 'G'
-            complement = string('C', complement)
+            complement = push!(complement, 'C')
         elseif i == 'A'
-            complement = string('T', complement)
+            complement = push!(complement, 'T')
         elseif i == 'T'
-            complement = string('A', complement)
+            complement = push!(complement, 'A')
+        elseif i == 'N'
+            complement = push!(complement, 'N')
         end
     end
-    return(complement)
+    return(join(reverse(complement)))
 end
+
 
 
 function calculate_score(site::String, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
     score = 0.0
     for index in 1:order
-        score += bamm[site[1:index]][index] 
+        score += bamm[site[1:index]][index]
     end
     for index in 1:len_of_site - order
         score += bamm[site[index:index+order]][index + order]
@@ -127,25 +132,26 @@ function calculate_score(site::String, bamm::Dict{String,Array{Float64, 1}}, ord
 end
 
 
-function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
+function scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64)
     scores = Float64[]
-    for peak in peaks
-        for i in 1:length(peak) - len_of_site
-            site = peak[i:i + len_of_site - 1]
-            if 'N' in site
-                continue
-            end
-            score = calculate_score(site, bamm, order, len_of_site)
-            scores = push!(scores, score)
-            
-            score = calculate_score(reverse_complement(site), bamm, order, len_of_site)
-            scores = push!(scores, score)
-            
-        end
+    len = length(peak)
+    for i in 1:len - len_of_site
+      site = peak[i:i + len_of_site - 1]
+      if 'N' in site
+          continue
+      end
+      scores = push!(scores, calculate_score(site, bamm, order, len_of_site))
     end
-    
+    return(scores)
+end
+
+
+function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
+
+    scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64), peaks)
+    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
     scores = sort(scores, rev=true)
-    
+
     fpr_actual = Float64[]
     fpr = Float64[]
     scores_to_write = Float64[]
@@ -157,7 +163,7 @@ function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{F
         #fpr_actual = push!(fpr_actual, sum(res .>= s) / res_length)
         fpr = push!(fpr, i)
         scores_to_write = push!(scores_to_write, s)
-    end    
+    end
 
     df = DataFrames.DataFrame(Scores = scores_to_write, FPR = fpr)
     return(df)
@@ -198,13 +204,13 @@ function main()
     bg_path = args["bg"]
     output = args["output"]
     order = args["order"]
-    
+
     peaks = read_fasta(fasta_path)
     bamm = read_bamm(bamm_path, bg_path, order)
     len_of_site = length(bamm["A"])
     res = calculate_thresholds(peaks, bamm, order, len_of_site)
     CSV.write(output, res, delim='\t')
-    
+
 end
 
 main()
