@@ -1,7 +1,9 @@
 import CSV
 import DataFrames
 import Random
+import Base.Threads.@spawn
 using ArgParse
+using Distributed
 
 
 function read_fasta(path)
@@ -20,12 +22,12 @@ function read_fasta(path)
 end
 
 
-function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
+@everywhere function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
     score = 0.0
     for (index, nuc) in enumerate(site)
         score += pwm[nuc][index]
     end
-    return(score)
+    return(score::Float64)
 end
 
 
@@ -71,7 +73,7 @@ function read_pwm(path::String)
 end
 
 
-function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
+@everywhere function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
     scores = Float64[]
     len = length(peak)
     for i in 1:len - len_of_site
@@ -85,10 +87,20 @@ function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float6
 end
 
 
+function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
+    scores = Array{Array{Float64, 1}, 1}()
+    @spawn for peak in peaks
+        scores = push!(scores, scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
+    end
+    return(scores)
+end
+
+
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
     scores = broadcast(peak -> scan_peak(peak, len_of_site, pwm), peaks)
-    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1})
+    #scores = scan_peaks(peaks, len_of_site, pwm)
+    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
     scores = sort(scores, rev=true)
 
     fpr_actual = Float64[]
@@ -133,7 +145,6 @@ function main()
     pwm_path = args["pwm"]
     output = args["output"]
 
-    println(Threads.nthreads())
     pwm = read_pwm(pwm_path);
     len_of_site = length(pwm['A']);
     peaks = read_fasta(fasta_path);
@@ -143,6 +154,4 @@ function main()
 
 end
 
-main()
-#fasta_path = "/Users/anton/Documents/DATA/PROMOTERS/mm10_promoters.fa"
-#pwm_path = "/Users/anton/Google Диск/PhD/Расчеты/CHOSEN-TFS-SCAN-5000/AR_41593/MOTIFS/AR_41593_OPTIMAL_MOTIF.pwm"
+#main()
