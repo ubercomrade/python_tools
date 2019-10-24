@@ -20,7 +20,7 @@ function read_fasta(path)
 end
 
 
-@everywhere function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
+function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
     score = 0.0
     for (index, nuc) in enumerate(site)
         score += pwm[nuc][index]
