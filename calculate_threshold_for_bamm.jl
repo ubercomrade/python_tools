@@ -2,7 +2,6 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
-using Distributed
 
 
 function read_fasta(path)
@@ -123,10 +122,10 @@ end
 
 function calculate_score(site::String, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
     score = 0.0
-    @distributed for index in 1:order
+    for index in 1:order
         score += bamm[site[1:index]][index]
     end
-    @distributed for index in 1:len_of_site - order
+    for index in 1:len_of_site - order
         score += bamm[site[index:index+order]][index + order]
     end
     return(score)

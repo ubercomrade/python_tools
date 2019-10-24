@@ -2,7 +2,6 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
-using Distributed
 
 
 function read_fasta(path)
@@ -24,10 +23,8 @@ end
 function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
     score = 0.0
     len = length(site)
-    #for (index, nuc) in enumerate(site)
-    @distributed for index in 1:len
+    for (index, nuc) in enumerate(site)
         score += pwm[site[index]][index]
-        #score += pwm[nuc][index]
     end
     return(score::Float64)
 end
