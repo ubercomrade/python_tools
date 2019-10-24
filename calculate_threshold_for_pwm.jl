@@ -126,8 +126,8 @@ end
 
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
-    #scores = pmap(peak -> scan_peak(peak, len_of_site, pwm), peaks)
-    scores = scan_peaks(peaks, len_of_site, pwm)
+    scores = pmap(peak -> scan_peak(peak, len_of_site, pwm), peaks)
+    #scores = scan_peaks(peaks, len_of_site, pwm)
     scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1})
     scores = sort(scores, rev=true)
 
@@ -173,6 +173,7 @@ function main()
     pwm_path = args["pwm"]
     output = args["output"]
 
+    println(Threads.nthreads())
     global pwm = read_pwm(pwm_path);
     global len_of_site = length(pwm['A']);
     peaks = read_fasta(fasta_path);
