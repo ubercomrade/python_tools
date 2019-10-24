@@ -21,20 +21,20 @@ function read_fasta(path)
 end
 
 
-function read_promoters(path::String, len_of_site::Int64)
-    container = String[]
-    for line in eachline(path)
-        if '>' != line[1]
-            line = uppercase(line)
-            container = push!(container, string(line, repeat('N', len_of_site),
-            reverse_complement(line), repeat('N', len_of_site)))
-        else
-            continue
-        end
-    end
-    container = join(container::Array{String, 1})
-    return(container)
-end
+# function read_promoters(path::String, len_of_site::Int64)
+#     container = String[]
+#     for line in eachline(path)
+#         if '>' != line[1]
+#             line = uppercase(line)
+#             container = push!(container, string(line, repeat('N', len_of_site),
+#             reverse_complement(line), repeat('N', len_of_site)))
+#         else
+#             continue
+#         end
+#     end
+#     container = join(container::Array{String, 1})
+#     return(container)
+# end
 
 
 @everywhere function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
@@ -57,6 +57,8 @@ function reverse_complement(site::String)
             complement = push!(complement, 'T')
         elseif i == 'T'
             complement = push!(complement, 'A')
+        elseif i == 'N'
+            complement = push!(complement, 'N')
         end
     end
     return(join(reverse(complement)))
@@ -86,9 +88,10 @@ function read_pwm(path::String)
 end
 
 
-@everywhere function scan_peak(peak, len_of_site, pwm)
+@everywhere function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
     scores = Float64[]
-    for i in 1:length(peak) - len_of_site
+    len = length(peak)
+    for i in 1:len - len_of_site
       site = peak[i:i + len_of_site - 1]
       if 'N' in site
           continue
@@ -112,15 +115,20 @@ function calculate_scores(fasta::String, pwm, len_of_site)
     return(scores)
 end
 
+function scan_peaks(peaks, len_of_site, pwm)
+    @everywhere scores = Array{Array{Float64, 1}, 1}()
+    Threads.@threads for peak in peaks
+        scores = push!(scores, scan_peak(peak, len_of_site, pwm))
+    end
+    return(scores)
+end
+
 
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
-    scores = pmap(peak -> scan_peak(peak, len_of_site, pwm), peaks)
+    #scores = pmap(peak -> scan_peak(peak, len_of_site, pwm), peaks)
+    scores = scan_peaks(peaks, len_of_site, pwm)
     scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1})
-
-    # fasta = read_promoters(fasta_path, len_of_site);
-    # scores = calculate_scores(fasta::String, pwm, len_of_site);
-
     scores = sort(scores, rev=true)
 
     fpr_actual = Float64[]
@@ -165,8 +173,8 @@ function main()
     pwm_path = args["pwm"]
     output = args["output"]
 
-    pwm = read_pwm(pwm_path);
-    len_of_site = length(pwm['A']);
+    global pwm = read_pwm(pwm_path);
+    global len_of_site = length(pwm['A']);
     peaks = read_fasta(fasta_path);
 
     res = calculate_thresholds(peaks, pwm, len_of_site)
@@ -175,3 +183,5 @@ function main()
 end
 
 main()
+#fasta_path = "/Users/anton/Documents/DATA/PROMOTERS/mm10_promoters.fa"
+#pwm_path = "/Users/anton/Google Диск/PhD/Расчеты/CHOSEN-TFS-SCAN-5000/AR_41593/MOTIFS/AR_41593_OPTIMAL_MOTIF.pwm"
