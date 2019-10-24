@@ -116,7 +116,7 @@ function calculate_scores(fasta::String, pwm, len_of_site)
 end
 
 function scan_peaks(peaks, len_of_site, pwm)
-    @everywhere scores = Array{Array{Float64, 1}, 1}()
+    global scores = Array{Array{Float64, 1}, 1}()
     Threads.@threads for peak in peaks
         scores = push!(scores, scan_peak(peak, len_of_site, pwm))
     end
