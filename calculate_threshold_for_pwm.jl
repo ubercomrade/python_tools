@@ -2,7 +2,6 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
-using Distributed
 
 
 function read_fasta(path)
@@ -75,7 +74,7 @@ end
 function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
     scores = Float64[]
     len = length(peak)
-    @distributed for i in 1:len - len_of_site
+    for i in 1:len - len_of_site
       site = peak[i:i + len_of_site - 1]
       if 'N' in site
           continue
