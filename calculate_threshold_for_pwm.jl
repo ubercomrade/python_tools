@@ -90,23 +90,17 @@ function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, pwm::Dict{Char,
 
     l = length(peaks)
     scores = Array{Array{Float64, 1}, 1}()
-    #scores = Array{Array{Array{Float64, 1}, 1}, 1}()
-    #for i in 1:Threads.nthreads()
-    # push!(scores, Array{Array{Float64, 1}, 1}())
-    #end
-    @sync Threads.@threads for peak in peaks
-        #push!(scores[Threads.threadid()], scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
+    Threads.@threads for peak in peaks
         push!(scores, scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
     end
 
-    #reduce(vcat,reduce(vcat, scores::Array{Array{Array{Float64, 1}, 1}, 1}))
-    return(scores)
+    return(reduce(vcat, scores::Array{Array{Float64, 1}, 1}))
 end
 
 
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
-    scores = pmap(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
+    scores = map(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
     scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
     scores = sort!(scores::Array{Float64, 1}, rev=true)
 
@@ -165,6 +159,3 @@ function main()
 end
 
 main()
-
-# pwm_path = "/Users/anton/Google Диск/PhD/Расчеты/CHOSEN-TFS-SCAN-5000/AR_41593/MOTIFS/AR_41593_OPTIMAL_MOTIF.pwm"
-# fasta_path = "/Users/anton/Documents/DATA/PROMOTERS/mm10_promoters.fa"
