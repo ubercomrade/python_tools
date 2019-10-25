@@ -73,7 +73,7 @@ function read_pwm(path::String)
 end
 
 
-function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
+@everywhere function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
     scores = Float64[]
     len = length(peak)
     for i in 1:len - len_of_site
@@ -155,7 +155,7 @@ function main()
 
 end
 
-#main()
+main()
 
 # pwm_path = "/Users/anton/Google Диск/PhD/Расчеты/CHOSEN-TFS-SCAN-5000/AR_41593/MOTIFS/AR_41593_OPTIMAL_MOTIF.pwm"
 # fasta_path = "/Users/anton/Documents/DATA/PROMOTERS/mm10_promoters.fa"

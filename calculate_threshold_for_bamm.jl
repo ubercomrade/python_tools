@@ -132,7 +132,7 @@ end
 end
 
 
-function scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64)
+@everywhere function scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64)
     scores = Float64[]
     len = length(peak)
     for i in 1:len - len_of_site
