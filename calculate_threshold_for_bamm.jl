@@ -2,6 +2,7 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
+using Distributed
 
 
 function read_fasta(path)
@@ -119,7 +120,7 @@ function reverse_complement(site::String)
 end
 
 
-function calculate_score(site::String, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
+@everywhere function calculate_score(site::String, bamm::Dict{String, Array{Float64, 1}}, order::Int64, len_of_site::Int64)
     score = 0.0
     for index in 1:order
         score += bamm[site[1:index]][index]

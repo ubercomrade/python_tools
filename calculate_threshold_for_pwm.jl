@@ -4,6 +4,7 @@ import Random
 using ArgParse
 using Distributed
 
+
 function read_fasta(path)
     container = String[]
     for line in eachline(path)
