@@ -157,18 +157,19 @@ function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, bamm::Dict{Stri
     Threads.@threads for peak in peaks
         push!(scores[Threads.threadid()], scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64))
     end
-    
+
     return(reduce(vcat,reduce(vcat, scores::Array{Array{Array{Float64, 1}, 1}, 1})))
 end
 
 
 function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String, Array{Float64, 1}}, order::Int64, len_of_site::Int64)
 
-    # scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64), peaks)
-    # scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
-
-    scores = scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64)
+    scores = pmap(peak::String -> scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64), peaks)
+    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
     scores = sort!(scores::Array{Float64, 1}, rev=true)
+
+    #scores = scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64)
+    #scores = sort!(scores::Array{Float64, 1}, rev=true)
 
     fpr_actual = Float64[]
     fpr = Float64[]

@@ -89,26 +89,29 @@ end
 function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
 
     l = length(peaks)
-    scores = Array{Array{Array{Float64, 1}, 1}, 1}()
-    for i in 1:Threads.nthreads()
-      push!(scores, Array{Array{Float64, 1}, 1}())
+    scores = Array{Array{Float64, 1}, 1}()
+    #scores = Array{Array{Array{Float64, 1}, 1}, 1}()
+    #for i in 1:Threads.nthreads()
+    # push!(scores, Array{Array{Float64, 1}, 1}())
+    #end
+    @sync Threads.@threads for peak in peaks
+        #push!(scores[Threads.threadid()], scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
+        push!(scores, scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
     end
 
-    Threads.@threads for peak in peaks
-        push!(scores[Threads.threadid()], scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
-    end
-
-    return(reduce(vcat,reduce(vcat, scores::Array{Array{Array{Float64, 1}, 1}, 1})))
+    #reduce(vcat,reduce(vcat, scores::Array{Array{Array{Float64, 1}, 1}, 1}))
+    return(scores)
 end
 
 
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
-    # scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
-    # scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
-
-    scores = scan_peaks(peaks, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}});
+    scores = pmap(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
+    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
     scores = sort!(scores::Array{Float64, 1}, rev=true)
+
+    # scores = scan_peaks(peaks, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}});
+    # scores = sort!(scores::Array{Float64, 1}, rev=true)
 
     fpr_actual = Float64[]
     fpr = Float64[]
@@ -165,33 +168,3 @@ main()
 
 # pwm_path = "/Users/anton/Google Диск/PhD/Расчеты/CHOSEN-TFS-SCAN-5000/AR_41593/MOTIFS/AR_41593_OPTIMAL_MOTIF.pwm"
 # fasta_path = "/Users/anton/Documents/DATA/PROMOTERS/mm10_promoters.fa"
-#
-# pwm = read_pwm(pwm_path);
-# len_of_site = length(pwm['A']);
-# peaks = read_fasta(fasta_path);
-# @time s = scan_peaks(peaks, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}});
-
-
-# num_monte = Int(1e6)
-# solution_data = Vector{Vector{Float64}}()
-# for i in 1:Threads.nthreads()
-#   push!(solution_data, Float64[])
-# end
-# Threads.@threads for i in 1:num_monte
-#     println(Threads.threadid())
-#   #push!(solution_data[Threads.threadid()],i)
-# end
-# vcat(solution_data...)
-#
-# a = [[[2,3,4],[4,5,6]], [[8,3,7],[9,5,2]]]
-# mapreduce(vcat, vcat, a)
-#
-#
-# l = length(peaks)
-# scores = Array{Array{Array{Float64, 1}, 1}, 1}()
-# for i in 1:Threads.nthreads()
-#   push!(scores, Array{Array{Float64, 1}, 1}())
-# end
-# Threads.@threads for peak in peaks
-#     push!(scores[Threads.threadid()], scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
-# end
