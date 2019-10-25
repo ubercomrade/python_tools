@@ -147,12 +147,18 @@ end
 
 
 function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, bamm::Dict{String,Array{Float64, 1}}, order::Int64)
+
     l = length(peaks)
-    scores = Array{Array{Float64, 1}, 1}()
-    Threads.@threads for peak in peaks
-        scores =  push!(scores, scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64))
+    scores = Array{Array{Array{Float64, 1}, 1}, 1}()
+    for i in 1:Threads.nthreads()
+      push!(scores, Array{Array{Float64, 1}, 1}())
     end
-    return(reduce(vcat, scores::Array{Array{Float64, 1}, 1}))
+
+    Threads.@threads for peak in peaks
+        push!(scores[Threads.threadid()], scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64))
+    end
+    
+    return(reduce(vcat,reduce(vcat, scores::Array{Array{Array{Float64, 1}, 1}, 1})))
 end
 
 
