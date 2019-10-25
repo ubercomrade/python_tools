@@ -2,7 +2,7 @@ import CSV
 import DataFrames
 import Random
 using ArgParse
-
+using Distributed
 
 function read_fasta(path)
     container = String[]
@@ -20,7 +20,7 @@ function read_fasta(path)
 end
 
 
-function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
+@everywhere function calculate_score(site::String, pwm::Dict{Char,Array{Float64, 1}})
     score = 0.0
     len = length(site)
     for (index, nuc) in enumerate(site)
@@ -85,12 +85,23 @@ function scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float6
     return(scores)
 end
 
+function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}})
+    l = length(peaks)
+    scores = Array{Array{Float64, 1}, 1}()
+    Threads.@threads for peak in peaks
+        scores =  push!(scores, scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}))
+    end
+    return(reduce(vcat, scores::Array{Array{Float64, 1}, 1}))
+end
+
 
 function calculate_thresholds(peaks::Array{String, 1}, pwm::Dict{Char,Array{Float64, 1}}, len_of_site::Int64)
 
-    scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
-    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
-    scores = sort(scores, rev=true)
+    # scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}}), peaks)
+    # scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
+
+    scores = scan_peaks(peaks, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}});
+    scores = sort!(scores::Array{Float64, 1}, rev=true)
 
     fpr_actual = Float64[]
     fpr = Float64[]
@@ -143,4 +154,12 @@ function main()
 
 end
 
-main()
+#main()
+
+# pwm_path = "/Users/anton/Google Диск/PhD/Расчеты/CHOSEN-TFS-SCAN-5000/AR_41593/MOTIFS/AR_41593_OPTIMAL_MOTIF.pwm"
+# fasta_path = "/Users/anton/Documents/DATA/PROMOTERS/mm10_promoters.fa"
+#
+# pwm = read_pwm(pwm_path);
+# len_of_site = length(pwm['A']);
+# peaks = read_fasta(fasta_path);
+# @time s = scan_peaks(peaks, len_of_site::Int64, pwm::Dict{Char,Array{Float64, 1}});

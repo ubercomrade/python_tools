@@ -119,7 +119,6 @@ function reverse_complement(site::String)
 end
 
 
-
 function calculate_score(site::String, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
     score = 0.0
     for index in 1:order
@@ -146,11 +145,23 @@ function scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Fl
 end
 
 
-function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String,Array{Float64, 1}}, order::Int64, len_of_site::Int64)
+function scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, bamm::Dict{String,Array{Float64, 1}}, order::Int64)
+    l = length(peaks)
+    scores = Array{Array{Float64, 1}, 1}()
+    Threads.@threads for peak in peaks
+        scores =  push!(scores, scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64))
+    end
+    return(reduce(vcat, scores::Array{Array{Float64, 1}, 1}))
+end
 
-    scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64), peaks)
-    scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
-    scores = sort(scores, rev=true)
+
+function calculate_thresholds(peaks::Array{String, 1}, bamm::Dict{String, Array{Float64, 1}}, order::Int64, len_of_site::Int64)
+
+    # scores = broadcast(peak::String -> scan_peak(peak::String, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64), peaks)
+    # scores = reduce(vcat, scores::Array{Array{Float64, 1}, 1});
+
+    scores = scan_peaks(peaks::Array{String, 1}, len_of_site::Int64, bamm::Dict{String, Array{Float64, 1}}, order::Int64)
+    scores = sort!(scores::Array{Float64, 1}, rev=true)
 
     fpr_actual = Float64[]
     fpr = Float64[]
