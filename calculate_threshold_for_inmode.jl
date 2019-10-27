@@ -39,7 +39,7 @@ end
 function calculate_scores(path_to_inmode::String, path_to_model::String,
     path_to_fasta::String, path_to_java::String, tmp_dir::String)
     container = Float64[]
-    run(`$path_to_java -Xmx16G -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan i="$path_to_model" id="$path_to_fasta" f=1.0 outdir=$tmp_dir bs=true`);
+    run(`$path_to_java -Xmx32G -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan i="$path_to_model" id="$path_to_fasta" f=1.0 outdir=$tmp_dir bs=true`);
     for line in eachline(string(tmp_dir,"/Motif_hits_from_SequenceScan(1.0).BED"))
         container = push!(container, parse(Float64, split(line)[5]))
     end
