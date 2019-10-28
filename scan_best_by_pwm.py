@@ -160,6 +160,14 @@ def scan_seq_by_pwm(record, pwm):
     return(results)
 
 
+def write_list(path, data):
+    with open(path, "w") as file:
+        for line in data:
+            file.write("{0}\n".format(line))
+    file.close()
+    pass
+
+
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -168,7 +176,7 @@ def parse_args():
     parser.add_argument('-m', '--pwm', action='store', dest='input_pwm',
                         required=True, help='path to PWM file')
     parser.add_argument('-o', '--output', action='store', dest='output',
-                        required=True, help='path to BED like file for output')
+                        required=True, help='path to write list with scores')
     parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
     required=False, default=2, help='Number of processes to use, default: 2')
 
@@ -186,10 +194,6 @@ def main():
     fasta = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
 
-    #results = []
-    #for record in fasta:
-    #   results += scan_seq_by_pwm(record, pwm, threshold)
-
     with mp.Pool(cpu_count) as p:
         results = p.map(functools.partial(scan_seq_by_pwm,
                                           pwm=pwm), fasta)
@@ -197,10 +201,9 @@ def main():
     results = [j for sub in results for j in sub]
 
     df = pd.DataFrame(results)
-    # df['name'] = np.repeat('.', len(df))
-    # df['score'] = np.repeat(0, len(df))
     df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    df.to_csv(results_path, sep='\t', header=False, index=False)
+    write_list(results_path, list(df['score']))
+    #df.to_csv(results_path, sep='\t', header=False, index=False)
 
 
 if __name__ == '__main__':

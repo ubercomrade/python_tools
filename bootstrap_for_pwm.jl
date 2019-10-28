@@ -114,17 +114,18 @@ function bootstrap_pwm(sites, size_of::Int64)
                 pwm))
     end
 
+    println(typeof(false_scores[1]))
 
-    true_scores = sort(true_scores)
-    false_scores = sort(false_scores)
+    true_scores = sort(true_scores, rev=true)
+    false_scores = sort(false_scores, rev=true)
 
     tpr = Float64[]
     tpr_actual = Float64[]
     fpr = Float64[]
     scores = Float64[]
 
-    false_length = length(false_scores, rev=true)
-    true_length = length(true_scores, rev=true)
+    false_length = length(false_scores)
+    true_length = length(true_scores)
 
     for i in 0.05:0.05:1.0
         s = true_scores[Int(round(true_length * i))]

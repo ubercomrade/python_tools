@@ -237,10 +237,11 @@ def main():
     #Make table with count of diff kind of peaks#
     #############################################
     count = []
-    top = [i * 1000 for i in range(1, len(data) // 1000 + 1)]
+    #top = [i * 1000 for i in range(1, len(data) // 1000 + 1)]
+    top = [i * 100 for i in range(1, len(data) // 100 + 1)]
 
     for i in range(len(top)):
-        subset_classification = classification[i*1000:(i+1)*1000]
+        subset_classification = classification[i*100:(i+1)*100]
         count_first_model_sites = sum(['first_model' == i for i in subset_classification])
         count_second_model_sites = sum(['second_model' == i for i in subset_classification])
         count_third_model_sites = sum(['third_model' == i for i in subset_classification])

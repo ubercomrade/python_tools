@@ -34,7 +34,7 @@ function read_best_inmode(path)
     "end" => Int64[],
     "strand" => String[],
     "score" => Float64[] )
-    
+
     line_id = Int64
     line_start = Int64
     line_end = Int64
@@ -49,15 +49,15 @@ function read_best_inmode(path)
             line_strand = split(line)[4]
             line_score = parse(Float64, split(line)[5])
             score = line_score
-            
+
         elseif (parse(Int64, split(line)[1]) != ID)
-            
+
             container["ID"] = push!(container["ID"], line_id)
             container["start"] = push!(container["start"], line_start)
             container["end"] = push!(container["end"], line_end)
             container["strand"] = push!(container["strand"], line_strand)
             container["score"] = push!(container["score"], line_score)
-            
+
             line_id = parse(Int64, split(line)[1])
             ID = line_id
             line_start = parse(Int64, split(line)[2])
@@ -107,21 +107,21 @@ function create_bed(fasta, inmode)
 
         container["chr"] = push!(container["chr"], fasta["chr"][ID+1])
         container["start"] = push!(container["start"], fasta["start"][ID+1] + start)
-        container["end"] = push!(container["end"], fasta["start"][ID+1] + enD)   
+        container["end"] = push!(container["end"], fasta["start"][ID+1] + enD)
         container["ID"] = push!(container["ID"], string("peaks_", string(ID)))
         container["strand"] = push!(container["strand"], strand)
         container["score"] = push!(container["score"], score)
     end
-    
-    df = DataFrames.DataFrame(chr = container["chr"],
-        st = container["start"],
-        en = container["end"],
-        id = container["ID"],
-        score = container["score"],
-        strand = container["strand"],
-        site = container["site"])
-    
-    return(df)
+
+    # df = DataFrames.DataFrame(chr = container["chr"],
+    #     st = container["start"],
+    #     en = container["end"],
+    #     id = container["ID"],
+    #     score = container["score"],
+    #     strand = container["strand"],
+    #     site = container["site"])
+
+    return(container)
 end
 
 
@@ -134,6 +134,15 @@ function scan_all_by_inmode(path_to_inmode, path_to_model, path_to_fasta, tmp_di
     f=1.0
     outdir=$tmp_dir
     bs=true`);
+end
+
+
+function write_list(path, data)
+    open(path, "w") do file
+        for s in data
+            write(file, "$s\n")
+        end
+    end
 end
 
 
@@ -171,7 +180,7 @@ function main()
     path_to_fasta = args["fasta"]
     tmp_dir = args["tmp"]
     path_to_inmode = args["inmode"]
-    
+
     if !isdir(tmp_dir)
         mkdir(tmp_dir)
     end
@@ -180,9 +189,10 @@ function main()
     fasta = read_fasta(path_to_fasta)
     inmode_path = string(tmp_dir, "/Motif_hits_from_SequenceScan(1.0).BED")
     inmode = read_best_inmode(inmode_path)
-    df = create_bed(fasta, inmode)
+    results = create_bed(fasta, inmode)
     rm(tmp_dir, recursive=true)
-    CSV.write(out, df, delim='\t',writeheader=false)
+    write_list(out, results["score"])
+    #CSV.write(out, results, delim='\t',writeheader=false)
 end
 
 main()

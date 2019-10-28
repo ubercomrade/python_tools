@@ -86,36 +86,6 @@ def make_log_odds_bamm(bamm, bg):
     return(log_odds_bamm)
 
 
-# def read_fasta(path):
-#     '''
-#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-#     Все экземпляры хранятся в списке
-#     Функция возвращает список экземпляров класса BioRecord
-
-#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
-#     '''
-#     fasta = list()
-#     with open(path, 'r') as file:
-#         for line in file:
-#             if line.startswith('>'):
-#                 line = line[1:].strip().split('|')
-#                 record = dict()
-#                 record['name'] = line[0]
-#                 record['chromosome'] = line[1]
-#                 record['start'] = line[2].split('-')[0]
-#                 record['end'] = line[2].split('-')[1]
-#                 try:
-#                     record['strand'] = line[3]
-#                 except:
-#                     # print('Record with out strand. Strand is +')
-#                     record['strand'] = '+'
-#                 continue
-#             record['seq'] = line.strip().upper()
-#             fasta.append(record)
-#     file.close()
-#     return(fasta)
-
-
 def read_fasta(path):
     '''
     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
@@ -259,6 +229,14 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
     return(results)
 
 
+def write_list(path, data):
+    with open(path, "w") as file:
+        for line in data:
+            file.write("{0}\n".format(line))
+    file.close()
+    pass
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
@@ -289,10 +267,6 @@ def main():
     k_mers = make_k_mers(order=order)
     log_odds_bamm = bamm_to_dict(log_odds_bamm=log_odds_bamm, order=order, k_mers=k_mers)
 
-    # results = []
-    # for record in fasta:
-    #    results += scan_seq_by_bamm(record, log_odds_bamm, order, threshold)
-
     with mp.Pool(cpu_count) as p:
         results = p.map(functools.partial(scan_seq_by_bamm,
                                           log_odds_bamm=log_odds_bamm, order=order), fasta)
@@ -300,9 +274,9 @@ def main():
     results = [j for sub in results for j in sub]
 
     df = pd.DataFrame(results)
-    # df['name'] = np.repeat('.', len(df))
     df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    df.to_csv(results_path, sep='\t', header=False, index=False)
+    write_list(results_path, list(df['score']))
+    #df.to_csv(results_path, sep='\t', header=False, index=False)
 
 
 if __name__ == '__main__':

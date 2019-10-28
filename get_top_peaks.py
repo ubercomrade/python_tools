@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 '''
 Copyright © 2018 Anton Tsukanov. Contacts: tsukanov@bionet.nsc.ru
 License: http://www.gnu.org/licenses/gpl.txt
@@ -34,12 +35,24 @@ def read_file(path):
     return(peaks)
 
 
+def clear_peaks(peaks):
+    peaks = [i for i in peaks if len(i[0]) < 6 and i[0] != "chrMT"]
+    return(peaks)
+
+
 def get_top_peaks(peaks, amount, col):
     #peaks = [i for i in peaks if len(i[0]) <= 5]
     sorted_peaks = sorted(peaks, key=lambda i: float(i[col]), reverse=True)
     for index, line in enumerate(sorted_peaks):
         line[3] = 'peaks_' + str(index)
     return(sorted_peaks[:amount])
+
+
+def get_legths(data):
+    l = list()
+    for line in data:
+        l.append(int(line[2]) - int(line[1]))
+    return(l)
 
 
 def split_peaks(peaks):
@@ -51,6 +64,14 @@ def split_peaks(peaks):
         else:
             peaks2.append(peaks[i])
     return(peaks1, peaks2)
+
+
+def write_length(path, data):
+    with open(path, "w") as file:
+        for line in data:
+            file.write("{0}\n".format(line))
+    file.close()
+    pass
 
 
 def parse_args():
@@ -67,9 +88,7 @@ def parse_args():
                         help='number of colmun [0, 1, 2, ...] for sorting default = 4')
     parser.add_argument('-t', '--tag', action='store', dest='tag',
                         required=True, help='tag for output file/files name')
-    parser.add_argument('-s', '--split', action='store_true', dest='split',
-                        default=False, required=False,
-                        help='Get train and test peaks by spliting top peaks by 2')
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -83,34 +102,21 @@ def main():
     col = args.column
     tag = args.tag
     amount = int(args.amount)
-    split = args.split
     file_extension = os.path.splitext(path)[1]
 
     if not os.path.isdir(output):
         os.mkdir(output)
 
-    if split:
-        peaks = read_file(path)
-        peaks = get_top_peaks(peaks, amount, col)
-        peaks1, peaks2 = split_peaks(peaks)
-        with open(output + '/' + tag + '_TRAIN' + file_extension, 'w') as file:
-            for i in peaks1:
-                i[-1] = str(i[-1])
-                file.write('\t'.join(i) + '\n')
-        file.close()
-        with open(output + '/' + tag + '_TEST' + file_extension, 'w') as file:
-            for i in peaks2:
-                i[-1] = str(i[-1])
-                file.write('\t'.join(i) + '\n')
-        file.close()
-    else:
-        peaks = read_file(path)
-        peaks = get_top_peaks(peaks, amount, col)
-        with open(output + '/' + tag + '.bed', 'w') as file:
-            for i in peaks:
-                i[-1] = str(i[-1])
-                file.write('\t'.join(i) + '\n')
-        file.close()
+    peaks = read_file(path)
+    peaks = clear_peaks(peaks)
+    peaks = get_top_peaks(peaks, amount, col)
+    l = get_legths(peaks)
+    write_length(output + '/' + tag + '.length.txt', l)
+    with open(output + '/' + tag + '.bed', 'w') as file:
+        for i in peaks:
+            i[-1] = str(i[-1])
+            file.write('\t'.join(i) + '\n')
+    file.close()
 
 
 if __name__ == '__main__':
