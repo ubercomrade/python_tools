@@ -134,6 +134,38 @@ def inmode_scan(path_to_java, path_to_inmode, input_data, input_model, backgroud
     pass
 
 
+def scan_best_by_inmode(output, input_model, fasta_in, path_to_inmode):
+    args = ['julia', path_to_python_tools + '/scan_best_by_inmode.jl',
+           output,
+           input_model,
+           fasta_in,
+           path_to_inmode]
+    r = subprocess.call(args)
+    pass
+
+
+def scan_best_by_pwm(output, input_model, fasta_in, cpu_count):
+    args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
+            '-f', fasta_in,
+            '-m', input_model,
+            '-o', output,
+            '-P', cpu_count]
+    r = subprocess.call(args)
+    pass
+
+
+def scan_best_by_bamm(output, input_bamm_model, bg_model, fasta_in, cpu_count):
+    args = ['python3', path_to_python_tools + '/scan_best_by_bamm.py',
+            '-f', fasta_in,
+            '-m', input_bamm_model,
+            '-b', bg_model,
+            '-o', output,
+            '-P', cpu_count]
+    r = subprocess.call(args)
+    pass
+
+
+
 def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
                       fpr_for_thr, path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_imd, path_to_chipmunk,
                       path_to_promoters, path_to_genome, path_to_tss, cpu_count,
@@ -239,7 +271,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     ########################
     #FIND MODEL BY CHIPMUNK#
     ########################
-    if not os.path.isfile(chipmunk + '/chipmunk_MOTIF.txt'):
+    if not os.path.isfile(chipmunk + '/CHIPMUNK_MOTIF.txt'):
         if bigwig_path != "PASS":
             #Create fastaWig for chipmunk
             create_fasta_wig(path_to_python_tools, bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
@@ -256,7 +288,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             print('chipmunk find motifs for {0}'.format(tag))
             run_chipmunk_fasta(path_to_java, path_to_chipmunk,
             fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-            chipmunk + '/chipmunk_MOTIF.txt',
+            chipmunk + '/CHIPMUNK_MOTIF.txt',
             motif_length_start, motif_length_end,
             try_size, cpu_count, zoops)
     else:
@@ -375,7 +407,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
                 '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                 '-m', motifs + '/' + tag + '_motif_1.ihbcp',
                 '-b', motifs + '/' + tag + '.hbcp',
-                '-t', thr_bamm,
+                '-t', str(thr_bamm),
                 '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
                 '-P', cpu_count]
         r = subprocess.call(args)
@@ -404,7 +436,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
                 '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                 '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-                '-t', thr_pwm,
+                '-t', str(thr_pwm),
                 '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + str(fpr_for_thr) + '.bed',
                 '-P', cpu_count]
         r = subprocess.call(args)
@@ -451,6 +483,45 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             '-sname', sname,
             '-tname', tname]
     r = subprocess.call(args)
+
+
+    ###########
+    #SCAN BEST#
+    ###########
+
+
+    scan_best_by_inmode(scan_best + '/inmode.all.scores.txt',
+    glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+    path_to_inmode)
+
+    scan_best_by_pwm(scan_best + '/pwm.all.scores.txt',
+    motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+    cpu_count)
+
+    scan_best_by_bamm(scan_best + '/bamm.all.scores.txt',
+    motifs + '/' + tag + '_motif_1.ihbcp',
+    motifs + '/' + tag + '.hbcp',
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
+    cpu_count)
+
+
+    scan_best_by_inmode(scan_best + '/inmode.train.scores.txt',
+    glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
+    fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+    path_to_inmode)
+
+    scan_best_by_pwm(scan_best + '/pwm.train.scores.txt',
+    motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
+    fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+    cpu_count)
+
+    scan_best_by_bamm(scan_best + '/bamm.train.scores.txt',
+    motifs + '/' + tag + '_motif_1.ihbcp',
+    motifs + '/' + tag + '.hbcp',
+    fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+    cpu_count)
 
 
 

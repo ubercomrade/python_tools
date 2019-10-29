@@ -114,7 +114,6 @@ function bootstrap_pwm(sites, size_of::Int64)
                 pwm))
     end
 
-    println(typeof(false_scores[1]))
 
     true_scores = sort(true_scores, rev=true)
     false_scores = sort(false_scores, rev=true)

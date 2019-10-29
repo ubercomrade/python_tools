@@ -128,7 +128,7 @@ end
 function scan_all_by_inmode(path_to_inmode, path_to_model, path_to_fasta, tmp_dir)
     #run(`/home/anton/Programs/jdk-9/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
     #run(`java -jar $path_to_inmode scan
-    run(`/Users/anton/Documents/Programs/jre-9.0.4.jre/Contents/Home/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
+    run(`/home/anton/Programs/jdk-9/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
     i="$path_to_model"
     id="$path_to_fasta"
     f=1.0
