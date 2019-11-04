@@ -134,7 +134,7 @@ def inmode_scan(path_to_java, path_to_inmode, input_data, input_model, backgroud
     pass
 
 
-def scan_best_by_inmode(output, input_model, fasta_in, path_to_inmode):
+def scan_best_by_inmode(path_to_python_tools, output, input_model, fasta_in, path_to_inmode):
     args = ['julia', path_to_python_tools + '/scan_best_by_inmode.jl',
            output,
            input_model,
@@ -144,8 +144,8 @@ def scan_best_by_inmode(output, input_model, fasta_in, path_to_inmode):
     pass
 
 
-def scan_best_by_pwm(output, input_model, fasta_in, cpu_count):
-    args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
+def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in, cpu_count):
+    args = ['python3', path_to_python_tools + 'scan_best_by_pwm.py',
             '-f', fasta_in,
             '-m', input_model,
             '-o', output,
@@ -154,7 +154,7 @@ def scan_best_by_pwm(output, input_model, fasta_in, cpu_count):
     pass
 
 
-def scan_best_by_bamm(output, input_bamm_model, bg_model, fasta_in, cpu_count):
+def scan_best_by_bamm(path_to_python_tools, output, input_bamm_model, bg_model, fasta_in, cpu_count):
     args = ['python3', path_to_python_tools + '/scan_best_by_bamm.py',
             '-f', fasta_in,
             '-m', input_bamm_model,
@@ -373,15 +373,15 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     #    BOOTSTRAP    #
     ###################
 
-    print('RUNNIN BOOTSTRAP FOR PWM')
-    bootstrap_pwm(path_to_python_tools, bootstrap + "/pwm.tsv",
-    motifs + '/' + tag + '_OPTIMAL_MOTIF.fasta')
-
-    print('RUNNIN BOOTSTRAP FOR BAMM')
-    bootstrap_bamm(path_to_python_tools, bootstrap + "/bamm.tsv", motifs + '/' + tag + '_motif_1.logOddsZoops')
-
-    print('RUNNIN BOOTSTRAP FOR INMODE')
-    bootstrap_inmode(path_to_python_tools, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode)
+    # print('RUNNIN BOOTSTRAP FOR PWM')
+    # bootstrap_pwm(path_to_python_tools, bootstrap + "/pwm.tsv",
+    # motifs + '/' + tag + '_OPTIMAL_MOTIF.fasta')
+    #
+    # print('RUNNIN BOOTSTRAP FOR BAMM')
+    # bootstrap_bamm(path_to_python_tools, bootstrap + "/bamm.tsv", motifs + '/' + tag + '_motif_1.logOddsZoops')
+    #
+    # print('RUNNIN BOOTSTRAP FOR INMODE')
+    # bootstrap_inmode(path_to_python_tools, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode)
 
 
     #############################################
@@ -471,18 +471,18 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     ##############################
 
     #Compare sites
-    print('Compare sites ({0})'.format(tag))
-    args = ['python3', path_to_python_tools + 'compare_sites3.py',
-            '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-            '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-third', scan + '/' + tag + '_inmode_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
-            '-t', tag + '_' + str(fpr_for_thr),
-            '-o', compare_sites,
-            '-fname', fname,
-            '-sname', sname,
-            '-tname', tname]
-    r = subprocess.call(args)
+    # print('Compare sites ({0})'.format(tag))
+    # args = ['python3', path_to_python_tools + 'compare_sites3.py',
+    #         '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+    #         '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    #         '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    #         '-third', scan + '/' + tag + '_inmode_' + str(testing_sample_size) + '_' + str(fpr_for_thr) + '.bed',
+    #         '-t', tag + '_' + str(fpr_for_thr),
+    #         '-o', compare_sites,
+    #         '-fname', fname,
+    #         '-sname', sname,
+    #         '-tname', tname]
+    # r = subprocess.call(args)
 
 
     ###########
@@ -490,34 +490,34 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     ###########
 
 
-    scan_best_by_inmode(scan_best + '/inmode.all.scores.txt',
+    scan_best_by_inmode(path_to_python_tools, scan_best + '/inmode.all.scores.txt',
     glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
     fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     path_to_inmode)
 
-    scan_best_by_pwm(scan_best + '/pwm.all.scores.txt',
+    scan_best_by_pwm(path_to_python_tools, scan_best + '/pwm.all.scores.txt',
     motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
     fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     cpu_count)
 
-    scan_best_by_bamm(scan_best + '/bamm.all.scores.txt',
+    scan_best_by_bamm(path_to_python_tools, scan_best + '/bamm.all.scores.txt',
     motifs + '/' + tag + '_motif_1.ihbcp',
     motifs + '/' + tag + '.hbcp',
     fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     cpu_count)
 
 
-    scan_best_by_inmode(scan_best + '/inmode.train.scores.txt',
+    scan_best_by_inmode(path_to_python_tools, scan_best + '/inmode.train.scores.txt',
     glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
     fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
     path_to_inmode)
 
-    scan_best_by_pwm(scan_best + '/pwm.train.scores.txt',
+    scan_best_by_pwm(path_to_python_tools, scan_best + '/pwm.train.scores.txt',
     motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
     fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
     cpu_count)
 
-    scan_best_by_bamm(scan_best + '/bamm.train.scores.txt',
+    scan_best_by_bamm(path_to_python_tools, scan_best + '/bamm.train.scores.txt',
     motifs + '/' + tag + '_motif_1.ihbcp',
     motifs + '/' + tag + '.hbcp',
     fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
