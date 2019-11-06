@@ -145,24 +145,33 @@ def complement(seq):
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
 
-def get_threshold(scores, fp):
+# def get_threshold(scores, fpr):
+#     scores.sort(reverse=True) # sorted score from big to small
+#     #thr = scores[int(round(fp * len(scores)))]
+#     thr = scores[int(fp * len(scores))]
+#     return(thr)
+
+
+def get_threshold(scores, path_out):
     scores.sort(reverse=True) # sorted score from big to small
-    #thr = scores[int(round(fp * len(scores)))]
-    thr = scores[int(fp * len(scores))]
-    return(thr)
+    fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+    with open(path_out, "w") as file:
+        file.write("Scores\tFPR\n")
+        for fpr in fprs:
+            thr = scores[int(fpr * len(scores))]
+            file.write("{0}\t{1}\n".format(thr, fpr))
+    file.close()
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
-                            required=True, help='path to fasta')
-    parser.add_argument('-m', '--pwm', action='store', dest='input_pwm',
-                            required=True, help='path to PWM file')
+    parser.add_argument('fasta', action='store', help='path to fasta')
+    parser.add_argument('bamm', action='store', help='path to .ihbcp file from BaMMmotif output')
+    parser.add_argument('bg', action='store', help='path to .hbcp file from BaMMmotif output')
+    parser.add_argument('out', action='store', help='path to write results')
     parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
-                            required=True, help='value of FP (FP ~ P-VALUE)')
-    parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
-    required=False, default=2, help='Number of processes to use, default: 2')
+                            required=False, help='value of FP (FP ~ P-VALUE)')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -172,26 +181,20 @@ def parse_args():
     
 
 def main():
-    #args = parse_args()
+    args = parse_args()
 
-    # bamm_path = args.input_bamm
-    # bg_path = args.input_bg
-    # fasta_path = args.input_fasta
-    # fp = args.false_positive
+    bamm_path = args.bamm
+    bg_path = args.bg
+    fasta_path = args.fasta
+    path_out = args.out
+    fp = args.false_positive
 
-    fasta_path = "/home/anton/DATA/PROMOTERS/mm10.fa"
-    bamm_path = "/home/anton/DATA/DB_DATA/TFS/FOR_LEVIT/FOXA2-WAL-hg18/MOTIFS/FOXA2-WAL-hg18_motif_1.ihbcp"
-    bg_path = "/home/anton/DATA/DB_DATA/TFS/FOR_LEVIT/FOXA2-WAL-hg18/MOTIFS/FOXA2-WAL-hg18.hbcp"
-    fp = 0.0001
-    cpu_count = 2
     peaks = read_fasta(fasta_path)
     bamm, order = prepare_bamm(bamm_path, bg_path)
     length_of_site = len(bamm['A'])
     scores = calculate_scores(peaks, bamm, order, length_of_site)
+    get_threshold(scores, path_out)
 
-
-    thr = get_threshold(scores, fp)
-    print(thr)
 
 
 if __name__ == '__main__':
