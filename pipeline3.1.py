@@ -244,9 +244,13 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         #Get top testing_sample_size bed peaks
         print('Get top {1} bed peaks for {0}'.format(tag, testing_sample_size))
         bed_out = bed + '/'
-        get_top_peaks(path_to_python_tools, bed_path, bed_out, training_sample_size, tag + '_' + str(testing_sample_size))
+        get_top_peaks(path_to_python_tools, bed_path, bed_out, testing_sample_size, tag + '_' + str(testing_sample_size))
     else:
         print('File {0} already exists'.format(tag + '_' + str(testing_sample_size) + '.bed'))
+
+    ########################
+    #     BED TO FASTA     #
+    ########################
 
     if not os.path.isfile(fasta + '/' + tag + '_' + str(training_sample_size) +'.fa'):
         #Bed peaks to fasta
@@ -257,8 +261,6 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
 
     else:
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) +'.fa'))
-
-
 
     if not os.path.isfile(fasta + '/' + tag + '_' + str(testing_sample_size) +'.fa'):
         bed_to_fasta(path_to_genome,
@@ -541,7 +543,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
                 '-first', gene_ids + '/' + 'pwm.ids.{}.txt'.format(fpr_for_thr),
                 '-second', gene_ids + '/' + 'bamm.ids.{}.txt'.format(fpr_for_thr),
                 '-third', gene_ids + '/' + 'inmode.ids.{}.txt'.format(fpr_for_thr),
-                '-o', gene_ids,
+                '-o', gene_ids + '/' + 'compare.ids.{}.txt'.format(fpr_for_thr),
                 '-fname', fname,
                 '-sname', sname,
                 '-tname', tname]
