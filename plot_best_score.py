@@ -66,7 +66,7 @@ def main():
     first_model_scores = read_list(first_model_path)
     second_model_scores = read_list(second_model_path)
     
-    sns.scatterplot(pwm_score, bamm_score)
+    sns.scatterplot(first_model_scores, second_model_scores)
     plt.axvline(first_model_thr, color="r")
     plt.axhline(second_model_thr, color="r")
     plt.xlabel(xlabel)

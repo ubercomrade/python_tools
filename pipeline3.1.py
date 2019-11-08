@@ -144,6 +144,19 @@ def scan_best_by_inmode(path_to_python_tools, output, input_model, fasta_in, pat
     pass
 
 
+def plot_best_score(path_to_python_tools, model1, model2, thr1, thr2, length, out, name1, name2):
+    args = ['python3', path_to_python_tools + '/plot_best_score.py',
+           model1,
+           model2,
+           thr1,
+           thr2,
+           out,
+           '-n1', name1,
+           '-n2', name2]
+    r = subprocess.call(args)
+    pass
+
+
 def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in, cpu_count):
     args = ['python3', path_to_python_tools + 'scan_best_by_pwm.py',
             '-f', fasta_in,
@@ -236,6 +249,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         print('Get top {0} bed peaks for {1}'.format(training_sample_size, tag))
         bed_out = bed + '/'
         get_top_peaks(path_to_python_tools, bed_path, bed_out, training_sample_size, tag + '_' + str(training_sample_size))
+
 
     else:
         print('File {0} already exists'.format(tag + '_' + str(training_sample_size) + '.bed'))
@@ -614,6 +628,27 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     cpu_count)
 
+
+    ###########
+    #PLOT BEST#
+    ###########
+
+    length = bed + '/' + tag + '_' + str(training_sample_size) + '.length.txt'
+
+    thr_bamm = get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr_for_thr)
+    thr_pwm = get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr_for_thr)
+    thr_inmode = get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr_for_thr)
+
+    plot_best_score(path_to_python_tools, scan_best + '/inmode.scores.txt', scan_best + '/pwm.scores.txt',
+        thr_inmode, thr_pwm, length, scan_best + 'pwm-inmode-scores.pdf', 'inmode scores', 'pwm scores')
+
+
+    plot_best_score(path_to_python_tools, scan_best + '/pwm.scores.txt', scan_best + '/bamm.scores.txt',
+        thr_pwm, thr_bamm, length, scan_best + 'pwm-bamm-scores.pdf', 'pwm scores', 'bamm scores')
+
+
+    plot_best_score(path_to_python_tools, scan_best + '/bamm.scores.txt', scan_best + '/inmode.scores.txt',
+        thr_bamm, thr_inmode, length, scan_best + 'bamm-inmode-scores.pdf', 'bamm scores', 'inmode scores')
 
 def parse_args():
 
