@@ -48,7 +48,7 @@ def bed_to_fasta(path_to_fa, path_to_bed, out):
 def get_threshold(path, fpr_for_thr):
     df = pd.read_csv(path, sep='\t')
     df = df.sort_values(by=["FPR"])
-    threshold = df['Scores'][np.searchsorted(df["FPR"], fpr_for_thr)[0]]
+    threshold = df['Scores'].iloc[np.searchsorted(df["FPR"], fpr_for_thr, side='right') - 1]
     return(threshold)
 
 
