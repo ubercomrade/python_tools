@@ -586,23 +586,23 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         r = subprocess.call(args)
 
 
-        args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
-        '-jar', path_to_imd, 'imd',
-        'i=' + scan + '/' + 'pwm.sites.{}.txt'.format(fpr_for_thr),
-        'outdir=' + scan + '/pwm_{}'.format(fpr_for_thr)]
-        r = subprocess.call(args)
+        # args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+        # '-jar', path_to_imd, 'imd',
+        # 'i=' + scan + '/' + 'pwm.sites.{}.txt'.format(fpr_for_thr),
+        # 'outdir=' + scan + '/pwm_{}'.format(fpr_for_thr)]
+        # r = subprocess.call(args)
         
-        args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
-        '-jar', path_to_imd, 'imd',
-        'i=' + scan + '/' + 'bamm.sites.{}.txt'.format(fpr_for_thr),
-        'outdir=' + scan + '/bamm_{}'.format(fpr_for_thr)]
-        r = subprocess.call(args)
+        # args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+        # '-jar', path_to_imd, 'imd',
+        # 'i=' + scan + '/' + 'bamm.sites.{}.txt'.format(fpr_for_thr),
+        # 'outdir=' + scan + '/bamm_{}'.format(fpr_for_thr)]
+        # r = subprocess.call(args)
         
-        args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
-        '-jar', path_to_imd, 'imd',
-        'i=' + scan + '/' + 'inmode.sites.{}.txt'.format(fpr_for_thr),
-        'outdir=' + scan + '/inmode_{}'.format(fpr_for_thr)]
-        r = subprocess.call(args)
+        # args = ['/home/anton/Programs/jdk-9/bin/java', '--add-modules', 'java.xml.bind',
+        # '-jar', path_to_imd, 'imd',
+        # 'i=' + scan + '/' + 'inmode.sites.{}.txt'.format(fpr_for_thr),
+        # 'outdir=' + scan + '/inmode_{}'.format(fpr_for_thr)]
+        # r = subprocess.call(args)
 
         ############
         # END LOOP #
@@ -635,9 +635,9 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
 
     length = bed + '/' + tag + '_' + str(training_sample_size) + '.length.txt'
 
-    thr_bamm = get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr_for_thr)
-    thr_pwm = get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr_for_thr)
-    thr_inmode = get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr_for_thr)
+    thr_bamm = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr_for_thr))
+    thr_pwm = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr_for_thr))
+    thr_inmode = str(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr_for_thr))
 
     plot_best_score(path_to_python_tools, scan_best + '/inmode.scores.txt', scan_best + '/pwm.scores.txt',
         thr_inmode, thr_pwm, length, scan_best + 'pwm-inmode-scores.pdf', 'inmode scores', 'pwm scores')
