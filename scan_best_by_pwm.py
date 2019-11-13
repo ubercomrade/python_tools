@@ -172,7 +172,7 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fasta', action='store', dest='input_fasta',
-                        required=True, help='path to FASTA file with head: >uniq_id|chromosome|start-end|strand')
+                        required=True, help='path to FASTA file')
     parser.add_argument('-m', '--pwm', action='store', dest='input_pwm',
                         required=True, help='path to PWM file')
     parser.add_argument('-o', '--output', action='store', dest='output',

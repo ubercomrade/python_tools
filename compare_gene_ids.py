@@ -63,7 +63,7 @@ def main():
 
     plt.figure(figsize=(6, 4), dpi=150)
     venn3_unweighted([fm_ids, sm_ids, tm_ids], (fname, sname, tname))
-    plt.savefig(out_path + '/IDs_COMPARE_PIC.png', dpi=150)
+    plt.savefig(out_path, dpi=150)
 
     only_fm_ids = fm_ids - sm_ids - tm_ids
     only_sm_ids = sm_ids - fm_ids - tm_ids
