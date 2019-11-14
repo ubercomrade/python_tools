@@ -52,7 +52,9 @@ def parse_inmode_results(inmode_bed, out):
 
     with open(out, 'w') as file:
         for i in container:
-            file.write('{}\n'.format(math.log2(float(i))))
+            file.write('{}\n'.format(math.log(float(i), 10)))
+            #file.write('{}\n'.format(float(i)))
+            #file.write('{}\n'.format(20 - math.log(1 / float(i), 10)))
     file.close()
     pass
     
