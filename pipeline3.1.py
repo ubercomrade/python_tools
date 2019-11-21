@@ -19,12 +19,9 @@ import shlex
 import subprocess
 import argparse
 import glob
-<<<<<<< HEAD
 import math
-=======
 import bisect
 from operator import itemgetter
->>>>>>> fdf5ba7f3acb008c4c2e47579e879795ffc5d1d3
 import numpy as np
 import pandas as pd
 
