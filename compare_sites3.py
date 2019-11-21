@@ -282,7 +282,7 @@ def main():
     frequency.to_csv(out_dir + '/' + tag + '_FREQUENCY.tsv', sep='\t', index=False)
 
     #venn3_unweighted
-    venn3(subsets=np.around(np.array(frequency.iloc[-1,:7]), 2), set_labels = (fname, sname, tname))
+    venn3_unweighted(subsets=np.around(np.array(frequency.iloc[-1,:7]), 2), set_labels = (fname, sname, tname))
     plt.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150)
 
     ##################################

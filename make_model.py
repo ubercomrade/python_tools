@@ -19,13 +19,13 @@ import sys
 import random
 import itertools
 import argparse
-import numpy as np
 
 
 def read_sites(path):
     sequences = []
     with open(path, 'r') as file:
         sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
+        sequences = [i for i in sequences if not 'N' in i]
     return(sequences)
 
 
@@ -57,7 +57,7 @@ def background_freq(seq):
         background[i[0]] = s.count(i[0])
     sum_of_nuc = sum(background.values())
     for i in background.keys():
-        background[i] = background[i]/sum_of_nuc
+        background[i] = background[i]/sum_of_nuc# + 0.0000000001
     return(background)
 
 
@@ -221,7 +221,8 @@ def main():
     meme_flag = args.meme
 
     seq = read_sites(fasta_path)
-    seq = remove_equalent_seq(seq_list=seq, homology=0.95)
+    #seq = remove_equalent_seq(seq_list=seq, homology=0.95)
+    seq = list(set(seq))
     background = background_freq(seq)
     nsites = len(seq)
 
