@@ -19,7 +19,12 @@ import shlex
 import subprocess
 import argparse
 import glob
+<<<<<<< HEAD
 import math
+=======
+import bisect
+from operator import itemgetter
+>>>>>>> fdf5ba7f3acb008c4c2e47579e879795ffc5d1d3
 import numpy as np
 import pandas as pd
 
@@ -46,11 +51,28 @@ def bed_to_fasta(path_to_fa, path_to_bed, out):
     pass
 
 
+# def get_threshold(path, fpr_for_thr):
+#     df = pd.read_csv(path, sep='\t')
+#     df = df.sort_values(by=["FPR"])
+#     threshold = df['Scores'].iloc[np.searchsorted(df["FPR"], fpr_for_thr, side='right') - 1]
+#     return(threshold)
+
+
 def get_threshold(path, fpr_for_thr):
-    df = pd.read_csv(path, sep='\t')
-    df = df.sort_values(by=["FPR"])
-    threshold = df['Scores'].iloc[np.searchsorted(df["FPR"], fpr_for_thr, side='right') - 1]
-    return(threshold)
+    conteiner = list()
+    append = conteiner.append
+    
+    with open(path, 'r') as file:
+        file.readline()
+        for line in file:
+            append(tuple(map(float, line.strip().split())))
+    file.close()
+    
+    conteiner = sorted(conteiner, key=itemgetter(1))
+    getcount = itemgetter(1)
+    score = conteiner[bisect.bisect_left(list(map(getcount, conteiner)), fpr_for_thr)][0]
+    return(score)
+
 
 
 def get_top_peaks(path_to_python_tools, bed_in, bed_out, size, tag):
