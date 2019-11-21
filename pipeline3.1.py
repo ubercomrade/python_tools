@@ -651,31 +651,36 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
                 '-tname', tname]
         r = subprocess.call(args)
 
+
+        ###################
+        #  EXTRACT SITES  #
+        ###################
+
+        print('EXTRACT SITES ({0})'.format(tag))
+
+        args = ['python3', path_to_python_tools + 'extract_sites.py',
+        '-p', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        '-o', scan + '/' + 'pwm.sites.{:.2e}.txt'.format(fpr_for_thr)]
+        r = subprocess.call(args)
+
+        args = ['python3', path_to_python_tools + 'extract_sites.py',
+        '-p', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        '-o', scan + '/' + 'bamm.sites.{:.2e}.txt'.format(fpr_for_thr)]
+        r = subprocess.call(args)
+
+        args = ['python3', path_to_python_tools + 'extract_sites.py',
+        '-p', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        '-o', scan + '/' + 'inmode.sites.{:.2e}.txt'.format(fpr_for_thr)]
+        r = subprocess.call(args)
+
         ############
         # END LOOP #
         ############
 
 
-    ###################
-    #  IMD FOR SITES  #
-    ###################
-
-    print('EXTRACT SITES ({0})'.format(tag))
-
-    args = ['python3', path_to_python_tools + 'extract_sites.py',
-    '-p', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-    '-o', scan + '/' + 'pwm.sites.{:.2e}.txt'.format(fpr_for_thr)]
-    r = subprocess.call(args)
-
-    args = ['python3', path_to_python_tools + 'extract_sites.py',
-    '-p', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-    '-o', scan + '/' + 'bamm.sites.{:.2e}.txt'.format(fpr_for_thr)]
-    r = subprocess.call(args)
-
-    args = ['python3', path_to_python_tools + 'extract_sites.py',
-    '-p', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-    '-o', scan + '/' + 'inmode.sites.{:.2e}.txt'.format(fpr_for_thr)]
-    r = subprocess.call(args)
+    #############
+    #  RUN IMD  #
+    #############
 
 
     args = [path_to_java, '--add-modules', 'java.xml.bind',
