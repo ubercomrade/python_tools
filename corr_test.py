@@ -30,7 +30,7 @@ def parse_args():
 def write_results(corr, p_val, wpath):
     #Real Rand SD Zscore Log10Pval
     with open(wpath, 'a') as file:
-        file.write('{0:.4f}\t{1:.4f}\n'.format(corr, p_val))
+        file.write('{0:.4e}\t{1:.4e}\n'.format(corr, p_val))
     file.close()
 
 

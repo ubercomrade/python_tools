@@ -83,6 +83,25 @@ def get_top_peaks(path_to_python_tools, bed_in, bed_out, size, tag):
     pass
 
 
+def get_top_peaks_with_wig(path_to_python_tools, bed_in, bigwig_in, bed_out, size, shoulder, tag):
+    args = ['python3', path_to_python_tools + '/get_top_peaks.py',
+           '-i', bed_in,
+           '-o', bed_out,
+           '-a', str(size),
+           '-c', '4',
+           '-t', tag]
+    r = subprocess.call(args)
+
+    if os.path.isfile(bigwig_in):
+        args = ['python3', path_to_python_tools + '/prepare_peaks.py',
+               '-b', bed_out + '/' + tag + '.bed',
+                '-w', bigwig_in,
+               '-o', bed_out,
+                '-s', shoulder,
+               '-t', tag]
+        r = subprocess.call(args)
+    pass
+
 def bootstrap_pwm(path_to_python_tools, out_path, sites):
     args = ['julia', path_to_python_tools + '/bootstrap_for_pwm.jl',
             out_path,
@@ -264,7 +283,7 @@ def make_model(path_to_python_tools, path_in, dir_out, tag):
 
 def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
                       fpr_for_thr, path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_imd, path_to_chipmunk,
-                      path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count,
+                      path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count, shoulder,
                       zoops, try_size, model_order):
 
     main_out = path_to_out + '/' + os.path.basename(bed_path).split('.')[0]
@@ -273,8 +292,9 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     try_size=str(try_size)
     cpu_count = str(cpu_count)
     motif_length_start = str(8)
-    motif_length_end = str(20)
+    motif_length_end = str(12)
     path_to_tss = str(path_to_tss)
+    shoulder = str(shoulder)
 
     if not path_to_python_tools[-1] == '/':
         path_to_python_tools += '/'
@@ -335,6 +355,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
         print('Get top {0} bed peaks for {1}'.format(training_sample_size, tag))
         bed_out = bed + '/'
         get_top_peaks(path_to_python_tools, bed_path, bed_out, training_sample_size, tag + '_' + str(training_sample_size))
+        #get_top_peaks_with_wig(path_to_python_tools, bed_path, bigwig_path, bed_out, training_sample_size, shoulder, tag + '_' + str(training_sample_size))
 
 
     else:
@@ -379,12 +400,18 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
             create_fasta_wig(path_to_python_tools, bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
             bigwig_path, fasta + '/' + tag + '_' + str(training_sample_size) +'.fa', fasta, tag + '_' + str(training_sample_size))
 
-            # Run chipmunk
+            #Run chipmunk
             run_chipmunk_fasta_wig(path_to_java, path_to_chipmunk,
             fasta + '/' + tag + '_'+ str(training_sample_size) + '.faWig',
             chipmunk + '/CHIPMUNK_MOTIF.txt',
             motif_length_start, motif_length_end,
             try_size, cpu_count, zoops)
+
+            # run_chipmunk_fasta(path_to_java, path_to_chipmunk,
+            # fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
+            # chipmunk + '/CHIPMUNK_MOTIF.txt',
+            # motif_length_start, motif_length_end,
+            # try_size, cpu_count, zoops)
 
         else:
             print('chipmunk find motifs for {0}'.format(tag))
@@ -731,20 +758,20 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     print("Scan best inmode")
     scan_best_by_inmode(path_to_python_tools, scan_best + '/inmode.scores.txt',
     glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
-    fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     path_to_inmode, path_to_java)
 
     print("Scan best pwm")
     scan_best_by_pwm(path_to_python_tools, scan_best + '/pwm.scores.txt',
     motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-    fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     cpu_count)
 
     print("Scan best bamm")
     scan_best_by_bamm(path_to_python_tools, scan_best + '/bamm.scores.txt',
     motifs + '/' + tag + '_motif_1.ihbcp',
     motifs + '/' + tag + '.hbcp',
-    fasta + '/' + tag + '_' + str(training_sample_size) + '.fa',
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
     cpu_count)
 
 
@@ -752,7 +779,7 @@ def pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sa
     #PLOT BEST#
     ###########
 
-    length = bed + '/' + tag + '_' + str(training_sample_size) + '.length.txt'
+    length = bed + '/' + tag + '_' + str(testing_sample_size) + '.length.txt'
     fpr_for_thr = 5.24*10**(-5)
 
     pwm_scores = scan_best + '/pwm.scores.txt'
@@ -875,6 +902,8 @@ def parse_args():
     parser.add_argument('-m', '--order_model', action='store', type=int, dest='model_order',
                         default=2, required=False,
                         help='Order of model. Default value = 2')
+    parser.add_argument('-s', '--shoulder', action='store', dest='shoulder', default=50,
+                        required=False, type=int, help='summit +/- shoulder (extend peak) default=50')
     parser.add_argument('-C', '--processes', action='store', type=int, dest='cpu_count',
                         required=False, default=2, help='Number of processes to use, default: 2')
     parser.add_argument('-tss', action='store', dest='path_to_tss',
@@ -918,10 +947,11 @@ def main():
     cpu_count = args.cpu_count
     try_size=args.try_limit
     model_order=args.model_order
+    shoulder = args.shoulder
 
     pipeline_inmode_bamm(bed_path, bigwig_path, training_sample_size, testing_sample_size,
                           fpr_for_thr, path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_imd, path_to_chipmunk,
-                          path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count,
+                          path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count, shoulder,
                           zoops, try_size, model_order)
 
 if __name__ == '__main__':

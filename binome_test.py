@@ -32,7 +32,7 @@ def parse_args():
 def write_results(p_val, wpath):
     #Real Rand SD Zscore Log10Pval
     with open(wpath, 'a') as file:
-        file.write('{:.4f}\n'.format(p_val))
+        file.write('{:.4e}\n'.format(p_val))
     file.close()
 
 
