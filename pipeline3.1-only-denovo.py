@@ -246,7 +246,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     try_size=str(try_size)
     cpu_count = str(cpu_count)
     motif_length_start = str(8)
-    motif_length_end = str(14)
+    motif_length_end = str(20)
     path_to_tss = str(path_to_tss)
 
 
