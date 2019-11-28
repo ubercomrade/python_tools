@@ -26,11 +26,11 @@ function write_fasta(sites, tmp_dir, tag)
 end
 
 
-function calculate_scores(path_to_inmode, motif_length, tmp_dir, tag)
+function calculate_scores(path_to_inmode, path_to_java::String, motif_length, tmp_dir, tag)
     container = Float64[]
     #run(`/home/anton/Programs/jdk-9/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
     #run(`java -jar $path_to_inmode scan
-    run(`/home/anton/Programs/jdk-9/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
+    run(`$path_to_java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode scan
     i="$tmp_dir/Learned_DeNovo($motif_length,2,2)_motif/XML_of_DeNovo($motif_length,2,2)_motif.xml"
     id="$tmp_dir/$tag.fa"
     f=1.0
@@ -44,8 +44,8 @@ function calculate_scores(path_to_inmode, motif_length, tmp_dir, tag)
 end
 
 
-function make_inmode(path_to_inmode::String, motif_length::Int64, order::Int64, tmp_dir::String)
-    run(`/home/anton/Programs/jdk-9/bin/java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode denovo
+function make_inmode(path_to_inmode::String, path_to_java::String, motif_length::Int64, order::Int64, tmp_dir::String)
+    run(`$path_to_java -Xmx4096m -Xms1024m --add-modules java.xml.bind -jar $path_to_inmode denovo
     i="$tmp_dir/train.fa"
     m=$motif_length
     outdir=$tmp_dir
@@ -53,7 +53,7 @@ function make_inmode(path_to_inmode::String, motif_length::Int64, order::Int64, 
 end
 
 
-function bootstrap_inmode(sites::Array{Array{Char, 1}, 1}, path_to_inmode::String, tmp_dir::String, order::Int64, size_of::Int64)
+function bootstrap_inmode(sites::Array{Array{Char, 1}, 1}, path_to_inmode::String, path_to_java::String, tmp_dir::String, order::Int64, size_of::Int64)
     true_scores = Float64[]
     false_scores = Float64[]
     number_of_sites = length(sites)
@@ -73,9 +73,9 @@ function bootstrap_inmode(sites::Array{Array{Char, 1}, 1}, path_to_inmode::Strin
         write_fasta(sites[index_test], tmp_dir, "test")
         write_fasta(Random.shuffle.(sites[index_shuffle]), tmp_dir, "shuffled")
 
-        make_inmode(path_to_inmode, motif_length, order, tmp_dir)
-        true_scores = vcat(true_scores, calculate_scores(path_to_inmode, motif_length, tmp_dir, "test"))
-        false_scores = vcat(false_scores, calculate_scores(path_to_inmode, motif_length, tmp_dir, "shuffled"))
+        make_inmode(path_to_inmode, path_to_java, motif_length, order, tmp_dir)
+        true_scores = vcat(true_scores, calculate_scores(path_to_inmode, path_to_java, motif_length, tmp_dir, "test"))
+        false_scores = vcat(false_scores, calculate_scores(path_to_inmode, path_to_java, motif_length, tmp_dir, "shuffled"))
 
         #rm(tmp_dir, recursive=true)
 
@@ -127,6 +127,11 @@ function parse_commandline()
             required = false
             arg_type = Int
             default = 2
+        "--java", "-j"
+            help = "path to java"
+            required = false
+            arg_type = String
+            default = "java"
         "--tmp", "-t"
             help = "dir for tmp files"
             required = false
@@ -146,9 +151,10 @@ function main()
     order = args["order"]
     tmp_dir = args["tmp"]
     path_to_inmode = args["inmode"]
+    path_to_java = args["java"]
 
     sites = read_sites(path)
-    df = bootstrap_inmode(sites, path_to_inmode, tmp_dir, order, size_of)
+    df = bootstrap_inmode(sites, path_to_inmode, path_to_java, tmp_dir, order, size_of)
     CSV.write(out, df, delim='\t')
 
 end

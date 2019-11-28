@@ -84,11 +84,11 @@ def bootstrap_pwm(path_to_python_tools, out_path, sites):
     pass
 
 
-def bootstrap_inmode(path_to_python_tools, out_path, sites, path_to_inmode):
+def bootstrap_inmode(path_to_python_tools, path_to_java, out_path, sites, path_to_inmode):
     args = ['julia', path_to_python_tools + '/bootstrap_for_inmode.jl',
             out_path,
             sites,
-            path_to_inmode, '-s', '2000000']
+            path_to_inmode, '-s', '2000000', '-j', path_to_java]
     r = subprocess.call(args)
     pass
 
@@ -453,10 +453,9 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
         
     if not os.path.isfile(bootstrap + "/inmode.tsv"):
         print('RUNNIN BOOTSTRAP FOR INMODE')
-        bootstrap_inmode(path_to_python_tools, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode)
+        bootstrap_inmode(path_to_python_tools, path_to_java, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode)
     else:
         print('Bootstrap for inmode already calculated')
-
     
     print('Finish!')
 
