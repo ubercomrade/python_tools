@@ -83,11 +83,11 @@ def bootstrap_pwm(path_to_python_tools, out_path, sites):
     r = subprocess.call(args)
     pass
 
-def bootstrap_inmode(path_to_python_tools, path_to_java, out_path, sites, path_to_inmode):
+def bootstrap_inmode(path_to_python_tools, path_to_java, out_path, sites, path_to_inmode, tmp_dir):
     args = ['julia', path_to_python_tools + '/bootstrap_for_inmode.jl',
             out_path,
             sites,
-            path_to_inmode, '-s', '2000000', '-j', path_to_java]
+            path_to_inmode, '-s', '2000000', '-j', path_to_java, '-t', tmp_dir]
     r = subprocess.call(args)
     pass
 
@@ -451,7 +451,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
         
     if not os.path.isfile(bootstrap + "/inmode.tsv"):
         print('RUNNIN BOOTSTRAP FOR INMODE')
-        bootstrap_inmode(path_to_python_tools, path_to_java, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode)
+        bootstrap_inmode(path_to_python_tools, path_to_java, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode, motifs + '/tmp')
     else:
         print('Bootstrap for inmode already calculated')
 
@@ -480,14 +480,15 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     else:
         print('Thresholds for pwm already calculated')
 
-    if not os.path.isfile(motifs + '/' + tag + '_PWM_THRESHOLDS.txt'):
+    if not os.path.isfile(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt'):
         args = ['python3', path_to_python_tools + '/get_threshold_for_inmode.py',
                 path_to_promoters,
                 glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
                 path_to_inmode,
                 str(motif_length),
                 motifs + '/' + tag + '_INMODE_THRESHOLDS.txt',
-                '-j', path_to_java]
+                '-j', path_to_java,
+                '-t', motifs + '/tmp']
         r = subprocess.call(args)
     else:
         print('Thresholds for inmode already calculated')

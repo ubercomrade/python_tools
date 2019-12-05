@@ -48,7 +48,6 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
     # 	path_to_model,
     # 	path_to_fasta,
     # 	tmp_dir)
-
     args = [path_to_java, '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
         'i={}'.format(path_to_model),
         'id={}'.format(path_to_fasta),
@@ -88,7 +87,7 @@ def parse_args():
     parser.add_argument('len', action='store', type=int, help='len of TF site')
     parser.add_argument('out', action='store', help='path to write results')
     parser.add_argument('-j', '--java', action='store', dest='java',
-                            required=False, help='path to java')
+                            required=False, default="java", help='path to java')
     parser.add_argument('-t', '--tmp', action='store', dest='tmp_dir',
                             required=False, default="./tmp", help='tmp dir')
     parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
@@ -119,6 +118,10 @@ def main():
 
     peaks = read_fasta(path_to_fasta)
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
+    print(path_to_fasta)
+    print(path_to_model)
+    print(tmp_dir)
+
     scores = calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir)
     get_threshold(scores, number_of_sites, path_out)
 
