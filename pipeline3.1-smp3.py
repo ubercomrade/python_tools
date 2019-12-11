@@ -681,22 +681,22 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     # CREATE MODELS FROM SITES AND COMPARE #
     ########################################
 
-    print('Run tomtom')
+    # print('Run tomtom')
 
-    make_model(path_to_python_tools, scan + '/' + 'inmode.sites.{:.2e}.txt'.format(fpr_for_thr),
-        tomtom, 'inmode')
-    make_model(path_to_python_tools, scan + '/' + 'pwm.sites.{:.2e}.txt'.format(fpr_for_thr),
-        tomtom, 'pwm')
-    make_model(path_to_python_tools, scan + '/' + 'bamm.sites.{:.2e}.txt'.format(fpr_for_thr),
-        tomtom, 'bamm')
+    # make_model(path_to_python_tools, scan + '/' + 'inmode.sites.{:.2e}.txt'.format(fpr_for_thr),
+    #     tomtom, 'inmode')
+    # make_model(path_to_python_tools, scan + '/' + 'pwm.sites.{:.2e}.txt'.format(fpr_for_thr),
+    #     tomtom, 'pwm')
+    # make_model(path_to_python_tools, scan + '/' + 'bamm.sites.{:.2e}.txt'.format(fpr_for_thr),
+    #     tomtom, 'bamm')
 
-    run_tomtom(tomtom + '/pwm.meme', tomtom + '/bamm.meme', tomtom + '/pwm.bamm')
-    run_tomtom(tomtom + '/pwm.meme', tomtom + '/inmode.meme', tomtom + '/pwm.inmode')
-    run_tomtom(tomtom + '/inmode.meme', tomtom + '/bamm.meme', tomtom + '/inmode.bamm')
+    # run_tomtom(tomtom + '/pwm.meme', tomtom + '/bamm.meme', tomtom + '/pwm.bamm')
+    # run_tomtom(tomtom + '/pwm.meme', tomtom + '/inmode.meme', tomtom + '/pwm.inmode')
+    # run_tomtom(tomtom + '/inmode.meme', tomtom + '/bamm.meme', tomtom + '/inmode.bamm')
 
-    run_tomtom(path_to_hocomoco, tomtom + '/pwm.meme', tomtom + '/pwm.hocomoco')
-    run_tomtom(path_to_hocomoco, tomtom + '/inmode.meme', tomtom + '/inmode.hocomoco')
-    run_tomtom(path_to_hocomoco, tomtom + '/bamm.meme', tomtom + '/bamm.hocomoco')
+    # run_tomtom(path_to_hocomoco, tomtom + '/pwm.meme', tomtom + '/pwm.hocomoco')
+    # run_tomtom(path_to_hocomoco, tomtom + '/inmode.meme', tomtom + '/inmode.hocomoco')
+    # run_tomtom(path_to_hocomoco, tomtom + '/bamm.meme', tomtom + '/bamm.hocomoco')
 
     ###########
     #SCAN BEST#
