@@ -127,9 +127,13 @@ def main():
     out = args.output
 
     bed = read_bed_file(bed_path)
+    chrs = [str(i) for i in bed['chr']]
+    bed['chr'] = chrs
     bed = bed.sort_values(by=['chr', 'start'])
 
     peaks = read_peaks(peaks_path)
+    chrs = [str(i) for i in peaks['chr']]
+    peaks['chr'] = chrs
     peaks = peaks.sort_values(by=['chr', 'start'])
 
     starts = list(bed['start'])
