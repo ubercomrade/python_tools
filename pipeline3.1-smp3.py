@@ -238,7 +238,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
                       path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count,
                       zoops, try_size, model_order):
 
-    main_out = path_to_out + '/' + os.path.basename(bed_path).split('.')[0]
+    main_out = path_to_out + '/' + os.path.basename(bed_path).split('.bed')[0]
     zoops = str(zoops)
     model_order = str(model_order)
     try_size=str(try_size)
