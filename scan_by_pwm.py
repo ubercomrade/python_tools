@@ -154,8 +154,8 @@ def scan_seq_by_pwm(record, pwm, threshold):
 def write_csv(path, data):
     with open(path, 'w') as csvfile:
         fieldnames = ['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']
-        writer.writeheader()
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter='\t')
+        writer.writeheader()
         for line in data:
             writer.writerow(line)
     pass

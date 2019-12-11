@@ -230,8 +230,8 @@ def scan_seq_by_bamm(record, log_odds_bamm, order, threshold):
 def write_csv(path, data):
     with open(path, 'w') as csvfile:
         fieldnames = ['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']
-        writer.writeheader()
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter='\t')
+        writer.writeheader()
         for line in data:
             writer.writerow(line)
     pass
@@ -249,8 +249,6 @@ def parse_args():
                         required=True, help='threshold for model')
     parser.add_argument('-o', '--output', action='store', dest='output',
                         required=True, help='path to BED like file for output')
-    parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
-    required=False, default=2, help='Number of processes to use, default: 2')
     return(parser.parse_args())
 
 
@@ -262,7 +260,6 @@ def main():
     fasta_path = args.input_fasta
     threshold = args.threshold
     results_path = args.output
-    cpu_count = args.cpu_count
 
     fasta = read_fasta(fasta_path)
     log_odds_bamm, order = prepare_bamm(bamm_path, bg_path)
