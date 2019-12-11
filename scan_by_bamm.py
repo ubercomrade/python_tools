@@ -22,6 +22,7 @@ import functools
 import csv
 import argparse
 import re
+from math import log
 
 
 def parse_bamm_and_bg_from_file(bamm_file, bg_file):
@@ -266,9 +267,7 @@ def main():
     fasta = read_fasta(fasta_path)
     log_odds_bamm, order = prepare_bamm(bamm_path, bg_path)
 
-    with mp.Pool(cpu_count) as p:
-        results = p.map(functools.partial(scan_seq_by_bamm,
-                                          log_odds_bamm=log_odds_bamm, order=order, threshold=threshold), fasta)
+    results = [scan_seq_by_bamm(record=record, log_odds_bamm=log_odds_bamm, order=order, threshold=threshold) for record in fasta]
     results = [i for i in results if i != []]
     results = [j for sub in results for j in sub]
     write_csv(results_path, results)

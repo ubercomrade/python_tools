@@ -159,23 +159,21 @@ def plot_best_score(path_to_python_tools, model1, model2, thr1, thr2, length, ou
     pass
 
 
-def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in, cpu_count):
+def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in):
     args = ['pypy', path_to_python_tools + 'scan_best_by_pwm.py',
             '-f', fasta_in,
             '-m', input_model,
-            '-o', output,
-            '-P', cpu_count]
+            '-o', output]
     r = subprocess.call(args)
     pass
 
 
-def scan_best_by_bamm(path_to_python_tools, output, input_bamm_model, bg_model, fasta_in, cpu_count):
+def scan_best_by_bamm(path_to_python_tools, output, input_bamm_model, bg_model, fasta_in):
     args = ['pypy', path_to_python_tools + '/scan_best_by_bamm.py',
             '-f', fasta_in,
             '-m', input_bamm_model,
             '-b', bg_model,
-            '-o', output,
-            '-P', cpu_count]
+            '-o', output]
     r = subprocess.call(args)
     pass
 
@@ -516,8 +514,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
                     '-m', motifs + '/' + tag + '_motif_1.ihbcp',
                     '-b', motifs + '/' + tag + '.hbcp',
                     '-t', str(thr_bamm),
-                    '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                    '-P', cpu_count]
+                    '-o', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed']
             r = subprocess.call(args)
         else:
             print(tag + '_BAMM_' + str(testing_sample_size) +'_' + '{:.2e}'.format(fpr_for_thr) + '.bed', '- EXISTS')
@@ -538,8 +535,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
                     '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                     '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
                     '-t', str(thr_pwm),
-                    '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                    '-P', cpu_count]
+                    '-o', scan + '/' + tag + '_PWM_' + str(testing_sample_size) +'_' + '{:.2e}'.format(fpr_for_thr) + '.bed']
             r = subprocess.call(args)
 
         else:
@@ -712,15 +708,13 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     print("Scan best pwm")
     scan_best_by_pwm(path_to_python_tools, scan_best + '/pwm.scores.txt',
     motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
-    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-    cpu_count)
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa')
 
     print("Scan best bamm")
     scan_best_by_bamm(path_to_python_tools, scan_best + '/bamm.scores.txt',
     motifs + '/' + tag + '_motif_1.ihbcp',
     motifs + '/' + tag + '.hbcp',
-    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
-    cpu_count)
+    fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa')
 
 
     ###########
