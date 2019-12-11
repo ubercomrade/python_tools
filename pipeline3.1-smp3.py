@@ -265,7 +265,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     compare_sites = main_out + '/COMPARE_SITES'
     gene_ids =  main_out + '/IDs_COMPARE'
     tomtom = main_out + '/TOMTOM'
-    tag = os.path.basename(bed_path).split('.')[0]
+    tag = os.path.basename(bed_path).split('.bed')[0]
 
     fname = 'PWM'
     sname = 'BAMM'
