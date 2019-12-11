@@ -17,41 +17,10 @@ GNU General Public License for more details.
 import linecache
 import argparse
 import sys
+import csv
 import multiprocessing as mp
 import functools
-import pandas as pd
-import numpy as np
 import re
-
-
-# def read_fasta(path):
-#     '''
-#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-#     Все экземпляры хранятся в списке
-#     Функция возвращает список экземпляров класса BioRecord
-
-#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
-#     '''
-#     fasta = list()
-#     with open(path, 'r') as file:
-#         for line in file:
-#             if line.startswith('>'):
-#                 line = line[1:].strip().split('|')
-#                 record = dict()
-#                 record['name'] = line[0]
-#                 record['chromosome'] = line[1]
-#                 record['start'] = line[2].split('-')[0]
-#                 record['end'] = line[2].split('-')[1]
-#                 try:
-#                     record['strand'] = line[3]
-#                 except:
-#                     # print('Record with out strand. Strand is +')
-#                     record['strand'] = '+'
-#                 continue
-#             record['seq'] = line.strip().upper()
-#             fasta.append(record)
-#     file.close()
-#     return(fasta)
 
 
 def read_fasta(path):
@@ -107,10 +76,6 @@ def read_pwm(path):
 
 
 def score(seq, pwm):
-    '''
-    Вспомагательная функция, считает score для строки с такой же длиной как и PWM
-    kind - тип PWM mono or di
-    '''
     length_of_seq = len(seq)
     position = 0
     score = 0
@@ -121,9 +86,6 @@ def score(seq, pwm):
 
 
 def complement(record):
-    '''
-    Make reverse and compelent
-    '''
     output = dict(record)
     strand = record['strand']
     seq = str()
@@ -131,17 +93,19 @@ def complement(record):
         output['strand'] = '-'
     else:
         output['strand'] = '+'
-    for letter in output['seq']:
-        if letter == 'A':
-            seq += 'T'
-        elif letter == 'C':
-            seq += 'G'
-        elif letter == 'G':
-            seq += 'C'
-        elif letter == 'T':
-            seq += 'A'
-    output['seq'] = seq[::-1]
+
+    seq = output['seq'].replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1]
+    output['seq'] = seq
     return(output)
+
+
+def check_nucleotides(site):
+    s = set(site)
+    n = {'A', 'C', 'G', 'T'}
+    if len(s - n) == 0:
+        return(True)
+    else:
+        return(False)
 
 
 def scan_seq_by_pwm(record, pwm, threshold):
@@ -154,7 +118,7 @@ def scan_seq_by_pwm(record, pwm, threshold):
     # first strand
     for i in range(len(seq) - length_pwm + 1):
         site_seq = seq[i:length_pwm + i]
-        if 'N' in site_seq:
+        if not check_nucleotides(site_seq):
             continue
         s = score(site_seq, pwm)
         if s >= threshold:
@@ -171,7 +135,7 @@ def scan_seq_by_pwm(record, pwm, threshold):
     # second strand
     for i in range(len(seq) - length_pwm + 1):
         site_seq = reverse_seq[i:length_pwm + i]
-        if 'N' in site_seq:
+        if not check_nucleotides(site_seq):
             continue
         s = score(site_seq, pwm)
         if s >= threshold:
@@ -185,6 +149,16 @@ def scan_seq_by_pwm(record, pwm, threshold):
             site_dict['score'] = s
             results.append(site_dict)
     return(results)
+
+
+def write_csv(path, data):
+    with open(path, 'w') as csvfile:
+        fieldnames = ['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']
+        writer.writeheader()
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter='\t')
+        for line in data:
+            writer.writerow(line)
+    pass
 
 
 def parse_args():
@@ -225,13 +199,7 @@ def main():
                                           pwm=pwm, threshold=threshold), fasta)
     results = [i for i in results if i != []]
     results = [j for sub in results for j in sub]
-
-    df = pd.DataFrame(results)
-    # df['name'] = np.repeat('.', len(df))
-    # df['score'] = np.repeat(0, len(df))
-    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    df.to_csv(results_path, sep='\t', header=False, index=False)
-
+    write_csv(results_path, results)
 
 if __name__ == '__main__':
     main()

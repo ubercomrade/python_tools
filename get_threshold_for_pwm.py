@@ -26,9 +26,9 @@ def read_fasta(path):
         for line in file:
             if not line.startswith('>'):
                 line = line.strip().upper()
-                if not 'N' in line:
-                    append(line)
-                    append(complement(line))
+                #if not 'N' in line:
+                append(line)
+                append(complement(line))
     file.close()
     return(fasta)
 
@@ -52,9 +52,30 @@ def score(seq, pwm):
     return(score)
 
 
+# def calculate_scores(peaks, pwm, length_of_site):
+#     scores = [score(peak[i:length_of_site + i], pwm) for peak in peaks for i in range(len(peak) - length_of_site + 1)]
+#     return(scores)
+
+
 def calculate_scores(peaks, pwm, length_of_site):
-    scores = [score(peak[i:length_of_site + i], pwm) for peak in peaks for i in range(len(peak) - length_of_site + 1)]
+    sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
+    scores = []
+    append = scores.append
+    for site in sites:
+        if check_nucleotides(site):
+            append(score(site, pwm))
+        else:
+            continue
     return(scores)
+
+
+def check_nucleotides(site):
+    s = set(site)
+    n = {'A', 'C', 'G', 'T'}
+    if len(s - n) == 0:
+        return(True)
+    else:
+        return(False)
 
 
 def complement(seq):

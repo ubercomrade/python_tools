@@ -160,7 +160,7 @@ def plot_best_score(path_to_python_tools, model1, model2, thr1, thr2, length, ou
 
 
 def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in, cpu_count):
-    args = ['python3', path_to_python_tools + 'scan_best_by_pwm.py',
+    args = ['pypy', path_to_python_tools + 'scan_best_by_pwm.py',
             '-f', fasta_in,
             '-m', input_model,
             '-o', output,
@@ -170,7 +170,7 @@ def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in, cpu_co
 
 
 def scan_best_by_bamm(path_to_python_tools, output, input_bamm_model, bg_model, fasta_in, cpu_count):
-    args = ['python3', path_to_python_tools + '/scan_best_by_bamm.py',
+    args = ['pypy', path_to_python_tools + '/scan_best_by_bamm.py',
             '-f', fasta_in,
             '-m', input_bamm_model,
             '-b', bg_model,
@@ -511,7 +511,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
             #Scan peaks by BAMM with thr_bamm
             print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'scan_by_bamm.py',
+            args = ['pypy', path_to_python_tools + 'scan_by_bamm.py',
                     '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                     '-m', motifs + '/' + tag + '_motif_1.ihbcp',
                     '-b', motifs + '/' + tag + '.hbcp',
@@ -534,7 +534,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
             #Scan peaks by PWM with thr_pwm
             print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'scan_by_pwm.py',
+            args = ['pypy', path_to_python_tools + 'scan_by_pwm.py',
                     '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                     '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
                     '-t', str(thr_pwm),

@@ -15,12 +15,11 @@ GNU General Public License for more details.
 
 
 import os
-import numpy as np
 import itertools
 import random
+import csv
 import multiprocessing as mp
 import functools
-import pandas as pd
 import argparse
 import re
 
@@ -36,7 +35,6 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
                     motif_order = motif_order + 1
                 else:
                     break
-        file.close()
 
         # count the motif length
         motif_length = int(sum(1 for line in open(bamm_file)) / (motif_order + 1))
@@ -51,14 +49,10 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
                 for k in range(motif_order):
                     model[k].append([float(p) for p in file.readline().split()])
                 file.readline()
-        file.close()
 
-        # convert a bamm array to numpy array
-        for k in range(motif_order):
-            model[k] = np.array(model[k], dtype=float)
     else:
         print('File {0} does not exist'.format(bg_file))
-        exit()
+        sys.exit()
 
     # Read BG file
     bg = {}
@@ -70,20 +64,54 @@ def parse_bamm_and_bg_from_file(bamm_file, bg_file):
             while order < motif_order:
                 line = bgmodel_file.readline()
                 bg_freq = [float(p) for p in line.split()]
-                bg[order] = np.array(bg_freq, dtype=float)
+                bg[order] = bg_freq
                 order += 1
-        file.close()
     else:
         print('File {0} does not exist'.format(bg_file))
-        exit()
-    return model, bg, order-1
+        sys.exit()
+    return(model, bg, order-1)
+
+
+def make_k_mers(order):
+    #  make list with possible k-mer based on bHMM model
+    tmp = itertools.product('ACGT', repeat=order + 1)
+    k_mer = []
+    for i in tmp:
+        k_mer.append(''.join(i))
+    k_mer_dict = dict()
+    index = 0
+    for i in k_mer:
+        k_mer_dict[i] = index
+        index += 1
+    return(k_mer_dict)
 
 
 def make_log_odds_bamm(bamm, bg):
     log_odds_bamm = dict()
     for order in bamm.keys():
-        log_odds_bamm[order] = np.array(np.log2(bamm[order] / bg[order]))
+        log_odds_bamm[order] = [list(map(lambda x: log(x[0] / x[1], 2), zip(bamm_col, bg[order]))) for bamm_col in bamm[order]]
     return(log_odds_bamm)
+
+
+def bamm_to_dict(log_odds_bamm, order, k_mers):
+    bamm_dict = {}
+    for k_mer in k_mers:
+        bamm_dict[k_mer] = list()
+    for i in range(len(log_odds_bamm[order])):
+        for index, k_mer in enumerate(k_mers):
+            bamm_dict[k_mer].append(log_odds_bamm[order][i][index])
+    return(bamm_dict)
+
+
+def prepare_bamm(bamm_path, bg_path):
+    bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
+    container = dict()
+    log_odds_bamm = make_log_odds_bamm(bamm, bg)
+    for i in range(order + 1):
+        k_mers = make_k_mers(i)
+        bamm_dict = bamm_to_dict(log_odds_bamm, i, k_mers)
+        container.update(bamm_dict)
+    return(container, order)
 
 
 def read_fasta(path):
@@ -121,41 +149,13 @@ def read_fasta(path):
     return(fasta)
 
 
-def score_bamm(seq, bamm, order):
-    '''
-    Вспомагательная функция, считает score для строки с такой же длиной как и bamm
-    '''
-    length_of_seq = len(seq)
-    score = 0
-    site = ''
-    for position in range(len(seq) - order):
-        score += bamm[seq[position:position + order + 1]][position]
-        site += seq[position:position + order + 1][-1]
+def score_bamm(site, bamm, order, length_of_site):
+    score = float()
+    for index in range(order):
+        score += bamm[site[0:index + 1]][index]
+    for index in range(length_of_site - order):
+        score += bamm[site[index:index+order + 1]][index + order]
     return(score, site)
-
-
-def bamm_to_dict(log_odds_bamm, order, k_mers):
-    bamm_dict = {}
-    for k_mer in k_mers:
-        bamm_dict[k_mer] = list()
-    for i in range(len(log_odds_bamm[order])):
-        for index, k_mer in enumerate(k_mers):
-            bamm_dict[k_mer].append(log_odds_bamm[order][i][index])
-    return(bamm_dict)
-
-
-def make_k_mers(order):
-    #  make list with possible k-mer based on bHMM model
-    tmp = itertools.product('ACGT', repeat=order + 1)
-    k_mer = []
-    for i in tmp:
-        k_mer.append(''.join(i))
-    k_mer_dict = dict()
-    index = 0
-    for i in k_mer:
-        k_mer_dict[i] = index
-        index += 1
-    return(k_mer_dict)
 
 
 def complement(record):
@@ -169,17 +169,19 @@ def complement(record):
         output['strand'] = '-'
     else:
         output['strand'] = '+'
-    for letter in output['seq']:
-        if letter == 'A':
-            seq += 'T'
-        elif letter == 'C':
-            seq += 'G'
-        elif letter == 'G':
-            seq += 'C'
-        elif letter == 'T':
-            seq += 'A'
-    output['seq'] = seq[::-1]
+
+    seq = output['seq'].replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1]
+    output['seq'] = seq
     return(output)
+
+
+def check_nucleotides(site):
+    s = set(site)
+    n = {'A', 'C', 'G', 'T'}
+    if len(s - n) == 0:
+        return(True)
+    else:
+        return(False)
 
 
 def scan_seq_by_bamm(record, log_odds_bamm, order):
@@ -192,34 +194,34 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
     threshold = -1000
 
     # scan first strand
-    for i in range(len(seq) - motif_length - order + 1):
-        site_seq = seq[i:motif_length + order + i]
-        if 'N' in site_seq:
+    for i in range(len(seq) - motif_length + 1):
+        site_seq = seq[i:motif_length + i]
+        if not check_nucleotides(site_seq):
             continue
-        s, site_seq = score_bamm(site_seq, log_odds_bamm, order)
+        s, site_seq = score_bamm(site_seq, log_odds_bamm, order, motif_length)
         if s >= threshold:
             site_dict = dict()
             site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
-            site_dict['start'] = str(int(record['start']) + i + order)
-            site_dict['end'] = str(int(record['start']) + i + motif_length + order)
+            site_dict['start'] = str(int(record['start']) + i)
+            site_dict['end'] = str(int(record['start']) + i + motif_length)
             site_dict['site'] = site_seq
             site_dict['strand'] = record['strand']
             site_dict['score'] = s
             threshold = s
 
     # scan second strand
-    for i in range(len(seq) - motif_length - order + 1):
-        site_seq = reverse_seq[i:motif_length + order + i]
-        if 'N' in site_seq:
+    for i in range(len(seq) - motif_length + 1):
+        site_seq = reverse_seq[i:motif_length + i]
+        if not check_nucleotides(site_seq):
             continue
-        s, site_seq = score_bamm(site_seq, log_odds_bamm, order)
+        s, site_seq = score_bamm(site_seq, log_odds_bamm, order, motif_length)
         if s >= threshold:
             site_dict = dict()
             site_dict['name'] = record['name']
             site_dict['chromosome'] = record['chromosome']
-            site_dict['start'] = str(int(record['end']) - i - motif_length - order)
-            site_dict['end'] = str(int(record['end']) - i - order)
+            site_dict['start'] = str(int(record['end']) - i - motif_length)
+            site_dict['end'] = str(int(record['end']) - i)
             site_dict['site'] = site_seq
             site_dict['strand'] = reverse_record['strand']
             site_dict['score'] = s
@@ -230,8 +232,9 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
 
 
 def write_list(path, data):
+    scores = [i['score'] for i in data]
     with open(path, "w") as file:
-        for line in data:
+        for line in scores:
             file.write("{0}\n".format(line))
     file.close()
     pass
@@ -262,21 +265,14 @@ def main():
     cpu_count = args.cpu_count
 
     fasta = read_fasta(fasta_path)
-    bamm, bg, order = parse_bamm_and_bg_from_file(bamm_path, bg_path)
-    log_odds_bamm = make_log_odds_bamm(bamm, bg)
-    k_mers = make_k_mers(order=order)
-    log_odds_bamm = bamm_to_dict(log_odds_bamm=log_odds_bamm, order=order, k_mers=k_mers)
+    log_odds_bamm, order = prepare_bamm(bamm_path, bg_path)
 
     with mp.Pool(cpu_count) as p:
         results = p.map(functools.partial(scan_seq_by_bamm,
                                           log_odds_bamm=log_odds_bamm, order=order), fasta)
     results = [i for i in results if i != []]
     results = [j for sub in results for j in sub]
-
-    df = pd.DataFrame(results)
-    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    write_list(results_path, list(df['score']))
-    #df.to_csv(results_path, sep='\t', header=False, index=False)
+    write_list(results_path, results)
 
 
 if __name__ == '__main__':

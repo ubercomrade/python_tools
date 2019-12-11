@@ -19,9 +19,8 @@ import argparse
 import sys
 import multiprocessing as mp
 import functools
-import pandas as pd
-import numpy as np
 import re
+import csv
 
 
 def read_fasta(path):
@@ -62,11 +61,6 @@ def read_fasta(path):
 def read_pwm(path):
     with open(path, 'r') as file:
         inf = file.readline()
-        #inf = inf.strip().split('\t')
-        #id_pfm = inf[0][1:].strip()
-        #tf_name = inf[1].split('/')[0].strip()
-        #tf_db = inf[1].split('/')[1].strip()
-        #inf = {'id_pfm': id_pfm, 'tf_name': tf_name, 'tf_db': tf_db}
         pwm = {'A': [], 'C': [], 'G': [], 'T': []}
         for line in file:
             line = line.strip().split('\t')
@@ -77,23 +71,11 @@ def read_pwm(path):
 
 
 def score(seq, pwm):
-    '''
-    Вспомагательная функция, считает score для строки с такой же длиной как и PWM
-    kind - тип PWM mono or di
-    '''
-    length_of_seq = len(seq)
-    position = 0
-    score = 0
-    for letter in seq:
-        score += pwm[letter][position]
-        position += 1
+    score = sum([pwm[letter][index] for index, letter in enumerate(seq)])
     return(score)
 
 
 def complement(record):
-    '''
-    Make reverse and compelent
-    '''
     output = dict(record)
     strand = record['strand']
     seq = str()
@@ -101,17 +83,19 @@ def complement(record):
         output['strand'] = '-'
     else:
         output['strand'] = '+'
-    for letter in output['seq']:
-        if letter == 'A':
-            seq += 'T'
-        elif letter == 'C':
-            seq += 'G'
-        elif letter == 'G':
-            seq += 'C'
-        elif letter == 'T':
-            seq += 'A'
-    output['seq'] = seq[::-1]
+
+    seq = output['seq'].replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1]
+    output['seq'] = seq
     return(output)
+
+
+def check_nucleotides(site):
+    s = set(site)
+    n = {'A', 'C', 'G', 'T'}
+    if len(s - n) == 0:
+        return(True)
+    else:
+        return(False)
 
 
 def scan_seq_by_pwm(record, pwm):
@@ -125,7 +109,7 @@ def scan_seq_by_pwm(record, pwm):
     # first strand
     for i in range(len(seq) - length_pwm + 1):
         site_seq = seq[i:length_pwm + i]
-        if 'N' in site_seq:
+        if not check_nucleotides(site_seq):
             continue
         s = score(site_seq, pwm)
         if s >= threshold:
@@ -142,7 +126,7 @@ def scan_seq_by_pwm(record, pwm):
     # second strand
     for i in range(len(seq) - length_pwm + 1):
         site_seq = reverse_seq[i:length_pwm + i]
-        if 'N' in site_seq:
+        if not check_nucleotides(site_seq):
             continue
         s = score(site_seq, pwm)
         if s >= threshold:
@@ -161,8 +145,9 @@ def scan_seq_by_pwm(record, pwm):
 
 
 def write_list(path, data):
+    scores = [i['score'] for i in data]
     with open(path, "w") as file:
-        for line in data:
+        for line in scores:
             file.write("{0}\n".format(line))
     file.close()
     pass
@@ -199,11 +184,7 @@ def main():
                                           pwm=pwm), fasta)
     results = [i for i in results if i != []]
     results = [j for sub in results for j in sub]
-
-    df = pd.DataFrame(results)
-    df = df[['chromosome', 'start', 'end', 'name', 'score', 'strand', 'site']]
-    write_list(results_path, list(df['score']))
-    #df.to_csv(results_path, sep='\t', header=False, index=False)
+    write_list(results_path, results)
 
 
 if __name__ == '__main__':
