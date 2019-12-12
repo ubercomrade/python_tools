@@ -654,23 +654,23 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     #############
 
 
-    args = [path_to_java, '--add-modules', 'java.xml.bind',
-    '-jar', path_to_imd, 'imd',
-    'i=' + scan + '/' + 'pwm.sites.{:.2e}.txt'.format(fpr_for_thr),
-    'outdir=' + scan + '/pwm_{:.2e}'.format(fpr_for_thr)]
-    r = subprocess.call(args)
+    # args = [path_to_java, '--add-modules', 'java.xml.bind',
+    # '-jar', path_to_imd, 'imd',
+    # 'i=' + scan + '/' + 'pwm.sites.{:.2e}.txt'.format(fpr_for_thr),
+    # 'outdir=' + scan + '/pwm_{:.2e}'.format(fpr_for_thr)]
+    # r = subprocess.call(args)
     
-    args = [path_to_java, '--add-modules', 'java.xml.bind',
-    '-jar', path_to_imd, 'imd',
-    'i=' + scan + '/' + 'bamm.sites.{:.2e}.txt'.format(fpr_for_thr),
-    'outdir=' + scan + '/bamm_{:.2e}'.format(fpr_for_thr)]
-    r = subprocess.call(args)
+    # args = [path_to_java, '--add-modules', 'java.xml.bind',
+    # '-jar', path_to_imd, 'imd',
+    # 'i=' + scan + '/' + 'bamm.sites.{:.2e}.txt'.format(fpr_for_thr),
+    # 'outdir=' + scan + '/bamm_{:.2e}'.format(fpr_for_thr)]
+    # r = subprocess.call(args)
     
-    args = [path_to_java, '--add-modules', 'java.xml.bind',
-    '-jar', path_to_imd, 'imd',
-    'i=' + scan + '/' + 'inmode.sites.{:.2e}.txt'.format(fpr_for_thr),
-    'outdir=' + scan + '/inmode_{:.2e}'.format(fpr_for_thr)]
-    r = subprocess.call(args)
+    # args = [path_to_java, '--add-modules', 'java.xml.bind',
+    # '-jar', path_to_imd, 'imd',
+    # 'i=' + scan + '/' + 'inmode.sites.{:.2e}.txt'.format(fpr_for_thr),
+    # 'outdir=' + scan + '/inmode_{:.2e}'.format(fpr_for_thr)]
+    # r = subprocess.call(args)
 
 
     ########################################
