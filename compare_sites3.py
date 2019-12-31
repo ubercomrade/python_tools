@@ -283,7 +283,7 @@ def main():
 
     #venn3_unweighted
     venn3_unweighted(subsets=np.around(np.array(frequency.iloc[-1,:7]), 2), set_labels = (fname, sname, tname))
-    plt.savefig(out_dir + '/' + tag + '_PIC.png', dpi=150)
+    plt.savefig(out_dir + '/' + tag + '_PIC.pdf', dpi=150)
 
     ##################################
     only_first_model_sites = first_model_sites.loc[first_model_sites['name'].searchsorted(np.array([index for index, i in enumerate(classification) if i == 'first_model']))]
