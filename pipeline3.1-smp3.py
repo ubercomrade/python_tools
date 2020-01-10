@@ -571,7 +571,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
         if not os.path.isfile(compare_sites + '/' + tag + '_' + '{:.2e}'.format(fpr_for_thr) + '_COUNT.tsv'):
             print('Compare sites ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'compare_sites3.py',
+            args = ['pypy', path_to_python_tools + 'compare_sites3-pypy.py',
                     '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
                     '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
                     '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
