@@ -569,21 +569,21 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
         #COMPARE SITES OF DIFF MODELS#
         ##############################
 
-        if not os.path.isfile(compare_sites + '/' + tag + '_' + '{:.2e}'.format(fpr_for_thr) + '_COUNT.tsv'):
-            print('Compare sites ({0})'.format(tag))
-            args = ['pypy', path_to_python_tools + 'compare_sites3-pypy.py',
-                    '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-                    '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                    '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                    '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                    '-t', tag + '_' + '{:.2e}'.format(fpr_for_thr),
-                    '-o', compare_sites,
-                    '-fname', fname,
-                    '-sname', sname,
-                    '-tname', tname]
-            r = subprocess.call(args)
-        else:
-            print('Sites already compared')
+        # if not os.path.isfile(compare_sites + '/' + tag + '_' + '{:.2e}'.format(fpr_for_thr) + '_COUNT.tsv'):
+        # print('Compare sites ({0})'.format(tag))
+        args = ['pypy', path_to_python_tools + 'compare_sites3-pypy.py',
+                '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+                '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+                '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+                '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+                '-t', tag + '_' + '{:.2e}'.format(fpr_for_thr),
+                '-o', compare_sites,
+                '-fname', fname,
+                '-sname', sname,
+                '-tname', tname]
+        r = subprocess.call(args)
+        # else:
+        #     print('Sites already compared')
 
 
         ####################
