@@ -21,6 +21,7 @@ import pandas as pd
 
 def parse_sitega(path):
     sitega = list()
+    length = 30
     with open(path, 'r') as file:
         for line in file:
             #print(line)
