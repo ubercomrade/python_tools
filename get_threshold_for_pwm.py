@@ -16,6 +16,10 @@ GNU General Public License for more details.
 import argparse
 import sys
 import os
+from collections import Counter
+from bisect import bisect, bisect_left
+from operator import itemgetter
+#import numpy as np
 
 
 def read_fasta(path):
@@ -89,15 +93,123 @@ def complement(seq):
 #     return(thr)
 
 
-def get_threshold(scores, path_out):
-    scores.sort(reverse=True) # sorted score from big to small
+def create_fpr_table(scores, unique):
+    container = []
+    append = container.append
+    #scores = np.array(scores)
+    print('create_fpr_table')
+    for u in unique:
+        #append((u, len(scores[:np.searchsorted(scores, u)]))) 
+        fpr = len(scores[:bisect_left(scores, u)]) / len(scores)
+        if fpr > 0.0001:
+            break
+        else:
+            append((u, fpr)) 
+    return(container)
+
+
+# def get_threshold(scores, path_out):
+#     scores.sort(reverse=False) # sorted score from small to big
+#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for fpr in fprs:
+#             thr = scores[::-1][int(fpr * len(scores))]
+#             pos = len(scores) - int(fpr * len(scores))
+#             while 1:
+#                 pos_ = bisect_left(scores, thr)
+#                 fpr_ = len(scores[:bisect_left(scores, thr)]) / len(scores)
+#                 thr_ = scores[pos]
+#                 if abs(fpr - fpr_) < (fpr / 100) or pos_ == pos:
+#                     break
+#                 else:
+#                     fpr = fpr_
+#                     thr = thr_
+#                     pos = pos_
+               
+#             file.write("{0}\t{1}\n".format(thr, fpr))
+#     file.close()
+
+
+# def get_threshold(scores, path_out):
+#     scores.sort() # sorted score from small to big
+#     print(len(scores))
+#     scores = [round(i, 3) for i in scores]
+#     print(len(scores))
+    
+#     #used = set()
+#     #unique = [x for x in scores if x not in used and (used.add(x) or True)]
+#     unique = list(set([round(i, 3) for i in scores]))
+#     print(len(unique))
+#     unique.sort(reverse=True)
+#     print('unique create')
+
+#     table  = create_fpr_table(scores, unique)
+#     print(table[:10])
+#     print('table create')
+#     all_fprs = [i[1] for i in table] 
+
+#     my_fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for fpr in my_fprs:
+#             pos = bisect_left(all_fprs, fpr)
+#             file.write("{0}\t{1}\n".format(table[pos][0], table[pos][1]))
+#     file.close()
+
+    
+    # path = path_out.rsplit('.', maxsplit=1) + 'all_table.tsv'
+    # table = sorted(table, key=itemgetter(0), reverse=True)
+    # with open(path, "w") as file:
+    #     file.write("Scores\tFPR\n")
+    #     for t in table:
+    #         file.write("{0}\t{1}\n".format(t[0], t[1]))
+    # file.close()
+
+    # pass
+
+def get_threshold(scores, path_out, number_of_sites):
+    scores.sort(reverse=False) # sorted score from small to big
+    scores = [round(i, 3) for i in scores]
+    counts = Counter(scores)
+
+    found_sites = counts[list(counts.keys())[::-1][0]]
+    for index, k in enumerate(list(counts.keys())[::-1][1:]):
+        found_sites = counts[k] + found_sites
+        counts[k] = found_sites
+
+    fprs_table = []
+    append = fprs_table.append
+    for index, k in enumerate(list(counts.keys())[::-1]):
+        append(( k, counts[k] / number_of_sites ))
+
+    print(fprs_table[-100:])
+    print(counts[list(counts.keys())[::-1][0]])
+
+    # short_fprs_table = []
+    # append = short_fprs_table.append
+
+    # mem = fprs_table[0]
+    # for t in fprs_table:
+    #     if t[1] != mem[1]:
+    #         append(mem)
+    #         mem = t
+    #     else:
+    #         mem = t
+    #         continue
+
+
+
     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
-    with open(path_out, "w") as file:
-        file.write("Scores\tFPR\n")
-        for fpr in fprs:
-            thr = scores[int(fpr * len(scores))]
-            file.write("{0}\t{1}\n".format(thr, fpr))
-    file.close()
+    print('end')
+    # with open(path_out, "w") as file:
+    #     file.write("Scores\tFPR\n")
+    #     for fpr in fprs:
+    #         thr = scores[int(fpr * len(scores))]
+    #         file.write("{0}\t{1}\n".format(thr, fpr))
+    # file.close()
+
+
 
 
 def parse_args():
@@ -128,8 +240,11 @@ def main():
     peaks = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
     length_of_site = len(pwm['A'])
+    number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
+    print(number_of_sites)
     scores = calculate_scores(peaks, pwm, length_of_site)
-    get_threshold(scores, path_out)
+    print('scores are calculated')
+    get_threshold(scores, path_out, number_of_sites)
 
 
 if __name__ == '__main__':
