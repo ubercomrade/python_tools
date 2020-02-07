@@ -24,17 +24,75 @@ import bisect
 from operator import itemgetter
 import numpy as np
 import pandas as pd
+from shutil import copyfile
 
 
-def inmode_denovo(path_to_java, path_to_inmode, fasta_path, motif_length,
-                 model_order, outdir):
+def prepare_data(path_to_python_tools, bed_path, bed, fasta):
 
-    args = [path_to_java, '--add-modules', 'java.xml.bind', '-jar' ,path_to_inmode, 'denovo',
-            'i={}'.format(fasta_path),
-            'm={}'.format(motif_length),
-           'mo={}'.format(model_order),
-           'outdir={}'.format(outdir)]
-    r = subprocess.call(args)
+    ########################
+    #     GET TOP PEAKS    #
+    ########################
+
+    if not os.path.isfile(bed + '/' + 'train_sample.bed'):
+        #Get top training_sample_size bed peaks
+        print('Get top {0} bed peaks'.format(training_sample_size))
+        bed_out = bed + '/'
+        get_top_peaks(path_to_python_tools, bed_path, bed_out, training_sample_size, 'train_sample')      
+    else:
+        print('File {0} already exists'.format(tag + '_' + str(training_sample_size) + '.bed'))
+
+    if not os.path.isfile(bed + '/' + 'test_sample.bed'):
+        #Get top testing_sample_size bed peaks
+        print('Get top {1} bed peaks for {0}'.format(tag, testing_sample_size))
+        bed_out = bed + '/'
+        get_top_peaks(path_to_python_tools, bed_path, bed_out, testing_sample_size, 'test_sample')
+    else:
+        print('File {0} already exists'.format('test_sample.bed'))
+
+    ########################
+    #     BED TO FASTA     #
+    ########################
+
+    if not os.path.isfile(fasta + '/' + tag + '_' + str(training_sample_size) +'.fa'):
+        #Bed peaks to fasta
+        print('Bed peaks to fasta for {0}'.format(tag))
+        bed_to_fasta(path_to_genome,
+            bed + '/train_sample.bed',
+            fasta + '/train_sample.fa')
+    else:
+        print('File {0} already exists'.format(tag + '_' + str(training_sample_size) +'.fa'))
+
+    if not os.path.isfile(fasta + '/' + tag + '_' + str(testing_sample_size) +'.fa'):
+        bed_to_fasta(path_to_genome,
+            bed + '/test_sample.bed',
+            fasta + '/test_sample.fa')
+    else:
+        print('File {0} already exists'.format('test_sample.fa'))
+    pass
+
+
+def get_inmode_model(path_to_java, path_to_inmode, fasta_path, motif_length,
+                 model_order, models_path):
+    
+    inmode_model_path = models_path + '/inmode_model'
+
+    if not os.path.isdir(inmode_model_path):
+        os.mkdir(inmode_model_path)
+
+    if glob.glob(inmode_model_path + '/Learned_DeNovo*') == []:
+        print('calculate inmode model')
+
+        args = [path_to_java, '--add-modules', 'java.xml.bind', '-jar' ,path_to_inmode, 'denovo',
+                'i={}'.format(fasta_path),
+                'm={}'.format(motif_length),
+               'mo={}'.format(model_order),
+               'outdir={}'.format(outdir)]
+        r = subprocess.call(args)
+    else:
+        print('inmode model already exists')
+
+    copyfile(glob.glob(inmode_model_path + '/Learned_DeNovo*/XML*')[0], inmode_model_path + 'inmode_model.xml')
+    copyfile(glob.glob(inmode_model_path + '/Learned_DeNovo*/Binding_sites*')[0], inmode_model_path + 'inmode_sites.txt')
     pass
 
 
@@ -99,15 +157,67 @@ def bootstrap_bamm(path_to_python_tools, out_path, sites):
     pass
 
 
-def run_chipmunk_fasta(path_to_java, path_to_chipmunk, fasta_path, path_out, motif_length_start, motif_length_end, try_size, cpu_count, zoops):
+def run_chipmunk_fasta(path_to_java, path_to_chipmunk, fasta_path, path_out, motif_length_start, motif_length_end, cpu_count):
     args = [path_to_java, '-cp', path_to_chipmunk,
-                   'ru.autosome.ChIPMunk', str(motif_length_start), str(motif_length_end), 'yes', zoops,
+                   'ru.autosome.ChIPMunk', str(motif_length_start), str(motif_length_end), 'yes', '1.0',
                    's:' + fasta_path,
-                  try_size, '10', '1', cpu_count, 'random']
+                  '100', '10', '1', cpu_count, 'random']
     p = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE)
     out = p.communicate()
     with open(path_out, 'wb') as file:
         file.write(out[0])
+    pass
+
+
+def get_chipmunk_model(models_path, path_to_java, path_to_chipmunk, fasta_path, path_out, motif_length_start, motif_length_end, cpu_count):
+
+
+    chipmunk_model_path = models_path + '/chipmunk_model'
+
+    if not os.path.isdir(chipmunk_model_path):
+        os.mkdir(chipmunk_model_path)
+
+
+    ########################
+    #FIND MODEL BY CHIPMUNK#
+    ########################
+
+    
+    if not os.path.isfile(chipmunk_model_path + '/chipmunk_motif.txt'):
+        #Create fastaWig for chipmunk
+        print('chipmunk find motifs for {0}'.format(tag))
+        run_chipmunk_fasta(path_to_java, path_to_chipmunk,
+        fasta_path,
+        chipmunk_model_path + '/chipmunk_motif.txt',
+        motif_length_start, motif_length_end, cpu_count)
+    else:
+        print('File {0} already exists'.format(chipmunk_model_path + '/chipmunk_motif.txt'))
+
+    ###########################################################################
+    #Parse results of chipmunk into files .meme, .pwm and .fasta (multi fasta)#
+    ###########################################################################
+
+    args = ['python3', path_to_python_tools + 'parse_chipmunk_results.py',
+           '-i', chipmunk_model_path + '/chipmunk_motif.txt',
+           '-o', chipmunk_model_path,
+           '-t', 'initial_chipmunk_motif']
+    r = subprocess.call(args)
+
+
+    ##############################################################################
+    #Get oPWM from chipmunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta)#
+    ##############################################################################
+    if not os.path.isfile(chipmunk_model_path + '/optimazed_chipmunk_motif.meme'):
+        args = ['python3', path_to_python_tools + 'make_oPWM.py',
+                '-c', chipmunk_model_path + '/chipmunk_motif.txt',
+                '-f', fasta_path,
+                '-n', '5000',
+                '-P', cpu_count,
+                '-o', chipmunk_model_path,
+                '-t', 'optimazed_chipmunk_motif']
+        r = subprocess.call(args)
+    else:
+        print('File {0} already exists'.format(motifs + 'optimazed_chipmunk_motif.meme'))
     pass
 
 
@@ -124,15 +234,6 @@ def inmode_scan(path_to_java, path_to_inmode, input_data, input_model, backgroud
     r = subprocess.call(args)
     pass
 
-
-# def scan_best_by_inmode(path_to_python_tools, output, input_model, fasta_in, path_to_inmode):
-#     args = ['julia', path_to_python_tools + '/scan_best_by_inmode.jl',
-#            output,
-#            input_model,
-#            fasta_in,
-#            path_to_inmode]
-#     r = subprocess.call(args)
-#     pass
 
 def scan_best_by_inmode(path_to_python_tools, output, input_model, fasta_in, path_to_inmode, path_to_java):
     args = ['pypy', path_to_python_tools + '/scan_best_by_inmode_alt.py',
@@ -193,24 +294,6 @@ def montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, resul
     pass
 
 
-def corr_test(path_to_python_tools, scores1, scores2, results, name1, name2):
-    with open(results, 'a') as file:
-        file.write('{0};{1}\n'.format(name1, name2))
-    file.close()
-    args = ['python3', path_to_python_tools + 'corr_test.py', '{}'.format(scores1), '{}'.format(scores2), '{}'.format(results)]
-    r = subprocess.call(args)
-    pass
-
-
-def binome_test(path_to_python_tools, scores1, scores2, thr1, thr2, results, name1, name2, fpr1, fpr2):
-    with open(results, 'a') as file:
-        file.write('{0}:thr={1},fpr={2};{3}:thr={4},fpr={5}\n'.format(name1, thr1, fpr1, name2, thr2, fpr2))
-    file.close()
-    args = ['python3', path_to_python_tools + 'binome_test.py', '{}'.format(scores1), '{}'.format(scores2), '{}'.format(thr1), '{}'.format(thr2), '{}'.format(results)]
-    r = subprocess.call(args)
-    pass
-
-
 def make_model(path_to_python_tools, path_in, dir_out, tag):
     args = ['python3', path_to_python_tools + '/make_model.py',
             '-i', path_in,
@@ -218,7 +301,19 @@ def make_model(path_to_python_tools, path_in, dir_out, tag):
             '-t', tag,
             '-M']
     r = subprocess.call(args)
-    pass  
+    pass
+
+
+def get_motif_length(models):
+    with open(models + '/chipmunk_model/optimazed_chipmunk_motif.fasta', 'r') as file:
+    for i in file:
+        if i.startswith('>'):
+            continue
+        else:
+            motif_length = len(i.strip())
+            break
+    file.close()
+    return(motif_length)
 
 
 
@@ -227,9 +322,7 @@ def pipeline(bed_path, training_sample_size, testing_sample_size,
                       path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count):
 
     main_out = path_to_out + '/' + os.path.basename(bed_path).split('.bed')[0]
-    zoops = str(zoops)
     model_order = str(model_order)
-    try_size=str(try_size)
     cpu_count = str(cpu_count)
     motif_length_start = str(8)
     motif_length_end = str(14)
@@ -243,161 +336,55 @@ def pipeline(bed_path, training_sample_size, testing_sample_size,
     if not os.path.isdir(main_out):
         os.mkdir(main_out)
 
-    chipmunk = main_out + '/CHIPMUNK'
-    scan = main_out + '/SCAN'
-    motifs = main_out + '/MOTIFS'
-    fasta = main_out + '/FASTA'
-    bed = main_out + '/BED'
-    bootstrap = main_out + '/BOOTSTRAP'
-    scan_best = main_out + '/SCAN-BEST'
-    compare_sites = main_out + '/COMPARE_SITES'
-    gene_ids =  main_out + '/IDs_COMPARE'
-    tomtom = main_out + '/TOMTOM'
+
+    models = main_out + '/models'
+    fasta = main_out + '/fasta'
+    bed = main_out + '/bed'
+    scan = main_out + '/scan'
+    scan_best = main_out + '/scan-best'
+    compare_sites = main_out + '/compare'
+    tomtom = main_out + '/tomtom'
     tag = os.path.basename(bed_path).split('.bed')[0]
 
-    fname = 'PWM'
-    sname = 'BAMM'
-    tname = 'INMODE'
 
     ########################
     #      CREATE DIRS     #
     ########################
 
-    if not os.path.isdir(main_out + '/CHIPMUNK'):
-        os.mkdir(main_out + '/CHIPMUNK')
-    if not os.path.isdir(main_out + '/SCAN'):
-        os.mkdir(main_out + '/SCAN')
-    if not os.path.isdir(main_out + '/BOOTSTRAP'):
-        os.mkdir(main_out + '/BOOTSTRAP')
-    if not os.path.isdir(main_out + '/SCAN-BEST'):
-        os.mkdir(main_out + '/SCAN-BEST')
-    if not os.path.isdir(main_out + '/MOTIFS'):
-        os.mkdir(main_out + '/MOTIFS')
-    if not os.path.isdir(main_out + '/FASTA'):
-        os.mkdir(main_out + '/FASTA')
-    if not os.path.isdir(main_out + '/BED'):
-        os.mkdir(main_out + '/BED')
-    if not os.path.isdir(main_out + '/COMPARE_SITES'):
-        os.mkdir(main_out + '/COMPARE_SITES')
-    if not os.path.isdir(main_out + '/IDs_COMPARE'):
-        os.mkdir(main_out + '/IDs_COMPARE')
-    if not os.path.isdir(main_out + '/TOMTOM'):
-        os.mkdir(main_out + '/TOMTOM')
+    if not os.path.isdir(models):
+        os.mkdir(models)
+    if not os.path.isdir(fasta):
+        os.mkdir(fasta)
+    if not os.path.isdir(bed):
+        os.mkdir(bed)
+    if not os.path.isdir(scan):
+        os.mkdir(scan_best)
+    if not os.path.isdir(compare_sites):
+        os.mkdir(compare_sites)
+    if not os.path.isdir(tomtom):
+        os.mkdir(tomtom)
 
 
 
-    ########################
-    #     GET TOP PEAKS    #
-    ########################
+    # PREPARE BED AND FASTA FILES #
+    prepare_data(path_to_python_tools, bed_path, bed, fasta)
 
-    if not os.path.isfile(bed + '/' + tag + '_' + str(training_sample_size) + '.bed'):
-        #Get top training_sample_size bed peaks
-        print('Get top {0} bed peaks for {1}'.format(training_sample_size, tag))
-        bed_out = bed + '/'
-        get_top_peaks(path_to_python_tools, bed_path, bed_out, training_sample_size, tag + '_' + str(training_sample_size))
-        #get_top_peaks_with_wig(path_to_python_tools, bed_path, bigwig_path, bed_out, training_sample_size, shoulder, tag + '_' + str(training_sample_size))
+    fasta_train = fasta + 'test_sample.fa'
+    fasta_test = fasta + 'train_sample.fa'
+    bed_test = bed + 'test_sample.bed'
+    bed_train = bed + 'train_sample.bed'
 
+    # CALCULATE CHIPMUNK MODEL #
+    get_chipmunk_model(models_path, path_to_java, path_to_chipmunk,
+        fasta_train, models, motif_length_start, motif_length_end, cpu_count)
 
-    else:
-        print('File {0} already exists'.format(tag + '_' + str(training_sample_size) + '.bed'))
+    # GET MOTIF LENGTH #
+    motif_length = get_motif_length(models)
 
-    if not os.path.isfile(bed + '/' + tag + '_' + str(testing_sample_size) + '.bed'):
-        #Get top testing_sample_size bed peaks
-        print('Get top {1} bed peaks for {0}'.format(tag, testing_sample_size))
-        bed_out = bed + '/'
-        get_top_peaks(path_to_python_tools, bed_path, bed_out, testing_sample_size, tag + '_' + str(testing_sample_size))
-    else:
-        print('File {0} already exists'.format(tag + '_' + str(testing_sample_size) + '.bed'))
+    # CALCULATE INMODE MODEL WITH EM ALG #
+    get_inmode_model(path_to_java, path_to_inmode, fasta_train, motif_length,
+                 model_order, models)
 
-    ########################
-    #     BED TO FASTA     #
-    ########################
-
-    if not os.path.isfile(fasta + '/' + tag + '_' + str(training_sample_size) +'.fa'):
-        #Bed peaks to fasta
-        print('Bed peaks to fasta for {0}'.format(tag))
-        bed_to_fasta(path_to_genome,
-            bed + '/' + tag + '_' + str(training_sample_size) +'.bed',
-            fasta + '/' + tag + '_' + str(training_sample_size) +'.fa')
-
-    else:
-        print('File {0} already exists'.format(tag + '_' + str(training_sample_size) +'.fa'))
-
-    if not os.path.isfile(fasta + '/' + tag + '_' + str(testing_sample_size) +'.fa'):
-        bed_to_fasta(path_to_genome,
-            bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-            fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa')
-    else:
-        print('File {0} already exists'.format(tag + '_' + str(testing_sample_size) +'.fa'))
-
-
-    ########################
-    #FIND MODEL BY CHIPMUNK#
-    ########################
-    if not os.path.isfile(chipmunk + '/CHIPMUNK_MOTIF.txt'):
-        #Create fastaWig for chipmunk
-        print('chipmunk find motifs for {0}'.format(tag))
-        run_chipmunk_fasta(path_to_java, path_to_chipmunk,
-        fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-        chipmunk + '/CHIPMUNK_MOTIF.txt',
-        motif_length_start, motif_length_end,
-        try_size, cpu_count, zoops)
-    else:
-        print('File {0} already exists'.format(chipmunk + '/chipmunk_MOTIF.txt'))
-
-    ###########################################################################
-    #Parse results of chipmunk into files .meme, .pwm and .fasta (multi fasta)#
-    ###########################################################################
-
-    args = ['python3', path_to_python_tools + 'parse_chipmunk_results.py',
-           '-i', chipmunk + '/CHIPMUNK_MOTIF.txt',
-           '-o', chipmunk,
-           '-t', tag + '_' + 'CHIPMUNK_MOTIF']
-    r = subprocess.call(args)
-
-
-    ##############################################################################
-    #Get oPWM from chipmunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta)#
-    ##############################################################################
-    if not os.path.isfile(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.meme'):
-        args = ['python3', path_to_python_tools + 'make_oPWM.py',
-                '-c', chipmunk + '/CHIPMUNK_MOTIF.txt',
-                '-f', fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-                '-n', '5000',
-                '-P', cpu_count,
-                '-o', motifs,
-                '-t', tag + '_' + 'OPTIMAL_MOTIF']
-        r = subprocess.call(args)
-    else:
-        print('File {0} already exists'.format(motifs + '/PEAKS039334_OPTIMAL_MOTIF.meme'))
-
-
-    ##################
-    #GET MOTIF LENGTH#
-    ##################
-
-    with open(motifs + '/' + tag + '_' + 'OPTIMAL_MOTIF.fasta', 'r') as file:
-        for i in file:
-            if i.startswith('>'):
-                continue
-            else:
-                motif_length = len(i.strip())
-                break
-    file.close()
-
-
-    ####################################
-    #CALCULATE INMODE MODEL WITH EM ALG#
-    ####################################
-    if glob.glob(motifs + '/Learned_DeNovo*') == []:
-        print('Calculate inmode model')
-        inmode_denovo(path_to_java, path_to_inmode,
-                         fasta_path=fasta + '/' + tag + '_'+ str(training_sample_size) + '.fa',
-                         motif_length=motif_length,
-                         model_order=model_order,
-                         outdir=motifs)
-    else:
-        print('inmode model already exists')
 
     ##################################
     #CALCULATE BAMM MODEL WITH EM ALG#
@@ -574,49 +561,6 @@ def pipeline(bed_path, training_sample_size, testing_sample_size,
         r = subprocess.call(args)
         # else:
         #     print('Sites already compared')
-
-
-        ####################
-        #WORK WITH GENE IDS#
-        ####################
-
-        if not os.path.isfile(gene_ids + '/' + 'compare.ids.{:.2e}.pdf'.format(fpr_for_thr)):
-            ## GET GEN IDS ###
-            print('GET GEN IDS ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-            path_to_tss,
-            scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-            gene_ids + '/' + 'pwm.ids.{:.2e}.txt'.format(fpr_for_thr)]
-            r = subprocess.call(args)
-
-            print('GET GEN IDS ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-            path_to_tss,
-            scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-            gene_ids + '/' + 'bamm.ids.{:.2e}.txt'.format(fpr_for_thr)]
-            r = subprocess.call(args)
-
-            print('GET GEN IDS ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-            path_to_tss,
-            scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-            gene_ids + '/' + 'inmode.ids.{:.2e}.txt'.format(fpr_for_thr)]
-            r = subprocess.call(args)
-
-            ### COMPARE IDS ###
-
-            print('Compare sites ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
-                    '-first', gene_ids + '/' + 'pwm.ids.{:.2e}.txt'.format(fpr_for_thr),
-                    '-second', gene_ids + '/' + 'bamm.ids.{:.2e}.txt'.format(fpr_for_thr),
-                    '-third', gene_ids + '/' + 'inmode.ids.{:.2e}.txt'.format(fpr_for_thr),
-                    '-o', gene_ids + '/' + 'compare.ids.{:.2e}.pdf'.format(fpr_for_thr),
-                    '-fname', fname,
-                    '-sname', sname,
-                    '-tname', tname]
-            r = subprocess.call(args)
-        else:
-            print('IDs already compared')
 
 
         ###################
