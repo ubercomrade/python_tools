@@ -87,12 +87,6 @@ def complement(seq):
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
 
-# def get_threshold(scores, fpr):
-#     scores.sort(reverse=True) # sorted score from big to small
-#     thr = scores[int(round(fpr * len(scores)))]
-#     return(thr)
-
-
 def create_fpr_table(scores, unique):
     container = []
     append = container.append
@@ -107,66 +101,6 @@ def create_fpr_table(scores, unique):
             append((u, fpr)) 
     return(container)
 
-
-# def get_threshold(scores, path_out):
-#     scores.sort(reverse=False) # sorted score from small to big
-#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
-#     with open(path_out, "w") as file:
-#         file.write("Scores\tFPR\n")
-#         for fpr in fprs:
-#             thr = scores[::-1][int(fpr * len(scores))]
-#             pos = len(scores) - int(fpr * len(scores))
-#             while 1:
-#                 pos_ = bisect_left(scores, thr)
-#                 fpr_ = len(scores[:bisect_left(scores, thr)]) / len(scores)
-#                 thr_ = scores[pos]
-#                 if abs(fpr - fpr_) < (fpr / 100) or pos_ == pos:
-#                     break
-#                 else:
-#                     fpr = fpr_
-#                     thr = thr_
-#                     pos = pos_
-               
-#             file.write("{0}\t{1}\n".format(thr, fpr))
-#     file.close()
-
-
-# def get_threshold(scores, path_out):
-#     scores.sort() # sorted score from small to big
-#     print(len(scores))
-#     scores = [round(i, 3) for i in scores]
-#     print(len(scores))
-    
-#     #used = set()
-#     #unique = [x for x in scores if x not in used and (used.add(x) or True)]
-#     unique = list(set([round(i, 3) for i in scores]))
-#     print(len(unique))
-#     unique.sort(reverse=True)
-#     print('unique create')
-
-#     table  = create_fpr_table(scores, unique)
-#     print(table[:10])
-#     print('table create')
-#     all_fprs = [i[1] for i in table] 
-
-#     my_fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
-#     with open(path_out, "w") as file:
-#         file.write("Scores\tFPR\n")
-#         for fpr in my_fprs:
-#             pos = bisect_left(all_fprs, fpr)
-#             file.write("{0}\t{1}\n".format(table[pos][0], table[pos][1]))
-#     file.close()
-
-    
-    # path = path_out.rsplit('.', maxsplit=1) + 'all_table.tsv'
-    # table = sorted(table, key=itemgetter(0), reverse=True)
-    # with open(path, "w") as file:
-    #     file.write("Scores\tFPR\n")
-    #     for t in table:
-    #         file.write("{0}\t{1}\n".format(t[0], t[1]))
-    # file.close()
-
-    # pass
 
 def get_threshold(scores, path_out, number_of_sites):
     scores.sort(reverse=False) # sorted score from small to big
@@ -183,33 +117,23 @@ def get_threshold(scores, path_out, number_of_sites):
     for index, k in enumerate(list(counts.keys())[::-1]):
         append(( k, counts[k] / number_of_sites ))
 
-    print(fprs_table[-100:])
-    print(counts[list(counts.keys())[::-1][0]])
 
-    # short_fprs_table = []
-    # append = short_fprs_table.append
-
-    # mem = fprs_table[0]
-    # for t in fprs_table:
-    #     if t[1] != mem[1]:
-    #         append(mem)
-    #         mem = t
-    #     else:
-    #         mem = t
-    #         continue
+    with open(path_out, "w") as file:
+        file.write("Scores\tFPR\n")
+        for (score, fpr) in fprs_table:
+            file.write("{0}\t{1}\n".format(score, fpr))
+    file.close()
 
 
-
-    fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
-    print('end')
-    # with open(path_out, "w") as file:
-    #     file.write("Scores\tFPR\n")
-    #     for fpr in fprs:
-    #         thr = scores[int(fpr * len(scores))]
-    #         file.write("{0}\t{1}\n".format(thr, fpr))
-    # file.close()
-
-
+# def get_threshold(scores, path_out):
+#     scores.sort(reverse=True) # sorted score from big to small
+#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for fpr in fprs:
+#             thr = scores[int(fpr * len(scores))]
+#             file.write("{0}\t{1}\n".format(thr, fpr))
+#     file.close()
 
 
 def parse_args():

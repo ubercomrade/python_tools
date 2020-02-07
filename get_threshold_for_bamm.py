@@ -18,6 +18,10 @@ import sys
 import os
 import itertools
 from math import log
+from collections import Counter
+from bisect import bisect, bisect_left
+from operator import itemgetter
+
 
 
 def read_fasta(path):
@@ -165,22 +169,38 @@ def complement(seq):
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
 
-# def get_threshold(scores, fpr):
-#     scores.sort(reverse=True) # sorted score from big to small
-#     #thr = scores[int(round(fp * len(scores)))]
-#     thr = scores[int(fp * len(scores))]
-#     return(thr)
+def get_threshold(scores, path_out, number_of_sites):
+    scores.sort(reverse=False) # sorted score from small to big
+    scores = [round(i, 3) for i in scores]
+    counts = Counter(scores)
+
+    found_sites = counts[list(counts.keys())[::-1][0]]
+    for index, k in enumerate(list(counts.keys())[::-1][1:]):
+        found_sites = counts[k] + found_sites
+        counts[k] = found_sites
+
+    fprs_table = []
+    append = fprs_table.append
+    for index, k in enumerate(list(counts.keys())[::-1]):
+        append(( k, counts[k] / number_of_sites ))
 
 
-def get_threshold(scores, path_out):
-    scores.sort(reverse=True) # sorted score from big to small
-    fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
-        for fpr in fprs:
-            thr = scores[int(fpr * len(scores))]
-            file.write("{0}\t{1}\n".format(thr, fpr))
+        for (score, fpr) in fprs_table:
+            file.write("{0}\t{1}\n".format(score, fpr))
     file.close()
+
+
+# def get_threshold(scores, path_out):
+#     scores.sort(reverse=True) # sorted score from big to small
+#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for fpr in fprs:
+#             thr = scores[int(fpr * len(scores))]
+#             file.write("{0}\t{1}\n".format(thr, fpr))
+#     file.close()
 
 
 def parse_args():
@@ -190,9 +210,7 @@ def parse_args():
     parser.add_argument('bamm', action='store', help='path to .ihbcp file from BaMMmotif output')
     parser.add_argument('bg', action='store', help='path to .hbcp file from BaMMmotif output')
     parser.add_argument('out', action='store', help='path to write results')
-    parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
-                            required=False, help='value of FP (FP ~ P-VALUE)')
-
+    
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -207,13 +225,14 @@ def main():
     bg_path = args.bg
     fasta_path = args.fasta
     path_out = args.out
-    fp = args.false_positive
+    
 
     peaks = read_fasta(fasta_path)
     bamm, order = prepare_bamm(bamm_path, bg_path)
     length_of_site = len(bamm['A'])
+    number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
     scores = calculate_scores(peaks, bamm, order, length_of_site)
-    get_threshold(scores, path_out)
+    get_threshold(scores, path_out, number_of_sites)
 
 
 

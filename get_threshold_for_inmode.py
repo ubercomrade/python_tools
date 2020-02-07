@@ -17,6 +17,10 @@ import argparse
 import sys
 import os
 import subprocess
+from collections import Counter
+from bisect import bisect, bisect_left
+from operator import itemgetter
+import math
 
 
 def read_fasta(path):
@@ -67,15 +71,38 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
 
 
 def get_threshold(scores, number_of_sites, path_out):
-    scores.sort(reverse=True) # sorted score from big to small
-    fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+    scores.sort(reverse=False) # sorted score from small to big
+    scores = [round(math.log(float(i), 10), 3) for i in scores]
+    counts = Counter(scores)
+
+    found_sites = counts[list(counts.keys())[::-1][0]]
+    for index, k in enumerate(list(counts.keys())[::-1][1:]):
+        found_sites = counts[k] + found_sites
+        counts[k] = found_sites
+
+    fprs_table = []
+    append = fprs_table.append
+    for index, k in enumerate(list(counts.keys())[::-1]):
+        append(( k, counts[k] / number_of_sites ))
+
+
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
-        for fpr in fprs:
-        	thr = scores[int(fpr * number_of_sites)]
-        	file.write("{0}\t{1}\n".format(thr, fpr))
+        for (score, fpr) in fprs_table:
+            file.write("{0}\t{1}\n".format(score, fpr))
     file.close()
-        #return(thr)
+
+
+# def get_threshold(scores, number_of_sites, path_out):
+#     scores.sort(reverse=True) # sorted score from big to small
+#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for fpr in fprs:
+#         	thr = scores[int(fpr * number_of_sites)]
+#         	file.write("{0}\t{1}\n".format(thr, fpr))
+#     file.close()
+
 
 
 def parse_args():
@@ -90,9 +117,6 @@ def parse_args():
                             required=False, default="java", help='path to java')
     parser.add_argument('-t', '--tmp', action='store', dest='tmp_dir',
                             required=False, default="./tmp", help='tmp dir')
-    parser.add_argument('-p', '--false_positive', action='store', type=float, dest='false_positive',
-                            required=False, help='value of FP (FP ~ P-VALUE)')
-
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -111,7 +135,6 @@ def main():
     path_to_inmode = args.inmode
     length_of_site = args.len
     tmp_dir = args.tmp_dir
-    fp = args.false_positive
 
     if not os.path.isdir(tmp_dir):
     	os.mkdir(tmp_dir)
