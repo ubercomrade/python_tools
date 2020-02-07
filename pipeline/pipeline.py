@@ -222,10 +222,9 @@ def make_model(path_to_python_tools, path_in, dir_out, tag):
 
 
 
-def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
-                      path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_imd, path_to_chipmunk,
-                      path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count,
-                      zoops, try_size, model_order):
+def pipeline(bed_path, training_sample_size, testing_sample_size,
+                      path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_chipmunk,
+                      path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count):
 
     main_out = path_to_out + '/' + os.path.basename(bed_path).split('.bed')[0]
     zoops = str(zoops)
@@ -802,25 +801,10 @@ def parse_args():
                         required=True, help='path to chipmunk')
     parser.add_argument('-o', '--output', action='store', dest='output',
                         required=True, help='output dir')
-    parser.add_argument('-z', '--zoops', action='store', type=float, dest='zoops',
-                        default=1.0, required=False,
-                        help='zero-or-one-occurrence-per-sequence (ZOOPS). You should specify the \
-                        zoops factor parameter, a value between 0 and 1.0. Default value = 1.0')
-    parser.add_argument('-l', '--try_limit', action='store', type=int, dest='try_limit',
-                        default=100, required=False,
-                        help=' This is an internal number of motif optimization runs. \
-                        For a random seeding, this would be simply equal to the number of seeds. \
-                        It can be as high as your computational power \
-                        (100-1000 seems to be generally enough depending on your dataset). Default value = 100')
-    parser.add_argument('-m', '--order_model', action='store', type=int, dest='model_order',
-                        default=2, required=False,
-                        help='Order of model. Default value = 2')
     parser.add_argument('-C', '--processes', action='store', type=int, dest='cpu_count',
                         required=False, default=2, help='Number of processes to use, default: 2')
     parser.add_argument('-tss', action='store', dest='path_to_tss',
                         required=True, help='path to BED file with transcripts')
-    parser.add_argument('-i', '--imd', action='store', dest='path_to_imd',
-                        required=True, help='path to DisentanglerCLI to run imd')
     parser.add_argument('-H', '--hocomoco', action='store', dest='path_to_hocomoco',
                         required=True, help='path to HOCOMOCO database in meme format for TOMTOM')
 
@@ -850,17 +834,12 @@ def main():
     path_to_imd = args.path_to_imd
     path_to_tss = args.path_to_tss
     path_to_hocomoco = args.path_to_hocomoco
-
-
-    zoops=args.zoops
     cpu_count = args.cpu_count
-    try_size=args.try_limit
-    model_order=args.model_order
 
-    pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
-                          path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_imd, path_to_chipmunk,
-                          path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count,
-                          zoops, try_size, model_order)
+
+    pipeline(bed_path, training_sample_size, testing_sample_size,
+                          path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_chipmunk,
+                          path_to_promoters, path_to_genome, path_to_tss, path_to_hocomoco, cpu_count)
 
 if __name__ == '__main__':
     main()
