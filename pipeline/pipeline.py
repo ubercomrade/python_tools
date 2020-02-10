@@ -39,7 +39,7 @@ def prepare_data(path_to_python_tools, path_to_genome, bed_path, bed, fasta, tra
         bed_out = bed + '/'
         get_top_peaks(path_to_python_tools, bed_path, bed_out, train_sample_size, 'train_sample')      
     else:
-        print('File {0} already exists'.format('train_sample.bed'))
+        print('{0} already exists'.format('train_sample.bed'))
 
     if not os.path.isfile(bed + '/' + 'test_sample.bed'):
         #Get top testing_sample_size bed peaks
@@ -47,7 +47,7 @@ def prepare_data(path_to_python_tools, path_to_genome, bed_path, bed, fasta, tra
         bed_out = bed + '/'
         get_top_peaks(path_to_python_tools, bed_path, bed_out, test_sample_size, 'test_sample')
     else:
-        print('File {0} already exists'.format('test_sample.bed'))
+        print('{0} already exists'.format('test_sample.bed'))
 
     ########################
     #     BED TO FASTA     #
@@ -60,7 +60,7 @@ def prepare_data(path_to_python_tools, path_to_genome, bed_path, bed, fasta, tra
             bed + '/train_sample.bed',
             fasta + '/train_sample.fa')
     else:
-        print('File {0} already exists'.format('train_sample.fa'))
+        print('{0} already exists'.format('train_sample.fa'))
 
     if not os.path.isfile(fasta + '/' + 'test_sample.fa'):
         print('Get fasta from bed: {}'.format('test_sample.bed'))
@@ -68,7 +68,7 @@ def prepare_data(path_to_python_tools, path_to_genome, bed_path, bed, fasta, tra
             bed + '/test_sample.bed',
             fasta + '/test_sample.fa')
     else:
-        print('File {0} already exists'.format('test_sample.fa'))
+        print('{0} already exists'.format('test_sample.fa'))
     pass
 
 
@@ -91,8 +91,8 @@ def get_inmode_model(models_path, fasta_path, path_to_java, path_to_inmode, moti
     else:
         print('inmode model already exists')
 
-    copyfile(glob.glob(inmode_model_path + '/Learned_DeNovo*/XML*')[0], inmode_model_path + 'inmode_model.xml')
-    copyfile(glob.glob(inmode_model_path + '/Learned_DeNovo*/Binding_sites*')[0], inmode_model_path + 'inmode_sites.txt')
+    copyfile(glob.glob(inmode_model_path + '/Learned_DeNovo*/XML*')[0], inmode_model_path + '/inmode_model.xml')
+    copyfile(glob.glob(inmode_model_path + '/Learned_DeNovo*/Binding_sites*')[0], inmode_model_path + '/inmode_sites.txt')
     pass
 
 
@@ -111,58 +111,51 @@ def run_chipmunk_fasta(path_to_java, path_to_chipmunk, fasta_path, path_out, mot
 def get_chipmunk_model(models_path, fasta_path, path_to_python_tools, path_to_java, path_to_chipmunk, motif_length_start, motif_length_end, cpu_count):
 
 
-    chipmunk_model_path = models_path + '/chipmunk_model'
+    chipmunk_model_path = models_path + '/pwm_model'
 
     if not os.path.isdir(chipmunk_model_path):
         os.mkdir(chipmunk_model_path)
 
-
-    ########################
-    #FIND MODEL BY CHIPMUNK#
-    ########################
-
+    # FIND MODEL BY CHIPMUNK #
     
-    if not os.path.isfile(chipmunk_model_path + '/chipmunk_motif.txt'):
+    if not os.path.isfile(chipmunk_model_path + '/initial_pwm_model.pwm'):
         #Create fastaWig for chipmunk
         print('Create pmw model by ChIPMunk')
         run_chipmunk_fasta(path_to_java, path_to_chipmunk,
         fasta_path,
-        chipmunk_model_path + '/chipmunk_motif.txt',
+        chipmunk_model_path + '/pwm_model.txt',
         motif_length_start, motif_length_end, cpu_count)
     else:
-        print('File {0} already exists (model exists)'.format(chipmunk_model_path + '/chipmunk_motif.txt'))
+        print('{0} already exists (model exists)'.format(chipmunk_model_path + '/initial_pwm_model.pwm'))
 
-    ###########################################################################
-    #Parse results of chipmunk into files .meme, .pwm and .fasta (multi fasta)#
-    ###########################################################################
-
+    # Parse results of chipmunk into files .meme, .pwm and .fasta (multi fasta) #
+    
     args = ['python3', path_to_python_tools + 'parse_chipmunk_results.py',
-           '-i', chipmunk_model_path + '/chipmunk_motif.txt',
+           '-i', chipmunk_model_path + '/pwm_model.txt',
            '-o', chipmunk_model_path,
-           '-t', 'initial_chipmunk_motif']
+           '-t', 'initial_pwm_model']
     r = subprocess.call(args)
 
-
-    ##############################################################################
-    #Get oPWM from chipmunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta)#
-    ##############################################################################
-    if not os.path.isfile(chipmunk_model_path + '/optimazed_chipmunk_motif.meme'):
+    # Get oPWM from chipmunk results. OUTPUT: .meme, .pwm and .fasta (multi fasta) #
+    
+    if not os.path.isfile(chipmunk_model_path + '/optimazed_pwm_model.meme'):
         args = ['python3', path_to_python_tools + 'make_oPWM.py',
-                '-c', chipmunk_model_path + '/chipmunk_motif.txt',
+                '-c', chipmunk_model_path + '/pwm_model.txt',
                 '-f', fasta_path,
                 '-n', '5000',
                 '-P', cpu_count,
                 '-o', chipmunk_model_path,
-                '-t', 'optimazed_chipmunk_motif']
+                '-t', 'optimazed_pwm_model']
         r = subprocess.call(args)
     else:
-        print('File {0} already exists'.format(chipmunk_model_path + '/optimazed_chipmunk_motif.meme'))
+        print('{0} already exists'.format(chipmunk_model_path + '/optimazed_pwm_model.meme'))
     pass
 
 
 def get_bamm_model(models_path, fasta_train, meme_model, model_order):
-        #Get BaMM motif
-    bamm_model_path = models_path + '/bamm'
+
+    #Get BaMM motif
+    bamm_model_path = models_path + '/bamm_model'
     if not os.path.isdir(bamm_model_path):
         os.mkdir(bamm_model_path)
 
@@ -178,6 +171,48 @@ def get_bamm_model(models_path, fasta_train, meme_model, model_order):
     r = subprocess.call(args)
     pass
 
+
+def calculate_thresholds_for_bamm(path_to_python_tools, path_to_promoters, bamm_model_dir, thresholds_dir):
+    if not os.path.isfile(thresholds_dir + '/bamm_model_thresholds.txt'):
+        print('Calculate threshold for bamm based on promoters and fpr')
+        args = ['pypy3', path_to_python_tools + '/get_threshold_for_bamm.py',
+                path_to_promoters,
+                bamm_model_dir + '/bamm_motif_1.ihbcp',
+                bamm_model_dir + '/bamm.hbcp',
+                thresholds_dir + '/bamm_model_thresholds.txt']
+        r = subprocess.call(args)
+    else:
+        print('Thresholds for bamm already calculated')
+    pass
+
+
+def calculate_thresholds_for_pwm(path_to_python_tools, path_to_promoters, pwm_model_dir, thresholds_dir):
+    if not os.path.isfile(thresholds_dir + '/pwm_model_thresholds.txt'):
+        print('Calculate threshold for pwm based on promoters and fpr')
+        args = ['pypy3', path_to_python_tools + '/get_threshold_for_pwm.py',
+                path_to_promoters,
+                pwm_model_dir + '/optimazed_pwm_model.pwm',
+                thresholds_dir + '/pwm_model_thresholds.txt']
+        r = subprocess.call(args)
+    else:
+        print('Thresholds for pwm already calculated')
+    pass
+
+
+def calculate_thresholds_for_inmode(path_to_python_tools, path_to_promoters, inmode_model_dir, thresholds_dir, motif_length, path_to_inmode, path_to_java):
+    if not os.path.isfile(thresholds_dir + '/inmode_model_thresholds.txt'):
+        args = ['python3', path_to_python_tools + '/get_threshold_for_inmode.py',
+                path_to_promoters,
+                inmode_model_dir + '/inmode_model.xml',
+                path_to_inmode,
+                str(motif_length),
+                thresholds_dir + '/inmode_model_thresholds.txt',
+                '-j', path_to_java,
+                '-t', thresholds_dir + '/tmp']
+        r = subprocess.call(args)
+    else:
+        print('Thresholds for inmode already calculated')
+    pass
 
 def bed_to_fasta(path_to_fa, path_to_bed, out):
 
@@ -325,7 +360,7 @@ def make_model(path_to_python_tools, path_in, dir_out, tag):
 
 
 def get_motif_length(models):
-    with open(models + '/chipmunk_model/optimazed_chipmunk_motif.fasta', 'r') as file:
+    with open(models + '/pwm_model/optimazed_pwm_model.fasta', 'r') as file:
         for i in file:
             if i.startswith('>'):
                 continue
@@ -357,6 +392,8 @@ def pipeline(bed_path, train_sample_size, test_sample_size,
 
 
     models = main_out + '/models'
+    bootstrap = models + '/bootstrap'
+    thresholds = models + '/thresholds'
     fasta = main_out + '/fasta'
     bed = main_out + '/bed'
     scan = main_out + '/scan'
@@ -372,6 +409,10 @@ def pipeline(bed_path, train_sample_size, test_sample_size,
 
     if not os.path.isdir(models):
         os.mkdir(models)
+    if not os.path.isdir(bootstrap):
+        os.mkdir(bootstrap)
+    if not os.path.isdir(thresholds):
+        os.mkdir(thresholds)
     if not os.path.isdir(fasta):
         os.mkdir(fasta)
     if not os.path.isdir(bed):
@@ -400,39 +441,30 @@ def pipeline(bed_path, train_sample_size, test_sample_size,
         path_to_java, path_to_chipmunk,
         motif_length_start, motif_length_end,
         cpu_count)
+    calculate_thresholds_for_pwm(path_to_python_tools, path_to_promoters, models + '/pwm_model', thresholds)
+    # bootstrap_pwm(path_to_python_tools,
+    #     bootstrap + "/pwm_model.tsv",
+    #     models + '/chipmunk_model/optimazed_pwm_model.fasta')
 
     # GET MOTIF LENGTH #
     motif_length = get_motif_length(models)
 
     # CALCULATE INMODE MODEL WITH EM ALG #
-    get_inmode_model(models, fasta_train, path_to_java, path_to_inmode, motif_length,
-                 model_order)
-
+    get_inmode_model(models, fasta_train, path_to_java,
+        path_to_inmode, motif_length, model_order)
+    calculate_thresholds_for_inmode(path_to_python_tools, path_to_promoters, models + '/inmode_model', thresholds, motif_length, path_to_inmode, path_to_java)
+    # bootstrap_inmode(path_to_python_tools, path_to_java, 
+    #     bootstrap + "/inmode.tsv", 
+    #     models + '/inmode_model/inmode_sites.txt',
+    #     path_to_inmode, models + '/tmp')
+    
     # CALCULATE BAMM MODEL WITH EM ALG #
+    meme_model = models + '/pwm_model/optimazed_pwm_model.meme'
     get_bamm_model(models, fasta_train, meme_model, model_order)
-
-    ###################
-    #    BOOTSTRAP    #
-    ###################
-
-    # if not os.path.isfile(bootstrap + "/pwm.tsv"):
-    #     print('RUNNIN BOOTSTRAP FOR PWM')
-    #     bootstrap_pwm(path_to_python_tools, bootstrap + "/pwm.tsv",
-    #     motifs + '/' + tag + '_OPTIMAL_MOTIF.fasta')
-    # else:
-    #     print('Bootstrap for pwm already calculated')
-
-    # if not os.path.isfile(bootstrap + "/bamm.tsv"):
-    #     print('RUNNIN BOOTSTRAP FOR BAMM')
-    #     bootstrap_bamm(path_to_python_tools, bootstrap + "/bamm.tsv", motifs + '/' + tag + '_motif_1.logOddsZoops')
-    # else:
-    #     print('Bootstrap for bamm already calculated')
-        
-    # if not os.path.isfile(bootstrap + "/inmode.tsv"):
-    #     print('RUNNIN BOOTSTRAP FOR INMODE')
-    #     bootstrap_inmode(path_to_python_tools, path_to_java, bootstrap + "/inmode.tsv", glob.glob(motifs + '/Learned_DeNovo*/Binding_sites_of_DeNovo*motif.txt')[0], path_to_inmode, motifs + '/tmp')
-    # else:
-    #     print('Bootstrap for inmode already calculated')
+    calculate_thresholds_for_bamm(path_to_python_tools, path_to_promoters, models + '/bamm_model', thresholds)
+    # bootstrap_bamm(path_to_python_tools,
+    #     bootstrap + "/bamm.tsv",
+    #     models + '/bamm_model/bamm_motif_1.logOddsZoops')
 
     ##########################
     #  CALCULATE THRESHOLDS  #
