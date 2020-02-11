@@ -165,9 +165,7 @@ def main():
     pwm = read_pwm(pwm_path)
     length_of_site = len(pwm['A'])
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
-    print(number_of_sites)
     scores = calculate_scores(peaks, pwm, length_of_site)
-    print('scores are calculated')
     get_threshold(scores, path_out, number_of_sites)
 
 

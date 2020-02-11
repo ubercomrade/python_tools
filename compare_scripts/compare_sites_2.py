@@ -198,13 +198,13 @@ def main():
     statistics['OVERLAPPED+{}'.format(fname)] = len([i for i in c if len(i['intersected_sites1']) > 0 and len(i['not_intersected_sites1']) > 0])
     statistics['OVERLAPPED+{}'.format(sname)] = len([i for i in c if len(i['intersected_sites2']) > 0 and len(i['not_intersected_sites2']) > 0])
     statistics['NO_SITES:{},{}'.format(fname, sname)] = len(peaks) - len(common_ids) - statistics['{}'.format(fname)] - statistics['{}'.format(sname)]
-    write_table(out_dir + '/' + tag + '_{0}x{1}_COUNT.tsv'.format(fname, sname), statistics)
+    write_table(out_dir + '/' + tag + '_{0}.{1}_counts.tsv'.format(fname, sname), statistics)
 
     first_uniq_sites = get_not_intersect_sites(first_model_sites, second_model_sites)
     second_uniq_sites = get_not_intersect_sites(second_model_sites, first_model_sites)
 
-    write_bed(out_dir + '/' + tag + '_{0}x{1}_only_{0}.bed'.format(fname, sname), first_uniq_sites)
-    write_bed(out_dir + '/' + tag + '_{0}x{1}_only_{1}.bed'.format(fname, sname), second_uniq_sites)
+    write_bed(out_dir + '/' + tag + '_{0}.{1}_only_{0}.bed'.format(fname, sname), first_uniq_sites)
+    write_bed(out_dir + '/' + tag + '_{0}.{1}_only_{1}.bed'.format(fname, sname), second_uniq_sites)
 
 if __name__=='__main__':
     main()
