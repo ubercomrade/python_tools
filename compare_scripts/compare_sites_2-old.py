@@ -30,6 +30,13 @@ def read_scan(path):
     return(container)
 
     
+def is_intersect(interval, intervals, index):
+    for i in intervals:
+        if interval['start'] < i['end'] and interval['end'] > i['start']:
+            i['peak'] = index
+    pass
+
+
 def check_sites_intersection_in_peak(sites1, sites2):
     intersected_sites1 = []
     not_intersected_sites1 = []
@@ -55,9 +62,8 @@ def check_sites_intersection_in_peak(sites1, sites2):
     return(intersected_sites1, not_intersected_sites1,
           intersected_sites2, not_intersected_sites2)
         
-
 def get_indexes(peaks, sites):
-    container = dict()
+    
     chrs = list(set([i['chr'] for i in peaks]))
     chrs.sort()
     
@@ -70,21 +76,16 @@ def get_indexes(peaks, sites):
             continue
 
         for p in sub_peaks:
-            for ss in sub_sites:
-                if p['start'] < ss['end'] and p['end'] > ss['start']:
-                    if not index in container:
-                        container[index] = [ss]
-                    else:
-                        container[index].append(ss)
+            is_intersect(p, sub_sites, index)
             index += 1
-    return(container)
+    pass
 
 
 def check_common_peaks(sites1, sites2, common_ids):
     container = []
     for id_ in common_ids:
-        sites1_with_id = sites1[id_]
-        sites2_with_id = sites2[id_]
+        sites1_with_id = [i for i in sites1 if i['peak'] == id_]
+        sites2_with_id = [i for i in sites2 if i['peak'] == id_]
         intersected_sites1, not_intersected_sites1, intersected_sites2, not_intersected_sites2 = check_sites_intersection_in_peak(sites1_with_id, sites2_with_id)
         container.append({
             'intersected_sites1': intersected_sites1,
@@ -169,18 +170,18 @@ def main():
     
     peaks = read_bed(peaks_path)
     first_model_sites = read_scan(first_model_path)
-    first_model_sites_dict = get_indexes(peaks, first_model_sites)
-    ids_first_model = set(first_model_sites_dict.keys())
+    get_indexes(peaks, first_model_sites)
+    ids_first_model = set([i['peak'] for i in first_model_sites])
 
     second_model_sites = read_scan(second_model_path)
-    second_model_sites_dict = get_indexes(peaks, second_model_sites)
-    ids_second_model = set(second_model_sites_dict.keys())
+    get_indexes(peaks, second_model_sites)
+    ids_second_model = set([i['peak'] for i in second_model_sites])
 
     only_first_model_ids = ids_first_model - ids_second_model
     only_second_model_ids = ids_second_model - ids_first_model
     common_ids = ids_first_model & ids_second_model
 
-    c = check_common_peaks(first_model_sites_dict, second_model_sites_dict, common_ids)
+    c = check_common_peaks(first_model_sites, second_model_sites, common_ids)
 
     statistics = {
         '{}'.format(fname): len(only_first_model_ids),

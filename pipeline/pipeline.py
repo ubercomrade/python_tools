@@ -428,7 +428,9 @@ def get_motif_length(models):
     return(motif_length)
 
 
-def compare_2(bed, first, second, tag, name1, name2, compare_sites, path_to_python_tools):
+def compare_by_pair(bed, tool_names, scan, compare, path_to_python_tools):
+    list(itertools.combinations(a, 2))
+
     args = ['pypy3', path_to_python_tools + '/compare_scripts/compare_sites_2.py',
                     '-p', bed,
                     '-first', first,
@@ -437,6 +439,7 @@ def compare_2(bed, first, second, tag, name1, name2, compare_sites, path_to_pyth
                     '-o', compare_sites]
     r = subprocess.call(args)
     pass
+
 
 
 

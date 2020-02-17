@@ -11,9 +11,9 @@ def read_fasta(path_in, path_out):
         if not line.startswith('>'):
             line = line.strip().upper()
             line = clear_n(line)
-            fasta_out.write(line + '\n')
-        else:
-            fasta_out.write('>{0}\n'.format(int(index / 2)))
+            if line != '':
+                fasta_out.write('>{0}\n'.format(int(index / 2)))
+                fasta_out.write(line + '\n')
                 
     fasta_in.close()
     fasta_out.close()
