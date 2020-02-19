@@ -52,18 +52,18 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
     # 	path_to_model,
     # 	path_to_fasta,
     # 	tmp_dir)
-    args = [path_to_java, '-Xmx4096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
+    args = [path_to_java, '-Xmx8096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
         'i={}'.format(path_to_model),
         'id={}'.format(path_to_fasta),
         'b={}'.format('From file'),
         'd={}'.format(path_to_fasta),
-       'f={}'.format(0.005),
+       'f={}'.format(0.05),
        'outdir={}'.format(tmp_dir)]
     r = subprocess.call(args)
     # print(command)
     # os.system(command)
 
-    with open(tmp_dir + "/Motif_hits_from_SequenceScan(0.005).BED") as file:
+    with open(tmp_dir + "/Motif_hits_from_SequenceScan(0.05).BED") as file:
     	for line in file:
     		append(float(line.strip().split()[4]))
 
@@ -71,7 +71,7 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
 
 
 def get_threshold(scores, number_of_sites, path_out):
-    scores.sort(reverse=False) # sorted score from small to big
+    scores.sort(reverse=True) # sorted score from small to big
     scores = [round(math.log(float(i), 10), 3) for i in scores]
     counts = Counter(scores)
 
