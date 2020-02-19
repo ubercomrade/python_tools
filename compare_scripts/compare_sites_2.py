@@ -183,20 +183,20 @@ def main():
     c = check_common_peaks(first_model_sites_dict, second_model_sites_dict, common_ids)
 
     statistics = {
-        '{}'.format(fname): len(only_first_model_ids),
-        '{}'.format(sname): len(only_second_model_ids),
+        '{0}: against {1}'.format(fname, sname): len(only_first_model_ids),
+        '{0}: against {1}'.format(sname, fname): len(only_second_model_ids),
         'OVERLAPPED:{},{}'.format(fname, sname): 0,
-        'OVERLAPPED+{}'.format(fname): 0,
-        'OVERLAPPED+{}'.format(sname): 0,
+        'OVERLAPPED:++{0},{1}'.format(fname, sname): 0,
+        'OVERLAPPED:++{0},{1}'.format(sname, fname): 0,
         'NOT_OVERLAPPED:{},{}'.format(fname, sname): 0,
         'NO_SITES:{},{}'.format(fname, sname): 0,
         'PEAKS': len(peaks)
     }
     statistics['OVERLAPPED:{},{}'.format(fname, sname)] = len([i for i in c if len(i['intersected_sites1']) > 0])
     statistics['NOT_OVERLAPPED:{},{}'.format(fname, sname)] = len([i for i in c if len(i['intersected_sites1']) == 0])
-    statistics['OVERLAPPED+{}'.format(fname)] = len([i for i in c if len(i['intersected_sites1']) > 0 and len(i['not_intersected_sites1']) > 0])
-    statistics['OVERLAPPED+{}'.format(sname)] = len([i for i in c if len(i['intersected_sites2']) > 0 and len(i['not_intersected_sites2']) > 0])
-    statistics['NO_SITES:{},{}'.format(fname, sname)] = len(peaks) - len(common_ids) - statistics['{}'.format(fname)] - statistics['{}'.format(sname)]
+    statistics['OVERLAPPED:++{0},{1}'.format(fname, sname)] = len([i for i in c if len(i['intersected_sites1']) > 0 and len(i['not_intersected_sites1']) > 0])
+    statistics['OVERLAPPED:++{0},{1}'.format(sname, fname)] = len([i for i in c if len(i['intersected_sites2']) > 0 and len(i['not_intersected_sites2']) > 0])
+    statistics['NO_SITES:{},{}'.format(fname, sname)] = len(peaks) - len(common_ids) - statistics['{0}: against {1}'.format(fname, sname)] - statistics['{0}: against {1}'.format(sname, fname)]
     write_table(out_dir + '/' + tag + '_{0}.{1}_counts.tsv'.format(fname, sname), statistics)
 
     first_uniq_sites = get_not_intersect_sites(first_model_sites, second_model_sites)
