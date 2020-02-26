@@ -145,7 +145,7 @@ def make_pwm_from_pcm(pcm, background, pseudocount='1/N'):
     first_key = list(pcm.keys())[0]
     for i in range(len(pfm[first_key])):
         for j in pfm.keys():
-            pwm[j].append(math.log(pfm[j][i] / background[j]))
+            pwm[j].append(math.log2(pfm[j][i] / background[j]))
     return(pwm)
 
 
@@ -223,7 +223,11 @@ def main():
     seq = read_sites(fasta_path)
     #seq = remove_equalent_seq(seq_list=seq, homology=0.95)
     seq = list(set(seq))
-    background = background_freq(seq)
+    #background = background_freq(seq)
+    background = {'A': 0.25,
+                 'C': 0.25,
+                 'G': 0.25,
+                 'T': 0.25}
     nsites = len(seq)
 
     pcm = make_pcm(seq)

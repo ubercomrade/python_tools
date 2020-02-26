@@ -41,14 +41,14 @@ def parse_inmode_results(inmode_bed, out):
     container = list()
     append = container.append
     df = pd.read_csv(inmode_bed, sep='\t', header=None)
-    df = df.sort_values(by=[0,4])
-    index = 0
-    for number, line in df.iterrows():
-        if line[0] != index:
+    df = df.sort_values(by=[0,4], ascending=[True, True])
+    last_index = 0
+    for index, score in zip(df[0], df[4]):
+        if last_index != index:
             append(last_score)
-        index = line[0]
-        last_score = line[4]
-    append(line[4])
+        last_score = score
+        last_index = index
+    append(score)
 
     with open(out, 'w') as file:
         for i in container:

@@ -20,9 +20,8 @@ import random
 import itertools
 import argparse
 import functools
-import multiprocessing as mp
-import numpy as np
-import pandas as pd
+import bisect
+from operator import itemgetter
 
 
 def parse_chipmunk_words(path):
@@ -45,14 +44,12 @@ def parse_chipmunk_words(path):
                 output.append(d)
             else:
                 continue
-    df = pd.DataFrame(output)
-    df = df[['name', 'start', 'end', 'strand', 'seq']]
-    return(df)
+    return(output)
 
 
 def chipmunk_motifs(fasta, chipmunk):
     motifs = []
-    for index, line in chipmunk.iterrows():
+    for line in chipmunk:
         if line['strand'] == '+':
             start = line['start']
             end = line['end']
@@ -342,25 +339,23 @@ def calculate_score_for_train_test(seq, k):
         train_list.append(train)
     test_list = seq[:]
     train_test = zip(train_list, test_list)
-
-    with mp.Pool(mp.cpu_count()) as p:
-        res = p.map(functools.partial(get_site_scores,
-                                      k=k), train_test)
+    res = list(map(functools.partial(get_site_scores,
+                                      k=k), train_test))
     return(res)
 
 
-def roc(i, np_true_scores, np_false_scores):
-    tpr = (len(np_true_scores) - np.searchsorted(np_true_scores, i, side='left')) / len(np_true_scores)
-    fpr = (len(np_false_scores) - np.searchsorted(np_false_scores, i, side='left')) / len(np_false_scores)
+def roc(i, true_scores, false_scores):
+    tpr = (len(true_scores) - bisect.bisect_left(true_scores, i)) / len(true_scores)
+    fpr = (len(false_scores) - bisect.bisect_left(false_scores, i)) / len(false_scores)
     if fpr == 0.0:
-        fpr = 1 / (2 * len(np_false_scores))
+        fpr = 1 / (2 * len(false_scores))
     tmp = {'tpr': tpr,
            'fpr': fpr,
            'score': i}
     return(tmp)
 
 
-def calculate_fpr(seq, background, times, cpu_count, tpr=0.5):
+def calculate_fpr(seq, background, times, tpr=0.5):
 
     seq = remove_equalent_seq(seq, homology=0.95)
     pwm = make_pwm(seq, background)
@@ -371,20 +366,19 @@ def calculate_fpr(seq, background, times, cpu_count, tpr=0.5):
     true_scores = [i for i, j in scores]
     false_scores = [k for i, j in scores for k in j]
 
-    norm_true_scores = np.array([to_norm(score, min_score, max_score)
-                                 for score in true_scores])
-    norm_false_scores = np.array([to_norm(score, min_score, max_score)
-                                  for score in false_scores])
+    norm_true_scores = [to_norm(score, min_score, max_score)
+                                 for score in true_scores]
+    norm_false_scores = [to_norm(score, min_score, max_score)
+                                  for score in false_scores]
     norm_true_scores.sort()
     norm_false_scores.sort()
 
-    with mp.Pool(cpu_count) as p:
-        results = p.map(functools.partial(roc, np_true_scores=norm_true_scores,
-                                          np_false_scores=norm_false_scores), norm_true_scores)
-    results = pd.DataFrame(results)
-    results = results[['tpr', 'fpr', 'score']]
-    results = results.sort_values(by=['tpr'])
-    fpr = float(results['fpr'][np.searchsorted(results['tpr'], tpr)])
+    results = list(map(functools.partial(roc, true_scores=norm_true_scores,
+                                          false_scores=norm_false_scores), norm_true_scores))
+    
+    results.sort(key=itemgetter('tpr'))
+    tpr_list = [i['tpr'] for i in results]
+    fpr = float(results[bisect.bisect(tpr_list, tpr)]['fpr'])
     return(fpr)
 
 
@@ -434,8 +428,6 @@ def parse_args():
     parser.add_argument('-n', '--times', action='store', dest='times', type=int,
                         default=5000, required=False,
                         help='x times random sample will be larger than original sample')
-    parser.add_argument('-P', '--processes', action='store', type=int, dest='cpu_count',
-                        required=False, default=2, help='Number of processes to use, default: 2')
     return(parser.parse_args())
 
 
@@ -447,7 +439,6 @@ def main():
     output_dir = args.output
     times = args.times
     tag = args.tag
-    cpu_count = args.cpu_count
 
     chipmunk = parse_chipmunk_words(chipmunk_path)
     fasta = read_fasta(fasta_path)
@@ -461,7 +452,7 @@ def main():
 
     optimal_motifs = chipmunk_motifs(fasta, chipmunk)
     optimal_motifs = remove_equalent_seq(optimal_motifs, homology=0.95)
-    optimal_fpr = calculate_fpr(optimal_motifs, background, times, cpu_count, tpr=0.5)
+    optimal_fpr = calculate_fpr(optimal_motifs, background, times, tpr=0.5)
     fprs.append(optimal_fpr)
     print(optimal_fpr)
 
@@ -469,7 +460,7 @@ def main():
     chipmunk['end'] += 1
     motifs = chipmunk_motifs(fasta, chipmunk)
     motifs = remove_equalent_seq(motifs, homology=0.95)
-    fpr = calculate_fpr(motifs, times, cpu_count, tpr=0.5)
+    fpr = calculate_fpr(motifs, background, times, tpr=0.5)
     fprs.append(fpr)
     print(fpr)
 
@@ -480,7 +471,7 @@ def main():
         chipmunk['end'] += 1
         motifs = chipmunk_motifs(fasta, chipmunk)
         motifs = remove_equalent_seq(motifs, homology=0.95)
-        fpr = calculate_fpr(motifs, background, times, cpu_count, tpr=0.5)
+        fpr = calculate_fpr(motifs, background, times, tpr=0.5)
         fprs.append(fpr)
         if fpr <= optimal_fpr and 1 - fprs[-1]/fprs[-2] < 0.1:
             print(fpr)
@@ -506,4 +497,4 @@ def main():
     file.close()
 
 if __name__=='__main__':
-    main()
+   main()
