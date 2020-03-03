@@ -55,14 +55,15 @@ def main():
     ftools = tools
     rtools = ftools[::-1]
     
-    fig = make_subplots(rows=3, cols=3, specs=specs, column_titles=ftools[:-1], row_titles=rtools[:-1],
-                   start_cell='top-left') #horizontal_spacing = 0.05, vertical_spacing = 0.1)
+    fig = make_subplots(rows=number_of_tools, cols=number_of_tools, specs=specs, column_titles=ftools[:-1], row_titles=rtools[:-1],
+                   start_cell='top-left', horizontal_spacing = 0.4 / number_of_tools, vertical_spacing = 0.4 / number_of_tools)
 
     labels = ['Peaks with only first model sites',
               'Peaks with only second model sites',
               'Peaks with overlapped sites of models',
              'Peaks with both model sites but not overlapped',
              'Peaks with out sites']
+    colors = ['#F66D44', '#FEAE65', '#E6F69D', '#AADEA7', '#64C2A6']
 
     for i, j in coordinates:
         tool1, tool2 = ftools[i - 1], rtools[j - 1]
@@ -72,24 +73,24 @@ def main():
         #labels = list(data.keys())
         v = list(data.values())
         vals = np.array([v[0], v[1], v[2], v[5], v[6]])
-        fig.add_trace(go.Pie(labels=labels, values=vals, name=str(index)), j, i)
+        fig.add_trace(go.Pie(labels=labels, values=vals,
+            name=str(index), sort=False,
+            marker_colors=colors), j, i)
 
 
     fig.update_layout(height=700, width=700, legend_orientation="h",
                      font=dict(
                          family="Courier New, monospace",
                          size=14),
-                      legend=dict(x=-.1, y=.2))
+                      legend=dict(x=0.5, y=0.45))
 
     for i in fig['layout']['annotations']:
         if i['yanchor'] == 'middle':
             #i['x'] = i['x'] - 0.1
-            i['x'] = -.05
+            i['x'] = -.12
         else:
-            i['y'] += .02
+            i['y'] += .07
 
-    fig['layout']['legend']['x'] = 0.5
-    fig['layout']['legend']['y'] = 0.45
     fig.write_image(main_path + '/compare_plot.pdf')
 #    fig.show()
 
