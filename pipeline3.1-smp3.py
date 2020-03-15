@@ -571,17 +571,17 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
         # if not os.path.isfile(compare_sites + '/' + tag + '_' + '{:.2e}'.format(fpr_for_thr) + '_COUNT.tsv'):
         # print('Compare sites ({0})'.format(tag))
-        args = ['pypy', path_to_python_tools + 'compare_sites3-pypy.py',
-                '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
-                '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-                '-t', tag + '_' + '{:.2e}'.format(fpr_for_thr),
-                '-o', compare_sites,
-                '-fname', fname,
-                '-sname', sname,
-                '-tname', tname]
-        r = subprocess.call(args)
+        # args = ['pypy', path_to_python_tools + 'compare_sites3-pypy.py',
+        #         '-p', bed + '/' + tag + '_' + str(testing_sample_size) + '.bed',
+        #         '-first', scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        #         '-second', scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        #         '-third', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        #         '-t', tag + '_' + '{:.2e}'.format(fpr_for_thr),
+        #         '-o', compare_sites,
+        #         '-fname', fname,
+        #         '-sname', sname,
+        #         '-tname', tname]
+        # r = subprocess.call(args)
         # else:
         #     print('Sites already compared')
 
@@ -590,43 +590,43 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
         #WORK WITH GENE IDS#
         ####################
 
-        if not os.path.isfile(gene_ids + '/' + 'compare.ids.{:.2e}.pdf'.format(fpr_for_thr)):
-            ## GET GEN IDS ###
-            print('GET GEN IDS ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-            path_to_tss,
-            scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-            gene_ids + '/' + 'pwm.ids.{:.2e}.txt'.format(fpr_for_thr)]
-            r = subprocess.call(args)
+        # if not os.path.isfile(gene_ids + '/' + 'compare.ids.{:.2e}.pdf'.format(fpr_for_thr)):
+        #     ## GET GEN IDS ###
+        #     print('GET GEN IDS ({0})'.format(tag))
+        #     args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+        #     path_to_tss,
+        #     scan + '/' + tag + '_PWM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        #     gene_ids + '/' + 'pwm.ids.{:.2e}.txt'.format(fpr_for_thr)]
+        #     r = subprocess.call(args)
 
-            print('GET GEN IDS ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-            path_to_tss,
-            scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-            gene_ids + '/' + 'bamm.ids.{:.2e}.txt'.format(fpr_for_thr)]
-            r = subprocess.call(args)
+        #     print('GET GEN IDS ({0})'.format(tag))
+        #     args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+        #     path_to_tss,
+        #     scan + '/' + tag + '_BAMM_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        #     gene_ids + '/' + 'bamm.ids.{:.2e}.txt'.format(fpr_for_thr)]
+        #     r = subprocess.call(args)
 
-            print('GET GEN IDS ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
-            path_to_tss,
-            scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
-            gene_ids + '/' + 'inmode.ids.{:.2e}.txt'.format(fpr_for_thr)]
-            r = subprocess.call(args)
+        #     print('GET GEN IDS ({0})'.format(tag))
+        #     args = ['python3', path_to_python_tools + 'peaks_intersection_with_bed.py',
+        #     path_to_tss,
+        #     scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+        #     gene_ids + '/' + 'inmode.ids.{:.2e}.txt'.format(fpr_for_thr)]
+        #     r = subprocess.call(args)
 
-            ### COMPARE IDS ###
+        #     ### COMPARE IDS ###
 
-            print('Compare sites ({0})'.format(tag))
-            args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
-                    '-first', gene_ids + '/' + 'pwm.ids.{:.2e}.txt'.format(fpr_for_thr),
-                    '-second', gene_ids + '/' + 'bamm.ids.{:.2e}.txt'.format(fpr_for_thr),
-                    '-third', gene_ids + '/' + 'inmode.ids.{:.2e}.txt'.format(fpr_for_thr),
-                    '-o', gene_ids + '/' + 'compare.ids.{:.2e}.pdf'.format(fpr_for_thr),
-                    '-fname', fname,
-                    '-sname', sname,
-                    '-tname', tname]
-            r = subprocess.call(args)
-        else:
-            print('IDs already compared')
+        #     print('Compare sites ({0})'.format(tag))
+        #     args = ['python3', path_to_python_tools + 'compare_gene_ids.py',
+        #             '-first', gene_ids + '/' + 'pwm.ids.{:.2e}.txt'.format(fpr_for_thr),
+        #             '-second', gene_ids + '/' + 'bamm.ids.{:.2e}.txt'.format(fpr_for_thr),
+        #             '-third', gene_ids + '/' + 'inmode.ids.{:.2e}.txt'.format(fpr_for_thr),
+        #             '-o', gene_ids + '/' + 'compare.ids.{:.2e}.pdf'.format(fpr_for_thr),
+        #             '-fname', fname,
+        #             '-sname', sname,
+        #             '-tname', tname]
+        #     r = subprocess.call(args)
+        # else:
+        #     print('IDs already compared')
 
 
         ###################
@@ -744,75 +744,75 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     #PLOT BEST#
     ###########
 
-    length = bed + '/' + tag + '_' + str(testing_sample_size) + '.length.txt'
-    fpr_for_thr = 5.24*10**(-5)
+    # length = bed + '/' + tag + '_' + str(testing_sample_size) + '.length.txt'
+    # fpr_for_thr = 5.24*10**(-5)
 
-    pwm_scores = scan_best + '/pwm.scores.txt'
-    bamm_scores = scan_best + '/bamm.scores.txt'
-    inmode_scores = scan_best + '/inmode.scores.txt'
-    results_corr = scan_best + '/corr.results.txt'
+    # pwm_scores = scan_best + '/pwm.scores.txt'
+    # bamm_scores = scan_best + '/bamm.scores.txt'
+    # inmode_scores = scan_best + '/inmode.scores.txt'
+    # results_corr = scan_best + '/corr.results.txt'
 
-    thr_bamm = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr_for_thr))
-    thr_pwm = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr_for_thr))
-    thr_inmode = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr_for_thr)))
+    # thr_bamm = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr_for_thr))
+    # thr_pwm = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr_for_thr))
+    # thr_inmode = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr_for_thr)))
 
-    if not os.path.isfile(scan_best + '/pwm-inmode-scores.pdf'):
-        plot_best_score(path_to_python_tools, inmode_scores, pwm_scores,
-            thr_inmode, thr_pwm, length, scan_best + '/pwm-inmode-scores.pdf', 'inmode scores', 'pwm scores')
-    else:
-        print('pwm-inmode-scores.pdf exists')
+    # if not os.path.isfile(scan_best + '/pwm-inmode-scores.pdf'):
+    #     plot_best_score(path_to_python_tools, inmode_scores, pwm_scores,
+    #         thr_inmode, thr_pwm, length, scan_best + '/pwm-inmode-scores.pdf', 'inmode scores', 'pwm scores')
+    # else:
+    #     print('pwm-inmode-scores.pdf exists')
 
-    if not os.path.isfile(scan_best + '/pwm-bamm-scores.pdf'):
-        plot_best_score(path_to_python_tools, pwm_scores, bamm_scores,
-            thr_pwm, thr_bamm, length, scan_best + '/pwm-bamm-scores.pdf', 'pwm scores', 'bamm scores')
-    else:
-        print('pwm-bamm-scores.pdf exists')
+    # if not os.path.isfile(scan_best + '/pwm-bamm-scores.pdf'):
+    #     plot_best_score(path_to_python_tools, pwm_scores, bamm_scores,
+    #         thr_pwm, thr_bamm, length, scan_best + '/pwm-bamm-scores.pdf', 'pwm scores', 'bamm scores')
+    # else:
+    #     print('pwm-bamm-scores.pdf exists')
 
-    if not os.path.isfile(scan_best + '/bamm-inmode-scores.pdf'):
-        plot_best_score(path_to_python_tools, bamm_scores, inmode_scores,
-            thr_bamm, thr_inmode, length, scan_best + '/bamm-inmode-scores.pdf', 'bamm scores', 'inmode scores')
-    else:    
-        print('bamm-inmode-scores.pdf exists')
+    # if not os.path.isfile(scan_best + '/bamm-inmode-scores.pdf'):
+    #     plot_best_score(path_to_python_tools, bamm_scores, inmode_scores,
+    #         thr_bamm, thr_inmode, length, scan_best + '/bamm-inmode-scores.pdf', 'bamm scores', 'inmode scores')
+    # else:    
+    #     print('bamm-inmode-scores.pdf exists')
 
 
     ############
     #MONTECARLO#
     ############
 
-    pwm_scores = scan_best + '/pwm.scores.txt'
-    bamm_scores = scan_best + '/bamm.scores.txt'
-    inmode_scores = scan_best + '/inmode.scores.txt'
-    results_montecarlo = scan_best + '/montecarlo.results.txt'
-    results_binome = scan_best + '/binome.results.txt'
+    # pwm_scores = scan_best + '/pwm.scores.txt'
+    # bamm_scores = scan_best + '/bamm.scores.txt'
+    # inmode_scores = scan_best + '/inmode.scores.txt'
+    # results_montecarlo = scan_best + '/montecarlo.results.txt'
+    # results_binome = scan_best + '/binome.results.txt'
 
-    print('Run montecarlo')
+    # print('Run montecarlo')
 
-    fprs = [5*10**(-4), 1.90*10**(-4), 5.24*10**(-5)]
-    for fpr in fprs:
-        thr1 = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr))
-        thr2 = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr))
-        scores1 = pwm_scores
-        scores2 = bamm_scores
-        name1, name2 = 'PWM', 'BAMM'
-        montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
-
-
-        thr1 = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr))
-        thr2 = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr)))
-        scores1 = pwm_scores
-        scores2 = inmode_scores
-        name1, name2 = 'PWM', 'INMODE'
-        montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
+    # fprs = [5*10**(-4), 1.90*10**(-4), 5.24*10**(-5)]
+    # for fpr in fprs:
+    #     thr1 = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr))
+    #     thr2 = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr))
+    #     scores1 = pwm_scores
+    #     scores2 = bamm_scores
+    #     name1, name2 = 'PWM', 'BAMM'
+    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
 
 
-        thr1 = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr))
-        thr2 = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr)))
-        scores1 = bamm_scores
-        scores2 = inmode_scores
-        name1, name2 = 'BAMM', 'INMODE'
-        montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
+    #     thr1 = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr))
+    #     thr2 = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr)))
+    #     scores1 = pwm_scores
+    #     scores2 = inmode_scores
+    #     name1, name2 = 'PWM', 'INMODE'
+    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
 
-    print('Finish!')
+
+    #     thr1 = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr))
+    #     thr2 = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr)))
+    #     scores1 = bamm_scores
+    #     scores2 = inmode_scores
+    #     name1, name2 = 'BAMM', 'INMODE'
+    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
+
+    # print('Finish!')
 
 
 def parse_args():

@@ -469,7 +469,7 @@ def main():
     chipmunk['end'] += 1
     motifs = chipmunk_motifs(fasta, chipmunk)
     motifs = remove_equalent_seq(motifs, homology=0.95)
-    fpr = calculate_fpr(motifs, times, cpu_count, tpr=0.5)
+    fpr = calculate_fpr(motifs, background, times, cpu_count, tpr=0.5)
     fprs.append(fpr)
     print(fpr)
 
