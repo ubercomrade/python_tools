@@ -57,13 +57,13 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
         'id={}'.format(path_to_fasta),
         'b={}'.format('From file'),
         'd={}'.format(path_to_fasta),
-       'f={}'.format(0.1),
+       'f={}'.format(0.05),
        'outdir={}'.format(tmp_dir)]
     r = subprocess.call(args)
     # print(command)
     # os.system(command)
 
-    with open(tmp_dir + "/Motif_hits_from_SequenceScan(0.1).BED") as file:
+    with open(tmp_dir + "/Motif_hits_from_SequenceScan(0.05).BED") as file:
     	for line in file:
     		append(float(line.strip().split()[4]))
 

@@ -33,16 +33,15 @@ def read_bed(path):
     return(container)
 
 
-def read_scan_file(path, scan_id):
+def read_scan_file(path):
     container = []
     with open(path) as csvfile:
         csvreader = csv.reader(csvfile, delimiter='\t')
         for row in csvreader:
             container.append({
-                'chromosome': row[0], 'start': int(row[1]), 'end': int(row[2]),
+                'chr': row[0], 'start': int(row[1]), 'end': int(row[2]),
                 'name': int(row[3].split('_')[1]), 'score': float(row[4]),
-                'strand': row[5], 'site': row[6], 'type': scan_id
-            })
+                'strand': row[5], 'site': row[6]})
     return(container)
 
     
@@ -73,6 +72,18 @@ def get_indexes(peaks, sites):
             index += 1    
                 
     return(container)
+
+
+def write_peaks(ids, peaks, tag, out_dir, tool_name):
+    #only_peaks = itemgetter(*list(ids))(peaks)
+    only_peaks = [peak for peak in peaks if peak['name'] in ids]
+    with open(out_dir + '/{0}_only_{1}_peaks.bed'.format(tag, tool_name), 'w') as file:
+        for row in only_peaks:
+            file.write('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\n'.format(row['chr'], 
+                row['start'], row['end'],row['name'],
+                row['score'], row['strand'], row['site']))
+    file.close()
+    return(1)
 
 
 def write_table(path, data):
@@ -171,19 +182,31 @@ def main():
 
     peaks = read_bed(peaks_path)
 
-    first_model_sites = read_bed(first_model_path)
+    first_model_sites = read_scan_file(first_model_path)
     first_names = set(get_indexes(peaks, first_model_sites))
 
-    second_model_sites = read_bed(second_model_path)
+    second_model_sites = read_scan_file(second_model_path)
     second_names = set(get_indexes(peaks, second_model_sites))
 
-    third_model_sites = read_bed(third_model_path) 
+    third_model_sites = read_scan_file(third_model_path) 
     third_names = set(get_indexes(peaks, third_model_sites))
 
-    fourth_model_sites = read_bed(fourth_model_path)
+    fourth_model_sites = read_scan_file(fourth_model_path)
     fourth_names = set(get_indexes(peaks, fourth_model_sites))
     
     petal_labels = creat_petal(first_names, second_names, third_names, fourth_names)
+
+
+
+    only_first_names = first_names - (fourth_names | second_names | third_names)
+    only_second_names = second_names - (fourth_names | first_names | third_names)
+    only_third_names = third_names - (first_names | second_names | fourth_names)
+    only_fourth_names = fourth_names - (first_names | second_names | third_names)
+
+    write_peaks(only_first_names, first_model_sites, tag, out_dir, fname)
+    write_peaks(only_second_names, second_model_sites, tag, out_dir, sname)
+    write_peaks(only_third_names, third_model_sites, tag, out_dir, tname)
+    write_peaks(only_fourth_names, fourth_model_sites, tag, out_dir, foname)
 
     
     ########################
