@@ -348,7 +348,7 @@ def inmode_scan(path_to_java, path_to_inmode, input_data, input_model, backgroud
 
 
 def scan_best_by_inmode(path_to_python_tools, output, input_model, fasta_in, path_to_inmode, path_to_java):
-    args = ['pypy', path_to_python_tools + '/scan_best_by_inmode_alt.py',
+    args = ['pypy3', path_to_python_tools + '/scan_best_by_inmode_alt.py',
            fasta_in,
            input_model,
            output,
@@ -373,7 +373,7 @@ def plot_best_score(path_to_python_tools, model1, model2, thr1, thr2, length, ou
 
 
 def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in):
-    args = ['pypy', path_to_python_tools + 'scan_best_by_pwm.py',
+    args = ['pypy3', path_to_python_tools + 'scan_best_by_pwm.py',
             '-f', fasta_in,
             '-m', input_model,
             '-o', output]
@@ -382,7 +382,7 @@ def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in):
 
 
 def scan_best_by_bamm(path_to_python_tools, output, input_bamm_model, bg_model, fasta_in):
-    args = ['pypy', path_to_python_tools + '/scan_best_by_bamm.py',
+    args = ['pypy3', path_to_python_tools + '/scan_best_by_bamm.py',
             '-f', fasta_in,
             '-m', input_bamm_model,
             '-b', bg_model,
@@ -411,7 +411,7 @@ def make_model(path_to_python_tools, path_in, dir_out, tag):
             '-i', path_in,
             '-o', dir_out,
             '-t', tag,
-            '-M', '-m', 'p']
+            '-M', '-p']
     r = subprocess.call(args)
     pass
 
@@ -441,7 +441,7 @@ def compare_by_pair(bed, tool_names, scan, compare, path_to_python_tools):
     pass
 
 
-def extracting_sites(scan_file, output):
+def extracting_sites(path_to_python_tools, scan_file, output):
         args = ['python3', path_to_python_tools + 'extract_sites.py',
             '-p', scan_file,
             '-o', output]
@@ -472,7 +472,13 @@ def compare_4(bed, first, second, third, fourth, tag, compare_sites, path_to_pyt
     pass
 
 
-def pipeline(bed_path, fpr, train_sample_size, test_sample_size,
+def montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results):
+        args = ['monteCarlo', '{}'.format(scores1), '{}'.format(scores2), '{}'.format(thr1), '{}'.format(thr2), '{}'.format(length), '{}'.format(results)]
+        r = subprocess.call(args)
+        pass
+
+
+def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
                       path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_chipmunk,
                       path_to_promoters, path_to_genome, path_to_hocomoco, cpu_count):
 
@@ -500,7 +506,8 @@ def pipeline(bed_path, fpr, train_sample_size, test_sample_size,
     scan_best = main_out + '/scan-best'
     compare_sites = main_out + '/compare'
     tomtom = main_out + '/tomtom'
-    tools = ['pwm', 'bamm', 'inmode', 'sitega']
+    montecarlo = main_out + '/montecarlo'
+    #tools = ['pwm', 'bamm', 'inmode', 'sitega']
     #tag = os.path.basename(bed_path).split('.bed')[0]
 
 
@@ -526,6 +533,8 @@ def pipeline(bed_path, fpr, train_sample_size, test_sample_size,
         os.mkdir(compare_sites)
     if not os.path.isdir(tomtom):
         os.mkdir(tomtom)
+    if not os.path.isdir(montecarlo):
+        os.mkdir(montecarlo)
 
 
 
@@ -552,9 +561,9 @@ def pipeline(bed_path, fpr, train_sample_size, test_sample_size,
     scan_best_by_pwm(path_to_python_tools, scan_best + '/pwm.scores.txt',
          pwm_model,
          fasta_test)
-    extracting_sites(scan + 'pwm_{:2e}.bed'.format(fpr), tomtom + '/pwm.sites.txt')
+    extracting_sites(path_to_python_tools, scan + '/pwm_{:.2e}.bed'.format(fpr), tomtom + '/pwm.sites.txt')
     make_model(path_to_python_tools, tomtom + '/pwm.sites.txt', tomtom, 'pwm')
-    run_tomtom(database, tomtom + '/pwm.meme', tomtom + '/pwm')
+    run_tomtom(path_to_hocomoco, tomtom + '/pwm.meme', tomtom + '/pwm')
 
     # GET MOTIF LENGTH #
     motif_length = get_motif_length(models)
@@ -575,9 +584,9 @@ def pipeline(bed_path, fpr, train_sample_size, test_sample_size,
         inmode_model,
         fasta_test,
         path_to_inmode, path_to_java)
-    extracting_sites(scan + 'inmode_{:2e}.bed'.format(fpr), tomtom + '/inmode.sites.txt')
+    extracting_sites(path_to_python_tools, scan + '/inmode_{:.2e}.bed'.format(fpr), tomtom + '/inmode.sites.txt')
     make_model(path_to_python_tools, tomtom + '/inmode.sites.txt', tomtom, 'inmode')
-    run_tomtom(database, tomtom + '/inmode.meme', tomtom + '/inmode')
+    run_tomtom(path_to_hocomoco, tomtom + '/inmode.meme', tomtom + '/inmode')
 
     # CALCULATE BAMM MODEL WITH EM ALG #
     meme_model = models + '/pwm_model/optimazed_pwm_model.meme'
@@ -595,93 +604,41 @@ def pipeline(bed_path, fpr, train_sample_size, test_sample_size,
         bamm_model,
         bg_bamm_model,
         fasta_test)
-    extracting_sites(scan + '/bamm_{:2e}.bed'.format(fpr), tomtom + '/bamm.sites.txt')
+    extracting_sites(path_to_python_tools, scan + '/bamm_{:.2e}.bed'.format(fpr), tomtom + '/bamm.sites.txt')
     make_model(path_to_python_tools, tomtom + '/bamm.sites.txt', tomtom, 'bamm')
-    run_tomtom(database, tomtom + '/bamm.meme', tomtom + '/bamm')
+    run_tomtom(path_to_hocomoco, tomtom + '/bamm.meme', tomtom + '/bamm')
    
 
-    #COMPARE SITES #
+    # COMPARE SITES #
     print('COMPARE SITES')
     pair_tools = list(itertools.combinations(tools, 2))
     for tool1, tool2 in pair_tools:
         tag = 'compare'
-        scan1 = scan + '/{0}_{1:2e}.bed'.format(tool1, fpr)
-        scan2 = scan + '/{0}_{1:2e}.bed'.format(tool2, fpr)
+        scan1 = scan + '/{0}_{1:.2e}.bed'.format(tool1, fpr)
+        scan2 = scan + '/{0}_{1:.2e}.bed'.format(tool2, fpr)
         compare_2(bed_test, scan1, scan2, tag, tool1, tool2, compare_sites, path_to_python_tools)
 
     if len(tools) == 4:
         compare_4(bed_test,
-            scan + '/{0}_{1:2e}.bed'.format('pwm', fpr),
-            scan + '/{0}_{1:2e}.bed'.format('bamm', fpr),
-            scan + '/{0}_{1:2e}.bed'.format('inmode', fpr),
-            scan + '/{0}_{1:2e}.bed'.format('sitega', fpr),
+            scan + '/{0}_{1:.2e}.bed'.format('pwm', fpr),
+            scan + '/{0}_{1:.2e}.bed'.format('bamm', fpr),
+            scan + '/{0}_{1:.2e}.bed'.format('inmode', fpr),
+            scan + '/{0}_{1:.2e}.bed'.format('sitega', fpr),
             tag,
             compare_sites,
             path_to_python_tools)
 
 
+    # MONTECARLO #
+    # for tool1, tool2 in pair_tools:
+    #     thr1 = str(get_threshold(thresholds + '/{}_model_thresholds.txt'.format(tool1), fpr))
+    #     thr2 = str(get_threshold(thresholds + '/{}_model_thresholds.txt'.format(tool2), fpr))
+    #     scores1 = scan_best + '/{}.scores.txt'.format(tool1)
+    #     scores2 = scan_best + '/{}.scores.txt'.format(tool2)
+    #     name1, name2 = tool1, tool2
+    #     results_montecarlo = montecarlo + '/montecarlo.results.{0}.{1}.{2:.2e}.txt'.format(tool1, tool2, fpr)
+    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo)
 
-    def montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results):
-        args = ['monteCarlo', '{}'.format(scores1), '{}'.format(scores2), '{}'.format(thr1), '{}'.format(thr2), '{}'.format(length), '{}'.format(results)]
-        r = subprocess.call(args)
-        pass
-
-
-    for tool1, tool2 in pair_tools:
-        if tool1 != 'SITEGA':
-            thr1 = str(get_threshold(thresholds_dict[tool1], fpr[0]))
-        else:
-            thr1 = str(get_threshold_sitega(thresholds_dict[tool1], fpr[1]))
-
-        if tool2 != 'SITEGA':
-            thr2 = str(get_threshold(thresholds_dict[tool2], fpr[0]))
-        else:
-            thr2 = str(get_threshold_sitega(thresholds_dict[tool2], fpr[1]))    
-        
-        scores1 = scores_dict[tool1]
-        scores2 = scores_dict[tool2]
-        name1, name2 = tool1, tool2
-        results_montecarlo = dir_to_wrt + '/montecarlo.results.{0}.{1}.{2:.2e}.txt'.format(tool1, tool2, fpr[0])
-        montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo)
-
-    # ############
-    # #MONTECARLO#
-    # ############
-
-    # pwm_scores = scan_best + '/pwm.scores.txt'
-    # bamm_scores = scan_best + '/bamm.scores.txt'
-    # inmode_scores = scan_best + '/inmode.scores.txt'
-    # results_montecarlo = scan_best + '/montecarlo.results.txt'
-    # results_binome = scan_best + '/binome.results.txt'
-
-    # print('Run montecarlo')
-
-    # fprs = [5*10**(-4), 1.90*10**(-4), 5.24*10**(-5)]
-    # for fpr in fprs:
-    #     thr1 = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr))
-    #     thr2 = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr))
-    #     scores1 = pwm_scores
-    #     scores2 = bamm_scores
-    #     name1, name2 = 'PWM', 'BAMM'
-    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
-
-
-    #     thr1 = str(get_threshold(motifs + '/' + tag + '_PWM_THRESHOLDS.txt', fpr))
-    #     thr2 = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr)))
-    #     scores1 = pwm_scores
-    #     scores2 = inmode_scores
-    #     name1, name2 = 'PWM', 'INMODE'
-    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
-
-
-    #     thr1 = str(get_threshold(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt', fpr))
-    #     thr2 = str(math.log2(get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr)))
-    #     scores1 = bamm_scores
-    #     scores2 = inmode_scores
-    #     name1, name2 = 'BAMM', 'INMODE'
-    #     montecarlo(path_to_python_tools, scores1, scores2, thr1, thr2, length, results_montecarlo, name1, name2, fpr, fpr)
-
-    # print('Finish!')
 
 
 def parse_args():
@@ -691,12 +648,14 @@ def parse_args():
     parser.add_argument('promoters', action='store', help='path to promoters fasta file')
     parser.add_argument('genome', action='store', help='path to genome fasta file')
     parser.add_argument('output', action='store', help='output dir')
+    parser.add_argument('models', action='store', choices=['pwm', 'bamm', 'inmode', 'sitega'], metavar='N', nargs='+',
+         help='list of models to use (pwm, bamm, inmode, sitega)')
     parser.add_argument('-t', '--train', action='store', type=int, dest='train_size',
-                        required=False, default=1000, help='size of training sample, by default size is equal to 1000')
+                        required=False, default=500, help='size of training sample, by default size is equal to 500')
     parser.add_argument('-f', '--FPR', action='store', type=float, dest='fpr',
                         required=False, default=1.9*10**(-4), help='FPR, def=1.9*10^(-4)')
     parser.add_argument('-T', '--test', action='store', type=int, dest='test_size',
-                        required=False, default=10000, help='size of testing sample, by default size is equal to 10000')
+                        required=False, default=4000, help='size of testing sample, by default size is equal to 4000')
     parser.add_argument('-p', '--python', action='store', dest='python_tools',
                         required=True, help='dir with python tools')
     parser.add_argument('-I', '--inmode', action='store', dest='inmode',
@@ -726,7 +685,7 @@ def main():
     train_sample_size = args.train_size
     test_sample_size = args.test_size
     fpr = args.fpr
-
+    tools = args.models
 
     path_to_python_tools = args.python_tools
     path_to_java = args.java
@@ -738,7 +697,7 @@ def main():
     cpu_count = args.cpu_count
 
 
-    pipeline(bed_path, fpr, train_sample_size, test_sample_size,
+    pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
                           path_to_out, path_to_python_tools, path_to_java, path_to_inmode, path_to_chipmunk,
                           path_to_promoters, path_to_genome, path_to_hocomoco, cpu_count)
 
