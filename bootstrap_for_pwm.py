@@ -4,6 +4,8 @@ import os
 import sys
 import argparse
 import random
+import math
+
 
 def read_sites(path):
     container = []
@@ -55,15 +57,15 @@ def make_pwm(pfm):
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
         pwm[i[0]] = []
-    first_key = list(pcm.keys())[0]
+    first_key = list(pfm.keys())[0]
     for i in range(len(pfm[first_key])):
         for j in pfm.keys():
             pwm[j].append(math.log(pfm[j][i] / background[j]))
     return(pwm)
 
 
-def motifs_to_pwm(motifs):
-    pcm = make_pcm(motifs)
+def sites_to_pwm(sites):
+    pcm = make_pcm(sites)
     pfm = make_pfm(pcm)
     pwm = make_pwm(pfm)
     return(pwm)
@@ -77,7 +79,7 @@ def score(seq, pwm):
 
 
 def calculate_scores(sites, pwm):
-    scores = [score(pwm, site) for site in sites]
+    scores = [score(site, pwm) for site in sites]
     return(scores)
 
 
@@ -85,15 +87,16 @@ def bootstrap_pwm(sites, size_of_random_sample):
     true_scores = []
     false_scores = []
     number_of_sites = len(sites)
+    len_of_site = len(sites[0])
 
     for i in range(10):
         train_sample = random.choices(sites, k=round(0.9 * number_of_sites))
         test_sample = [site for site in sites  if not site in train_sample]
-        random_sample = [random.shuffle(random.choice(test_sample)) for i in range(len(test_sample) * size_of_random_sample)]
-        pwm = make_pwm_from_sites(train_sample)
+        random_sample = [''.join(random.sample(list(random.choice(test_sample)), len_of_site)) for i in range(len(test_sample) * size_of_random_sample)]
+        pwm = sites_to_pwm(train_sample)
         for true_score in calculate_scores(test_sample, pwm):
             true_scores.append(true_score)
-        for false_score in calculate_scores(randome_sample, pwm):
+        for false_score in calculate_scores(random_sample, pwm):
             false_scores.append(false_score)
 
     true_scores.sort(reverse=True)
@@ -103,15 +106,17 @@ def bootstrap_pwm(sites, size_of_random_sample):
 
     table = []
     for tpr in [round(i * 0.01, 2) for i in range(0,105, 5)]:
-        score = true_scores[round(true_length * tpr)]
+        print(tpr)
+        score = true_scores[round(true_length * tpr) - 1]
         actual_tpr = sum([1 if true_score >= score else 0 for true_score in true_scores]) / true_length
         fpr = sum([1 if false_score >= score else 0 for false_score in false_scores]) / false_length
         table.append({'Scores': score, 'TPR': tpr, 'ACTUAL_TPR': actual_tpr, 'FPR': fpr})
+    print(table)
     return(table)
 
 
 def write_table(path, data):
-    with open('names.csv', 'w', newline='') as csvfile:
+    with open(path, 'w') as csvfile:
         fieldnames = data[0].keys()
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter='\t')
         writer.writeheader()
@@ -124,8 +129,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('output', action='store', help='path to write results')
     parser.add_argument('input', action='store', help='path to file with sites')
-    parser.add_argument('-s', '--size', action='store', type=int, dest='false_positive',
-                            default= 1000000, required=False, help='randome_sample times more than test_sample')
+    parser.add_argument('-s', '--size', action='store', type=int, dest='size',
+                            default= 1000, required=False, help='randome_sample times more than test_sample')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)

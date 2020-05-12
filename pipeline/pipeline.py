@@ -221,7 +221,7 @@ def scan_by_pwm(path_to_python_tools, fasta_test, model_path, scan, threshold_ta
     thr_pwm = get_threshold(threshold_table_path, fpr)
     pwm_scan_path = scan + '/pwm_{:.2e}.bed'.format(fpr)
     print('Scan peaks by PWM with FPR: {0} THR: {1}'.format(fpr, thr_pwm))
-    args = ['pypy', path_to_python_tools + 'scan_by_pwm.py',
+    args = ['pypy3', path_to_python_tools + 'scan_by_pwm.py',
             '-f', fasta_test,
             '-m', model_path,
             '-t', str(thr_pwm),
@@ -235,7 +235,7 @@ def scan_by_bamm(path_to_python_tools, fasta_test, model_path, bg_model_path, sc
     thr_bamm = get_threshold(threshold_table_path, fpr)
     bamm_scan_path = scan + '/bamm_{:.2e}.bed'.format(fpr)
     print('Scan peaks by BAMM with FPR: {0} THR: {1}'.format(fpr, thr_bamm))
-    args = ['pypy', path_to_python_tools + 'scan_by_bamm.py',
+    args = ['pypy3', path_to_python_tools + 'scan_by_bamm.py',
             '-f', fasta_test,
             '-m', model_path,
             '-b', bg_model_path,
@@ -272,7 +272,6 @@ def scan_by_inmode(path_to_python_tools, fasta_test, model_path, scan, threshold
 
 
 def bed_to_fasta(path_to_fa, path_to_bed, out):
-
     args = ['bedtools', 'getfasta' , '-s', '-name+',
             '-fi', path_to_fa,
             '-bed', path_to_bed,
@@ -308,13 +307,19 @@ def get_top_peaks(path_to_python_tools, bed_in, bed_out, size, tag):
     pass
 
 
+#def bootstrap_pwm(path_to_python_tools, out_path, sites):
+#    args = ['julia', path_to_python_tools + '/bootstrap_for_pwm.jl',
+#            out_path,
+#            sites, '-s', '2000000']
+#    r = subprocess.call(args)
+#    pass
+
 def bootstrap_pwm(path_to_python_tools, out_path, sites):
-    args = ['julia', path_to_python_tools + '/bootstrap_for_pwm.jl',
+    args = ['pypy3', path_to_python_tools + '/bootstrap_for_pwm.py',
             out_path,
-            sites, '-s', '2000000']
+            sites, '-s', '100000']
     r = subprocess.call(args)
     pass
-
 
 def bootstrap_inmode(path_to_python_tools, path_to_java, out_path, sites, path_to_inmode, tmp_dir):
     args = ['julia', path_to_python_tools + '/bootstrap_for_inmode.jl',
@@ -335,7 +340,6 @@ def bootstrap_bamm(path_to_python_tools, out_path, sites):
 
 def inmode_scan(path_to_java, path_to_inmode, input_data, input_model, backgroud_path,
                      fpr_for_thr, outdir):
-
     args = [path_to_java, '-Xmx6G', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
             'i={}'.format(input_model),
             'id={}'.format(input_data),
@@ -549,14 +553,14 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
     # CALCULATE CHIPMUNK MODEL #
     pwm_model = models + '/pwm_model/optimazed_pwm_model.pwm'
     pwm_threshold_table = thresholds + '/pwm_model_thresholds.txt'
-    get_pwm_model(models, fasta_train, path_to_python_tools, 
+    get_pwm_model(models, fasta_train, path_to_python_tools,
         path_to_java, path_to_chipmunk,
         motif_length_start, motif_length_end,
         cpu_count)
     calculate_thresholds_for_pwm(path_to_python_tools, path_to_promoters, models + '/pwm_model', thresholds)
-    # bootstrap_pwm(path_to_python_tools,
-    #     bootstrap + "/pwm_model.tsv",
-    #     models + '/chipmunk_model/optimazed_pwm_model.fasta')
+    bootstrap_pwm(path_to_python_tools,
+        bootstrap + '/pwm_model.tsv',
+        models + '/pwm_model/optimazed_pwm_model.fasta')
     scan_by_pwm(path_to_python_tools, fasta_test, pwm_model, scan, pwm_threshold_table, fpr)
     scan_best_by_pwm(path_to_python_tools, scan_best + '/pwm.scores.txt',
          pwm_model,
