@@ -245,10 +245,6 @@ def make_pwm(motifs, background):
 
 
 def score(seq, pwm):
-    '''
-    Вспомагательная функция, считает score для строки с такой же длиной как и PWM
-    '''
-    length_of_seq = len(seq)
     position = 0
     score = 0
     for letter in seq:
