@@ -459,7 +459,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
     if not os.path.isfile(motifs + '/' + tag + '_BAMM_THRESHOLDS.txt'):
         print('Calculate threshold for BAMM based on promoters and FPR')
-        args = ['pypy', path_to_python_tools + '/get_threshold_for_bamm.py',
+        args = ['pypy3', path_to_python_tools + '/get_threshold_for_bamm.py',
                 path_to_promoters,
                 motifs + '/' + tag + '_motif_1.ihbcp',
                 motifs + '/' + tag + '.hbcp',
@@ -470,7 +470,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
     if not os.path.isfile(motifs + '/' + tag + '_PWM_THRESHOLDS.txt'):
         print('Calculate threshold for PWM based on promoters and FPR')
-        args = ['pypy', path_to_python_tools + '/get_threshold_for_pwm.py',
+        args = ['pypy3', path_to_python_tools + '/get_threshold_for_pwm.py',
                 path_to_promoters,
                 motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
                 motifs + '/' + tag + '_PWM_THRESHOLDS.txt']
@@ -509,7 +509,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
             #Scan peaks by BAMM with thr_bamm
             print('Scan peaks by BAMM with thr_pwm ({0})'.format(tag))
-            args = ['pypy', path_to_python_tools + 'scan_by_bamm.py',
+            args = ['pypy3', path_to_python_tools + 'scan_by_bamm.py',
                     '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                     '-m', motifs + '/' + tag + '_motif_1.ihbcp',
                     '-b', motifs + '/' + tag + '.hbcp',
@@ -531,7 +531,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
             #Scan peaks by PWM with thr_pwm
             print('Scan peaks by PWM with thr_pwm ({0})'.format(tag))
-            args = ['pypy', path_to_python_tools + 'scan_by_pwm.py',
+            args = ['pypy3', path_to_python_tools + 'scan_by_pwm.py',
                     '-f', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                     '-m', motifs + '/' + tag + '_OPTIMAL_MOTIF.pwm',
                     '-t', str(thr_pwm),

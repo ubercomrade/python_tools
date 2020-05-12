@@ -19,6 +19,7 @@ import sys
 import random
 import itertools
 import argparse
+from collections import Counter
 
 
 def read_sites(path):
@@ -168,6 +169,13 @@ def make_pcm(motifs):
     return(matrix)
 
 
+def check_legth_of_sites(seq):
+    length = [len(i) for i in seq]
+    c = Counter(length).most_common(1)[0][0]
+    seq = [i for i in seq if len(i) == c]
+    return(seq)
+
+
 def write_meme(output, tag, pfm, background, nsites):
     with open(output + '/' + tag + '.meme', 'w') as file:
         file.write('MEME version 4\n\nALPHABET= ACGT\n\nBackground letter frequencies\n')
@@ -177,7 +185,7 @@ def write_meme(output, tag, pfm, background, nsites):
         file.write(
             'letter-probability matrix: alength= 4 w= {0} nsites= {1}\n'.format(len(pfm['A']), nsites))
         for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
-            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
+            file.write('{0:.8f}\t{1:.8f}\t{2:.8f}\t{3:.8f}\n'.format(i[0], i[1], i[2], i[3]))
 
 
 def write_pwm(output, tag, pwm):
@@ -191,7 +199,7 @@ def write_pfm(output, tag, pfm):
     with open(output + '/' + tag + '.pfm', 'w') as file:
         file.write('>{0}\n'.format(tag))
         for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
-            file.write('{0}\t{1}\t{2}\t{3}\n'.format(i[0], i[1], i[2], i[3]))
+            file.write('{0:.8f}\t{1:.8f}\t{2:.8f}\t{3:.8f}\n'.format(i[0], i[1], i[2], i[3]))
 
 
 def parse_args():
@@ -223,6 +231,7 @@ def main():
     seq = read_sites(fasta_path)
     #seq = remove_equalent_seq(seq_list=seq, homology=0.95)
     seq = list(set(seq))
+    seq = check_legth_of_sites(seq)
     #background = background_freq(seq)
     background = {'A': 0.25,
                  'C': 0.25,

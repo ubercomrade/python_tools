@@ -104,7 +104,7 @@ def scan_seq_by_pwm(record, pwm):
     length_pwm = len(pwm['A'])
     seq = record['seq']
     reverse_seq = reverse_record['seq']
-    threshold = -1000
+    threshold = -1000000
 
     # first strand
     for i in range(len(seq) - length_pwm + 1):

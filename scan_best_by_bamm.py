@@ -192,7 +192,7 @@ def scan_seq_by_bamm(record, log_odds_bamm, order):
     seq = record['seq']
     reverse_seq = reverse_record['seq']
     results = []
-    threshold = -1000
+    threshold = -1000000
 
     # scan first strand
     for i in range(len(seq) - motif_length + 1):
