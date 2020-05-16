@@ -1,6 +1,7 @@
 import sys
 import argparse
 import re
+from operator import itemgetter
 
 def read_bed(path):
     container = {}
@@ -66,6 +67,7 @@ def write_mcot_format(path, bed, fasta, threshold):
                                                                                  index + 1,
                                                                                  threshold))
             if line['name'] in bed:
+                bed[line['name']] = sorted(bed[line['name']], key=itemgetter('start'))
                 for site in bed[line['name']]:
                     pos = site['start'] - line['start'] - 1
                     file.write('{0}\t{1}\t{2}\t{3}\n'.format(pos, site['score'], site['strand'], site['site']))

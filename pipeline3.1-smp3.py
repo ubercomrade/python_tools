@@ -47,6 +47,22 @@ def bed_to_fasta(path_to_fa, path_to_bed, out):
     r = subprocess.call(args)
     pass
 
+# OLD VERSION
+# def get_threshold(path, fpr_for_thr):
+#     conteiner = list()
+#     append = conteiner.append
+#     
+#     with open(path, 'r') as file:
+#         file.readline()
+#         for line in file:
+#             append(tuple(map(float, line.strip().split())))
+#     file.close()
+#     
+#     conteiner = sorted(conteiner, key=itemgetter(1))
+#     getcount = itemgetter(1)
+#     score = conteiner[bisect.bisect_left(list(map(getcount, conteiner)), fpr_for_thr)][0]
+#     return(score)
+
 
 def get_threshold(path, fpr_for_thr):
     conteiner = list()
@@ -59,10 +75,12 @@ def get_threshold(path, fpr_for_thr):
     file.close()
     
     conteiner = sorted(conteiner, key=itemgetter(1))
-    getcount = itemgetter(1)
-    score = conteiner[bisect.bisect_left(list(map(getcount, conteiner)), fpr_for_thr)][0]
-    return(score)
-
+    for line in conteiner:
+        if line[1] > fpr_for_thr:
+            break
+        else:
+            last_score, last_fpr = line
+    return(last_score)
 
 
 def get_top_peaks(path_to_python_tools, bed_in, bed_out, size, tag):
