@@ -69,7 +69,7 @@ def write_mcot_format(path, bed, fasta, threshold):
             if line['name'] in bed:
                 bed[line['name']] = sorted(bed[line['name']], key=itemgetter('start'))
                 for site in bed[line['name']]:
-                    pos = site['start'] - line['start'] - 1
+                    pos = site['start'] - line['start']
                     file.write('{0}\t{1}\t{2}\t{3}\n'.format(pos, site['score'], site['strand'], site['site']))
     return(0)
 

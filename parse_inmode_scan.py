@@ -167,9 +167,9 @@ def main():
             bed.loc[index, 'site'] = record['seq'][line['start']:line['end']]
         bed.loc[index, 'chr'] = record['chr']
         bed.loc[index, 'id'] = 'peaks_' + str(record['name'])
-        #bed.loc[index, 'id'] = str(record['name'])
         bed.loc[index, 'start'] = int(line['start']) + int(record['start'])
         bed.loc[index, 'end'] = int(line['end']) + int(record['start'])
+        bed.loc[index, 'score'] = math.log10(bed.loc[index, 'score'])
 
     bed.to_csv(output, sep='\t', header=False, index=False)
 
