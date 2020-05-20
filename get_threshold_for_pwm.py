@@ -16,6 +16,8 @@ GNU General Public License for more details.
 import argparse
 import sys
 import os
+import random
+import bisect
 from collections import Counter
 from bisect import bisect, bisect_left
 from operator import itemgetter
@@ -30,11 +32,20 @@ def read_fasta(path):
         for line in file:
             if not line.startswith('>'):
                 line = line.strip().upper()
-                #if not 'N' in line:
+                if 'N' in line:
+                    line = replace_n_to_randome_nucl(line)
                 append(line)
                 append(complement(line))
     file.close()
     return(fasta)
+
+
+def replace_n_to_randome_nucl(peak):
+    container = []
+    for n in peak:
+        if n == 'N':
+            container.append(random.choice(['A', 'C', 'G', 'T']))
+    return(''.join(container))
 
 
 def read_pwm(path):
@@ -46,7 +57,7 @@ def read_pwm(path):
             for letter, value in zip(pwm.keys(), line):
                 pwm[letter].append(float(value))
         for key in pwm:
-        	pwm[key] = tuple(pwm[key])
+            pwm[key] = tuple(pwm[key])
     file.close()
     return(pwm)
 
@@ -56,21 +67,96 @@ def score(seq, pwm):
     return(score)
 
 
+def to_score(norm_value, pwm):
+    '''
+    norm = (score - min) / (max - min) -> score = norm * (max - min) + min
+    '''
+    max_s = max_score(pwm)
+    min_s = min_score(pwm)
+    score = norm_value * (max_s - min_s) + min_s
+    return(score)
+
+
+def to_norm(score, pwm):
+    max_s = max_score(pwm)
+    min_s = min_score(pwm)
+    norm_value = (score - min_s) / (max_s - min_s)
+    return(norm_value)
+
+
+def min_score(pwm):
+    value = int()
+    keys = list(pwm.keys())
+    length_pwm = len(pwm[keys[0]])
+    for i in range(length_pwm):
+        tmp = []
+        for j in keys:
+            tmp.append(pwm[j][i])
+        value += min(tmp)
+    return(value)
+
+
+def max_score(pwm):
+    value = int()
+    keys = list(pwm.keys())
+    length_pwm = len(pwm[keys[0]])
+    for i in range(length_pwm):
+        tmp = []
+        for j in keys:
+            tmp.append(pwm[j][i])
+        value += max(tmp)
+    return(value)
+
+
+# ALL
 # def calculate_scores(peaks, pwm, length_of_site):
-#     scores = [score(peak[i:length_of_site + i], pwm) for peak in peaks for i in range(len(peak) - length_of_site + 1)]
+#     sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
+#     scores = []
+#     append = scores.append
+#     for site in sites:
+#         if check_nucleotides(site):
+#             append(score(site, pwm))
+#         else:
+#             continue
 #     return(scores)
 
 
-def calculate_scores(peaks, pwm, length_of_site):
-    sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
+# THREHOLD
+def calculate_scores(peaks, pwm, length_of_site, threshold):
     scores = []
     append = scores.append
-    for site in sites:
-        if check_nucleotides(site):
-            append(score(site, pwm))
-        else:
-            continue
+    for peak in peaks:
+        for i in range(len(peak) - length_of_site + 1):
+            site = peak[i:length_of_site + i]
+            s = score(site, pwm)
+            if s > threshold:
+                append(s)
+            else:
+                continue
     return(scores)
+
+
+# NUMBER_OF_SITES
+# def calculate_scores(peaks, pwm, length_of_site, number_of_sites):
+#     list_of_scores = deque([], maxlen=number_of_sites)
+#     for peak in peaks:
+#         for i in range(len(peak) - length_of_site + 1):
+#             site = peak[i:length_of_site + i]
+#             s = score(site, pwm)
+#             if len(list_of_scores) != number_of_sites:
+#                 #bisect.insort(list_of_scores, s)
+#                 list_of_scores.insert(bisect.bisect_left(list_of_scores, s), s)
+#             else:
+#                 maximum = list_of_scores[-1]
+#                 minimum = list_of_scores[0]
+#                 if s < minimum:
+#                     continue
+#                 elif s > maximum:
+#                     list_of_scores.append(s)
+#                 else:
+#                     list_of_scores.popleft()
+#                     list_of_scores.insert(bisect.bisect_left(list_of_scores, s), s)
+#     return(list_of_scores)
 
 
 def check_nucleotides(site):
@@ -87,24 +173,9 @@ def complement(seq):
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
 
-def create_fpr_table(scores, unique):
-    container = []
-    append = container.append
-    #scores = np.array(scores)
-    print('create_fpr_table')
-    for u in unique:
-        #append((u, len(scores[:np.searchsorted(scores, u)]))) 
-        fpr = len(scores[:bisect_left(scores, u)]) / len(scores)
-        if fpr > 0.0001:
-            break
-        else:
-            append((u, fpr)) 
-    return(container)
-
-
 def get_threshold(scores, path_out, number_of_sites):
     scores.sort(reverse=False) # sorted score from small to big
-    scores = [round(i, 3) for i in scores]
+    #scores = [round(i, 3) for i in scores]
     counts = Counter(scores)
 
     found_sites = counts[list(counts.keys())[::-1][0]]
@@ -121,19 +192,12 @@ def get_threshold(scores, path_out, number_of_sites):
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
         for (score, fpr) in fprs_table:
-            file.write("{0}\t{1}\n".format(score, fpr))
+            if fpr < 0.0005:
+                break
+            else:
+                file.write("{0}\t{1}\n".format(score, fpr))
     file.close()
-
-
-# def get_threshold(scores, path_out):
-#     scores.sort(reverse=True) # sorted score from big to small
-#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
-#     with open(path_out, "w") as file:
-#         file.write("Scores\tFPR\n")
-#         for fpr in fprs:
-#             thr = scores[int(fpr * len(scores))]
-#             file.write("{0}\t{1}\n".format(thr, fpr))
-#     file.close()
+    return(0)
 
 
 def parse_args():
@@ -165,9 +229,11 @@ def main():
     pwm = read_pwm(pwm_path)
     length_of_site = len(pwm['A'])
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
-    scores = calculate_scores(peaks, pwm, length_of_site)
+    threshold = to_score(.7, pwm)
+    scores = calculate_scores(peaks, pwm, length_of_site, threshold)
     get_threshold(scores, path_out, number_of_sites)
 
 
+    
 if __name__ == '__main__':
     main()

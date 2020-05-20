@@ -17,6 +17,7 @@ import argparse
 import sys
 import os
 import itertools
+import random
 from math import log
 from collections import Counter
 from bisect import bisect, bisect_left
@@ -32,11 +33,20 @@ def read_fasta(path):
         for line in file:
             if not line.startswith('>'):
                 line = line.strip().upper()
-                #if not 'N' in line:
+                if 'N' in line:
+                    line = replace_n_to_randome_nucl(line)
                 append(line)
                 append(complement(line))
     file.close()
     return(fasta)
+
+
+def replace_n_to_randome_nucl(peak):
+    container = []
+    for n in peak:
+        if n == 'N':
+            container.append(random.choice(['A', 'C', 'G', 'T']))
+    return(''.join(container))
 
 
 def parse_bamm_and_bg_from_file(bamm_file, bg_file):
@@ -129,6 +139,63 @@ def prepare_bamm(bamm_path, bg_path):
     return(container, order)
 
 
+def min_score_bamm(bamm, order, length_of_site):
+    scores = []
+    min_score = 0
+    for index in range(order):
+        k_mers = itertools.product('ACGT', repeat=index + 1)
+        scores.append([])
+        for k in k_mers:
+            k = ''.join(k)
+            scores[-1].append(bamm[k][index])
+    for index in range(length_of_site - order):
+        k_mers = itertools.product('ACGT', repeat=order + 1)
+        scores.append([])
+        for k in k_mers:
+            k = ''.join(k)
+            scores[-1].append(bamm[k][index])
+    for s in scores:
+        min_score += min(s)
+    return(min_score)
+
+
+def max_score_bamm(bamm, order, length_of_site):
+    scores = []
+    max_score = 0
+    for index in range(order):
+        k_mers = itertools.product('ACGT', repeat=index + 1)
+        scores.append([])
+        for k in k_mers:
+            k = ''.join(k)
+            scores[-1].append(bamm[k][index])
+    for index in range(length_of_site - order):
+        k_mers = itertools.product('ACGT', repeat=order + 1)
+        scores.append([])
+        for k in k_mers:
+            k = ''.join(k)
+            scores[-1].append(bamm[k][index])
+    for s in scores:
+        max_score += max(s)
+    return(max_score)
+
+
+def to_score(norm_value, bamm, order, length_of_site):
+    '''
+    norm = (score - min) / (max - min) -> score = norm * (max - min) + min
+    '''
+    max_s = max_score_bamm(bamm, order, length_of_site)
+    min_s = min_score_bamm(bamm, order, length_of_site)
+    score = norm_value * (max_s - min_s) + min_s
+    return(score)
+
+
+def to_norm(score, bamm, order, length_of_site):
+    max_s = max_score_bamm(bamm, order, length_of_site)
+    min_s = min_score_bamm(bamm, order, length_of_site)
+    norm_value = (score - min_s) / (max_s - min_s)
+    return(norm_value)
+
+
 def score_bamm(site, bamm, order, length_of_site):
     score = float()
     for index in range(order):
@@ -143,15 +210,29 @@ def score_bamm(site, bamm, order, length_of_site):
 #     return(scores)
 
 
-def calculate_scores(peaks, bamm, order, length_of_site):
-    sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
+# def calculate_scores(peaks, bamm, order, length_of_site):
+#     sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
+#     scores = []
+#     append = scores.append
+#     for site in sites:
+#         if check_nucleotides(site):
+#             append(score_bamm(site, bamm, order, length_of_site))
+#         else:
+#             continue
+#     return(scores)
+
+
+def calculate_scores(peaks, bamm, order, length_of_site, threshold):
     scores = []
     append = scores.append
-    for site in sites:
-        if check_nucleotides(site):
-            append(score_bamm(site, bamm, order, length_of_site))
-        else:
-            continue
+    for peak in peaks:
+        for i in range(len(peak) - length_of_site + 1):
+            site = peak[i:length_of_site + i]
+            s = score_bamm(site, bamm, order, length_of_site)
+            if s > threshold:
+                append(s)
+            else:
+                continue
     return(scores)
 
 
@@ -168,10 +249,10 @@ def complement(seq):
     #return(seq[::-1].translate(seq.maketrans('ACGT', 'TGCA')))
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
-
+    
 def get_threshold(scores, path_out, number_of_sites):
     scores.sort(reverse=False) # sorted score from small to big
-    scores = [round(i, 3) for i in scores]
+    #scores = [round(i, 3) for i in scores]
     counts = Counter(scores)
 
     found_sites = counts[list(counts.keys())[::-1][0]]
@@ -188,19 +269,12 @@ def get_threshold(scores, path_out, number_of_sites):
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
         for (score, fpr) in fprs_table:
-            file.write("{0}\t{1}\n".format(score, fpr))
+            if fpr < 0.0005:
+                break
+            else:
+                file.write("{0}\t{1}\n".format(score, fpr))
     file.close()
-
-
-# def get_threshold(scores, path_out):
-#     scores.sort(reverse=True) # sorted score from big to small
-#     fprs = [5*10**(-4), 3.33*10**(-4), 1.90*10**(-4), 1.02*10**(-4), 5.24*10**(-5)]
-#     with open(path_out, "w") as file:
-#         file.write("Scores\tFPR\n")
-#         for fpr in fprs:
-#             thr = scores[int(fpr * len(scores))]
-#             file.write("{0}\t{1}\n".format(thr, fpr))
-#     file.close()
+    return(0)
 
 
 def parse_args():
@@ -220,21 +294,18 @@ def parse_args():
 
 def main():
     args = parse_args()
-
     bamm_path = args.bamm
     bg_path = args.bg
     fasta_path = args.fasta
     path_out = args.out
-    
 
     peaks = read_fasta(fasta_path)
     bamm, order = prepare_bamm(bamm_path, bg_path)
     length_of_site = len(bamm['A'])
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
-    scores = calculate_scores(peaks, bamm, order, length_of_site)
+    threshold = to_score(0.7, bamm, order, length_of_site)
+    scores = calculate_scores(peaks, bamm, order, length_of_site, threshold)
     get_threshold(scores, path_out, number_of_sites)
-
-
 
 if __name__ == '__main__':
     main()
