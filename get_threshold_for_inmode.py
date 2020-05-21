@@ -56,22 +56,23 @@ def complement(seq):
 def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir):
     container = list()
     append = container.append
-#     args = [path_to_java, '-Xmx8096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
-#         'i={}'.format(path_to_model),
-#         'id={}'.format(path_to_fasta),
-#         'b={}'.format('From file'),
-#         'd={}'.format(path_to_fasta),
-#        'f={}'.format(0.0006),
-#        'outdir={}'.format(tmp_dir)]
+    # args = [path_to_java, '-Xmx8096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
+    #     'i={}'.format(path_to_model),
+    #     'id={}'.format(path_to_fasta),
+    #     'b={}'.format('From file'),
+    #     'd={}'.format(path_to_fasta),
+    #    'f={}'.format(0.0006),
+    #    'outdir={}'.format(tmp_dir)]
     args = [path_to_java, '-Xmx8096m', '-Xms1024m', '-jar', path_to_inmode, 'scan',
-        'i={}'.format(path_to_model),
-        'id={}'.format(path_to_fasta),
-        'b={}'.format('From file'),
-        'd={}'.format(path_to_fasta),
-       'f={}'.format(0.0006),
-       'outdir={}'.format(tmp_dir)]
+       'i={}'.format(path_to_model),
+       'id={}'.format(path_to_fasta),
+       'b={}'.format('From file'),
+       'd={}'.format(path_to_fasta),
+      'f={}'.format(0.0006),
+      'outdir={}'.format(tmp_dir)]
     r = subprocess.call(args)
-    with open(tmp_dir + "/Motif_hits_from_SequenceScan(0.0006).BED") as file:
+    #with open(os.getcwd() + '/tmp' + "/Motif_hits_from_SequenceScan({:.1E}).BED".format(0.0006)) as file:
+    with open(os.getcwd() + '/tmp' + "/Motif_hits_from_SequenceScan(6.0E-4).BED") as file:
         for line in file:
             append(float(line.strip().split()[4]))
     return(container)
@@ -89,10 +90,11 @@ def get_threshold(scores, number_of_sites, path_out):
     append = fprs_table.append
     for index, k in enumerate(list(counts.keys())[::-1]):
         append(( k, counts[k] / number_of_sites ))
+    print(fprs_table[-1])
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
         for (score, fpr) in fprs_table:
-            if fpr < 0.0005:
+            if fpr > 0.00051:
                 break
             else:
                 file.write("{0}\t{1}\n".format(score, fpr))
@@ -134,7 +136,7 @@ def main():
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
     scores = calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir)
     get_threshold(scores, number_of_sites, path_out)
-    shutil.rmtree(tmp_dir)
+    #shutil.rmtree(tmp_dir)
 
 if __name__ == '__main__':
     main()

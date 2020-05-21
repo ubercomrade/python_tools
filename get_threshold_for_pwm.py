@@ -192,7 +192,7 @@ def get_threshold(scores, path_out, number_of_sites):
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
         for (score, fpr) in fprs_table:
-            if fpr < 0.0005:
+            if fpr > 0.000501:
                 break
             else:
                 file.write("{0}\t{1}\n".format(score, fpr))

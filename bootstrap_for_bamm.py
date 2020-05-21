@@ -6,6 +6,7 @@ import sys
 import argparse
 import random
 import math
+import shutil
 
 
 def read_log_odds_zoops(path):

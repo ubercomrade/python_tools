@@ -264,7 +264,8 @@ def scan_by_inmode(path_to_python_tools, fasta_test, model_path, scan, threshold
     args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
             '-if', fasta_test,
             '-bed', glob.glob(inmode_scan_dir + '/*.BED')[0],
-            '-o', inmode_scan_path]
+            '-o', inmode_scan_path,
+            '-t', thr_inmode]
     r = subprocess.call(args)
 
     os.system("rm -r {}".format(inmode_scan_dir))

@@ -16,61 +16,11 @@ GNU General Public License for more details.
 import math
 import sys
 import os
-import random
-import itertools
 import argparse
-import functools
 import re
-import multiprocessing as mp
-import numpy as np
-import pandas as pd
-
-
-def read_sites(path):
-    sequences = []
-    with open(path, 'r') as file:
-        sequences = [i.strip().upper() for i in file if i.strip()[0] != '>']
-    return(sequences)
-
-
-# def read_fasta(path):
-#     '''
-#     Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-#     Все экземпляры хранятся в списке
-#     Функция возвращает список экземпляров класса BioRecord
-
-#     Шапка для FASTA: >uniq_id|chromosome|start-end|strand
-#     '''
-#     fasta = list()
-#     with open(path, 'r') as file:
-#         for line in file:
-#             if line.startswith('>'):
-#                 line = line[1:].strip().split('|')
-#                 record = dict()
-#                 record['name'] = line[0]
-#                 record['chromosome'] = line[1]
-#                 record['start'] = line[2].split('-')[0]
-#                 record['end'] = line[2].split('-')[1]
-#                 try:
-#                     record['strand'] = line[3]
-#                 except:
-#                     # print('Record with out strand. Strand is +')
-#                     record['strand'] = '+'
-#                 continue
-#             record['seq'] = line.strip().upper()
-#             fasta.append(record)
-#     file.close()
-#     return(fasta)
 
 
 def read_fasta(path):
-    '''
-    Чтение фаста фаила и запись каждых двух строчек в экземпляр класса BioRecord
-    Все экземпляры хранятся в списке
-    Функция возвращает список экземпляров класса BioRecord
-
-    Шапка для FASTA: >uniq_id::chromosome:start-end(strand)
-    '''
     fasta = list()
     with open(path, 'r') as file:
         for line in file:
@@ -100,38 +50,37 @@ def read_fasta(path):
     return(fasta)
 
 
-def complement(inseq):
-    '''
-    Make reverse and compelent
-    '''
-    seq = str()
-    for letter in inseq:
-        if letter == 'A':
-            seq += 'T'
-        elif letter == 'C':
-            seq += 'G'
-        elif letter == 'G':
-            seq += 'C'
-        elif letter == 'T':
-            seq += 'A'
-    seq = seq[::-1]
-    return(seq)
+def complement(seq):
+    return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').replace('N', 'n').upper()[::-1])
 
 
 def read_inmode_bed(path):
-    bed = pd.read_csv(path,
-                      sep='\t', header=None,
-                      usecols=[0, 1, 2, 3, 4],
-                      dtype= {'chromosome': str},
-                      names=['id', 'start', 'end', 'strand', 'score'])
-    bed['chr'] = '.'
-    bed['site'] = '.'
-    bed = bed[['chr', 'start', 'end', 'id',  'score', 'strand', 'site']]
-    return(bed)
+    container = []
+    with open(path) as file:
+        for line in file:
+            n, start, end, strand, score = line.split()
+            container.append({
+                'chr': '.',
+                'start': int(start),
+                'end': int(end),
+                'id': int(n),
+                'score': math.log(float(score), 10),
+                'strand': strand,
+                'site': '.'
+            })
+    return(container)
 
-#def get_record(fasta, id):
-#    record = fasta[id]
-#    return(record)
+
+def write_bed(data, threshold, path):
+    with open(path, 'w') as file:
+        for line in data:
+            if line['score'] >= threshold:
+                line = list(line.values())
+                line = [str(i) for i in line]
+                file.write('\t'.join(line) + '\n')
+            else:
+                continue
+    return(0)
 
 
 def parse_args():
@@ -142,11 +91,11 @@ def parse_args():
                         required=True, help='path to BED file with inmode scan output')
     parser.add_argument('-o', '--outputBED', action='store', dest='output',
                         required=True, help='path to output BED with sites')
-
+    parser.add_argument('-t', '--threshold', action='store', dest='threshold',
+                        required=True, type=float, help='Threshold for data filtering')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
-
     return(parser.parse_args())
 
 
@@ -155,24 +104,22 @@ def main():
     input_fasta = args.input_fasta
     input_bed = args.input_bed
     output = args.output
+    threshold = args.threshold
 
     fasta = read_fasta(input_fasta)
     bed = read_inmode_bed(input_bed)
 
-    for index, line in bed.iterrows():
+    for index, line in enumerate(bed):
         record = fasta[int(line['id'])]
         if line['strand'] == '-':
-            bed.loc[index, 'site'] = complement(record['seq'][line['start']:line['end']])
+            line['site'] = complement(record['seq'][line['start']:line['end']])
         else:
-            bed.loc[index, 'site'] = record['seq'][line['start']:line['end']]
-        bed.loc[index, 'chr'] = record['chr']
-        bed.loc[index, 'id'] = 'peaks_' + str(record['name'])
-        bed.loc[index, 'start'] = int(line['start']) + int(record['start'])
-        bed.loc[index, 'end'] = int(line['end']) + int(record['start'])
-        bed.loc[index, 'score'] = math.log10(bed.loc[index, 'score'])
-
-    bed.to_csv(output, sep='\t', header=False, index=False)
-
+            line['site'] = record['seq'][line['start']:line['end']]
+        line['chr'] = record['chr']
+        line['id'] = 'peaks_' + str(record['name'])
+        line['start'] = int(line['start']) + int(record['start'])
+        line['end'] = int(line['end']) + int(record['start'])
+    write_bed(bed, threshold, output)
 
 if __name__ == '__main__':
     main()

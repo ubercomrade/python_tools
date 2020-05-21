@@ -83,6 +83,18 @@ def get_threshold(path, fpr_for_thr):
     return(last_score)
 
 
+def calculate_fpr(n):
+    if n == 0:
+        return(0.0005)
+    else:
+        parameter = 1.5
+        fpr = 0.0005
+        for i in range(n):
+            fpr = fpr / parameter
+            parameter = 1 + parameter / 2
+        return(fpr)
+
+
 def get_top_peaks(path_to_python_tools, bed_in, bed_out, size, tag):
     args = ['python3', path_to_python_tools + '/get_top_peaks.py',
            '-i', bed_in,
@@ -153,7 +165,7 @@ def inmode_scan(path_to_java, path_to_inmode, input_data, input_model, backgroud
 #     pass
 
 def scan_best_by_inmode(path_to_python_tools, output, input_model, fasta_in, path_to_inmode, path_to_java):
-    args = ['pypy', path_to_python_tools + '/scan_best_by_inmode_alt.py',
+    args = ['pypy3', path_to_python_tools + '/scan_best_by_inmode_alt.py',
            fasta_in,
            input_model,
            output,
@@ -178,7 +190,7 @@ def plot_best_score(path_to_python_tools, model1, model2, thr1, thr2, length, ou
 
 
 def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in):
-    args = ['pypy', path_to_python_tools + 'scan_best_by_pwm.py',
+    args = ['pypy3', path_to_python_tools + 'scan_best_by_pwm.py',
             '-f', fasta_in,
             '-m', input_model,
             '-o', output]
@@ -187,7 +199,7 @@ def scan_best_by_pwm(path_to_python_tools, output, input_model, fasta_in):
 
 
 def scan_best_by_bamm(path_to_python_tools, output, input_bamm_model, bg_model, fasta_in):
-    args = ['pypy', path_to_python_tools + '/scan_best_by_bamm.py',
+    args = ['pypy3', path_to_python_tools + '/scan_best_by_bamm.py',
             '-f', fasta_in,
             '-m', input_bamm_model,
             '-b', bg_model,
@@ -513,8 +525,9 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
     #  RUN LOOP THRUE SEVERAL FPR (THRESHOLD)  #
     ############################################
 
-    fprs = [5*10**(-4), 1.90*10**(-4), 5.24*10**(-5)]
-    for fpr_for_thr in fprs:
+    for n in [0, 2, 4]:
+        fpr_for_thr = calculate_fpr(n)
+    
 
         #############################################
         #CALCULATE THRESHOLDS FOR BAMM MODEL AND SCAN#
@@ -566,6 +579,7 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
 
         if not os.path.isfile(scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed'):
             print('Scan by inmode model')
+            thr_inmode = get_threshold(motifs + '/' + tag + '_INMODE_THRESHOLDS.txt', fpr_for_thr)
             inmode_scan(path_to_java, path_to_inmode,
                            input_data=fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                            input_model=glob.glob(motifs + '/Learned_DeNovo*/*.xml')[0],
@@ -576,7 +590,8 @@ def pipeline_inmode_bamm(bed_path, training_sample_size, testing_sample_size,
             args = ['python3', path_to_python_tools + 'parse_inmode_scan.py',
                     '-if', fasta + '/' + tag + '_' + str(testing_sample_size) + '.fa',
                     '-bed', glob.glob(scan + '/tmp' + '/*.BED')[0],
-                    '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed']
+                    '-o', scan + '/' + tag + '_INMODE_' + str(testing_sample_size) + '_' + '{:.2e}'.format(fpr_for_thr) + '.bed',
+                    '-t', thr_inmode]
             r = subprocess.call(args)
             os.system("rm -r {}".format(scan + '/tmp'))
 
