@@ -172,9 +172,9 @@ def bootstrap_bamm(sites, size_of_random_sample, order, directory):
         random_sample = [''.join(random.sample(list(random.choice(test_sample)), len_of_site)) for i in range(len(test_sample) * size_of_random_sample)]
         create_train_fasta_and_sites(sites[index_train], directory)
         bamm = create_bamm_model(directory)
-        for true_score in calculate_scores(sites, bamm, order, length_of_site):
+        for true_score in calculate_scores(test_sample, bamm, order, length_of_site):
             true_scores.append(true_score)
-        for false_score in calculate_scores(sites, bamm, order, length_of_site):
+        for false_score in calculate_scores(random_sample, bamm, order, length_of_site):
             false_scores.append(false_score)
     true_scores.sort(reverse=True)
     false_scores.sort(reverse=True)
