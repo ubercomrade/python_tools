@@ -173,6 +173,10 @@ def get_bamm_model(models_path, fasta_train, meme_model, model_order):
     pass
 
 
+def get_sitega_model():
+    pass
+
+
 def calculate_thresholds_for_bamm(path_to_python_tools, path_to_promoters, bamm_model_dir, thresholds_dir):
     if not os.path.isfile(thresholds_dir + '/bamm_model_thresholds.txt'):
         print('Calculate threshold for bamm based on promoters and fpr')
@@ -213,6 +217,10 @@ def calculate_thresholds_for_inmode(path_to_python_tools, path_to_promoters, inm
         r = subprocess.call(args)
     else:
         print('Thresholds for inmode already calculated')
+    pass
+
+
+def calculate_thresholds_for_sitega():
     pass
 
 
@@ -272,6 +280,10 @@ def scan_by_inmode(path_to_python_tools, fasta_test, model_path, scan, threshold
     pass
 
 
+def scan_by_sitega():
+    pass
+
+
 def bed_to_fasta(path_to_fa, path_to_bed, out):
     args = ['bedtools', 'getfasta' , '-s', '-name+',
             '-fi', path_to_fa,
@@ -328,13 +340,6 @@ def get_top_peaks(path_to_python_tools, bed_in, bed_out, size, tag):
     pass
 
 
-#def bootstrap_pwm(path_to_python_tools, out_path, sites):
-#    args = ['julia', path_to_python_tools + '/bootstrap_for_pwm.jl',
-#            out_path,
-#            sites, '-s', '2000000']
-#    r = subprocess.call(args)
-#    pass
-
 def bootstrap_pwm(path_to_python_tools, out_path, sites):
     args = ['pypy3', path_to_python_tools + '/bootstrap_for_pwm.py',
             out_path,
@@ -343,19 +348,23 @@ def bootstrap_pwm(path_to_python_tools, out_path, sites):
     pass
 
 def bootstrap_inmode(path_to_python_tools, path_to_java, out_path, sites, path_to_inmode, tmp_dir):
-    args = ['julia', path_to_python_tools + '/bootstrap_for_inmode.jl',
+    args = ['pypy3', path_to_python_tools + '/bootstrap_for_inmode.py',
             out_path,
             sites,
-            path_to_inmode, '-s', '2000000', '-j', path_to_java, '-t', tmp_dir]
+            path_to_inmode, '-s', '100000', '-j', path_to_java, '-t', tmp_dir]
     r = subprocess.call(args)
     pass
 
 
 def bootstrap_bamm(path_to_python_tools, out_path, sites):
-    args = ['julia', path_to_python_tools + '/bootstrap_for_bamm.jl',
+    args = ['pypy3', path_to_python_tools + '/bootstrap_for_bamm.py',
             out_path,
-            sites, '-s', '2000000']
+            sites, '-s', '100000']
     r = subprocess.call(args)
+    pass
+
+
+def bootstrap_sitega():
     pass
 
 
@@ -453,7 +462,14 @@ def get_motif_length(models):
     return(motif_length)
 
 
-def compare_by_pair(bed, tool_names, scan, compare, path_to_python_tools):
+def extracting_sites(path_to_python_tools, scan_file, output):
+        args = ['python3', path_to_python_tools + 'extract_sites.py',
+            '-p', scan_file,
+            '-o', output]
+        r = subprocess.call(args)
+
+
+def compare_by_pair(bed, first, second, tag, name1, name2, compare_sites, path_to_python_tools):
     list(itertools.combinations(a, 2))
 
     args = ['pypy3', path_to_python_tools + '/compare_scripts/compare_sites_2.py',
@@ -464,13 +480,6 @@ def compare_by_pair(bed, tool_names, scan, compare, path_to_python_tools):
                     '-o', compare_sites]
     r = subprocess.call(args)
     pass
-
-
-def extracting_sites(path_to_python_tools, scan_file, output):
-        args = ['python3', path_to_python_tools + 'extract_sites.py',
-            '-p', scan_file,
-            '-o', output]
-        r = subprocess.call(args)
 
 
 def compare_2(bed, first, second, tag, name1, name2, compare_sites, path_to_python_tools):
@@ -512,16 +521,10 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
     cpu_count = str(cpu_count)
     motif_length_start = str(8)
     motif_length_end = str(14)
-
-
     if not path_to_python_tools[-1] == '/':
         path_to_python_tools += '/'
-
-
     if not os.path.isdir(main_out):
         os.mkdir(main_out)
-
-
     models = main_out + '/models'
     bootstrap = models + '/bootstrap'
     thresholds = models + '/thresholds'
@@ -532,10 +535,7 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
     compare_sites = main_out + '/compare'
     tomtom = main_out + '/tomtom'
     montecarlo = main_out + '/montecarlo'
-    #tools = ['pwm', 'bamm', 'inmode', 'sitega']
-    #tag = os.path.basename(bed_path).split('.bed')[0]
-
-
+    
     ########################
     #      CREATE DIRS     #
     ########################
@@ -560,8 +560,6 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
         os.mkdir(tomtom)
     if not os.path.isdir(montecarlo):
         os.mkdir(montecarlo)
-
-
 
     # PREPARE BED AND FASTA FILES #
     prepare_data(path_to_python_tools, path_to_genome, bed_path, bed, fasta, train_sample_size, test_sample_size)
@@ -632,7 +630,14 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
     extracting_sites(path_to_python_tools, scan + '/bamm_{:.2e}.bed'.format(fpr), tomtom + '/bamm.sites.txt')
     make_model(path_to_python_tools, tomtom + '/bamm.sites.txt', tomtom, 'bamm')
     run_tomtom(path_to_hocomoco, tomtom + '/bamm.meme', tomtom + '/bamm')
-   
+
+   # CALCULATE SITEGA MODEL #
+    sitega_model = models + '/sitega_model/sitega.txt'
+    inmode_threshold_table = thresholds + '/sitega_model_thresholds.txt'
+    get_sitega_model()
+    calculate_thresholds_for_sitega()
+    scan_by_sitega()
+    bootstrap_sitega()
 
     # COMPARE SITES #
     print('COMPARE SITES')
@@ -641,7 +646,7 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
         tag = 'compare'
         scan1 = scan + '/{0}_{1:.2e}.bed'.format(tool1, fpr)
         scan2 = scan + '/{0}_{1:.2e}.bed'.format(tool2, fpr)
-        compare_2(bed_test, scan1, scan2, tag, tool1, tool2, compare_sites, path_to_python_tools)
+        compare_by_pair(bed_test, scan1, scan2, tag, tool1, tool2, compare_sites, path_to_python_tools)
 
     if len(tools) == 4:
         compare_4(bed_test,
@@ -652,8 +657,11 @@ def pipeline(tools, bed_path, fpr, train_sample_size, test_sample_size,
             tag,
             compare_sites,
             path_to_python_tools)
-
-
+    elif len(tools) == 3:
+        compare_3()
+    elif len(tools) == 2:
+        compare_2()
+        
     # MONTECARLO #
     # for tool1, tool2 in pair_tools:
     #     thr1 = str(get_threshold(thresholds + '/{}_model_thresholds.txt'.format(tool1), fpr))
