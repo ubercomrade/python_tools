@@ -21,7 +21,6 @@ import bisect
 from collections import Counter
 from bisect import bisect, bisect_left
 from operator import itemgetter
-#import numpy as np
 
 
 def read_fasta(path):
@@ -32,8 +31,6 @@ def read_fasta(path):
         for line in file:
             if not line.startswith('>'):
                 line = line.strip().upper()
-                if 'N' in line:
-                    line = replace_n_to_randome_nucl(line)
                 append(line)
                 append(complement(line))
     file.close()
@@ -128,6 +125,8 @@ def calculate_scores(peaks, pwm, length_of_site, threshold):
     for peak in peaks:
         for i in range(len(peak) - length_of_site + 1):
             site = peak[i:length_of_site + i]
+            if 'N' in site:
+                continue
             s = score(site, pwm)
             if s > threshold:
                 append(s)
@@ -192,7 +191,7 @@ def get_threshold(scores, path_out, number_of_sites):
     with open(path_out, "w") as file:
         file.write("Scores\tFPR\n")
         for (score, fpr) in fprs_table:
-            if fpr > 0.000501:
+            if fpr > 0.00051:
                 break
             else:
                 file.write("{0}\t{1}\n".format(score, fpr))

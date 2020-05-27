@@ -33,16 +33,15 @@ def parse_sitega(path):
                 start, end = re.findall(r'\d*-\d*', coordinates_strand)[0].split('-')
                 start = int(start)
                 end = int(end)
-
             else:
                 record = dict()
                 line = line.strip().split()
                 site = line[3].upper()
                 strand = line[2]
                 score = float(line[1])
-                center = int(line[0])
-                start_site = (center - (length // 2)) + int(start)
-                end_site = int(start_site + length)
+                left_pos = int(line[0])
+                start_site = start + left_pos
+                end_site = start + left_pos + length
                     
                 record['chr'] = chromosome
                 record['start'] = start_site

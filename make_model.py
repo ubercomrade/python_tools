@@ -31,12 +31,6 @@ def read_sites(path):
 
 
 def remove_equalent_seq(seq_list, homology=0.95):
-    '''
-    Удаление гомологичных последовательностей из списка (seq_list)
-    Если кол-во совпадений при сравнении последовательности 1 и 2 >= длина последовательности * homology,
-    то последовательность 1 удаляется из списка
-    Функция возвращает новый список
-    '''
     seq_list = list(seq_list)
     treshold = homology * len(seq_list[0])
     for seq1 in tuple(seq_list):
@@ -50,39 +44,7 @@ def remove_equalent_seq(seq_list, homology=0.95):
     return(seq_list)
 
 
-def background_freq(seq):
-    s = ''.join(seq)
-    background = {}
-    mono_nucleotides = itertools.product('ACGT', repeat=1)
-    for i in mono_nucleotides:
-        background[i[0]] = s.count(i[0])
-    sum_of_nuc = sum(background.values())
-    for i in background.keys():
-        background[i] = background[i]/sum_of_nuc# + 0.0000000001
-    return(background)
-
-
-def make_pfm_from_pcm(pcm, pseudocount='1/N'):
-    '''
-    Вычисление частотной матрицы на основе PCM.
-    Для того чтобы избавиться от 0 значений частот используется pseudocount.
-    Pseudocount может быть dict со стандартными значениями {'A':0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25} [1],
-    либо pseudocount может быть str со значением sqroot [2].
-    Подробнее о расчетах смотри:
-    1)Wyeth W.Wasserman and Albin Sandelin
-      APPLIED BIOINFORMATICS FOR THE IDENTIFICATION OF REGULATORY ELEMENTS
-      doi:10.1038/nrg1315
-
-    2)Victor G Levitsky
-      Effective transcription factor binding site prediction using a
-      combination of optimization, a genetic algorithm and discriminant
-      analysis to capture distant interactions
-      doi:10.1186/1471-2105-8-481
-
-    В любых других условиях функция ничего не возвращает
-
-    '''
-
+def make_pfm_from_pcm(pcm):
     number_of_sites = [0] * len(pcm['A'])
     for key in pcm.keys():
         for i in range(len(pcm[key])):
@@ -93,56 +55,22 @@ def make_pfm_from_pcm(pcm, pseudocount='1/N'):
     for i in mono_nucleotides:
         pfm[i[0]] = []
 
-    if pseudocount == '1/N':
-        first_key = list(pcm.keys())[0]
-        nuc_pseudo = 1/len(pcm.keys())
-        for i in range(len(pcm[first_key])):
-            for nuc in pcm.keys():
-                pfm[nuc].append((pcm[nuc][i] + nuc_pseudo) / (number_of_sites[i] + 1))
-        return(pfm)
-
-    elif pseudocount == 'sqroot':
-        total_sq_root = int()
-        for i in pcm.keys():
-            total_sq_root += pcm[i][0]
-        total_sq_root = math.sqrt(total_sq_root)
-        sq_root = total_sq_root/len(pcm.keys())
-
-        first_key = list(pcm.keys())[0]
-        for i in range(len(pcm[first_key])):
-            for nuc in pcm.keys():
-                pfm[nuc].append((pcm[nuc][i] + sq_root) / (number_of_sites[i] + total_sq_root))
+    first_key = list(pcm.keys())[0]
+    nuc_pseudo = 1/len(pcm.keys())
+    for i in range(len(pcm[first_key])):
+        for nuc in pcm.keys():
+            pfm[nuc].append((pcm[nuc][i] + nuc_pseudo) / (number_of_sites[i] + 1))
 
     return(pfm)
 
 
-def make_pwm_from_pcm(pcm, background, pseudocount='1/N'):
-    '''
-    Функиця, которая считает PWM (position weight matrix) на основе PCM (position count matrix)
-    с преобразованием log-odds (добавить новые)
-
-    Ref:
-    1)Wyeth W.Wasserman and Albin Sandelin
-      APPLIED BIOINFORMATICS FOR THE IDENTIFICATION OF REGULATORY ELEMENTS
-      doi:10.1038/nrg1315
-
-    2)Victor G Levitsky
-      Effective transcription factor binding site prediction using a
-      combination of optimization, a genetic algorithm and discriminant
-      analysis to capture distant interactions
-      doi:10.1186/1471-2105-8-481
-
-    3)Oliver D. King and Frederick P. Roth
-      A non-parametric model for transcription factor binding sites
-      doi: 10.1093/nar/gng117
-
-    '''
+def make_pwm_from_pcm(pcm, background):
     pwm = {}
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
         pwm[i[0]] = []
 
-    pfm = make_pfm_from_pcm(pcm, pseudocount)
+    pfm = make_pfm_from_pcm(pcm)
     first_key = list(pcm.keys())[0]
     for i in range(len(pfm[first_key])):
         for j in pfm.keys():
@@ -151,11 +79,6 @@ def make_pwm_from_pcm(pcm, background, pseudocount='1/N'):
 
 
 def make_pcm(motifs):
-    '''
-    input - список мотивов одинаковой длины
-    output -  PCM
-    Создает PCM на основе списка мотивов
-    '''
     matrix = {}
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
@@ -199,7 +122,7 @@ def write_pfm(output, tag, pfm):
     with open(output + '/' + tag + '.pfm', 'w') as file:
         file.write('>{0}\n'.format(tag))
         for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
-            file.write('{0:.8f}\t{1:.8f}\t{2:.8f}\t{3:.8f}\n'.format(i[0], i[1], i[2], i[3]))
+            file.write('{0:.9f}\t{1:.9f}\t{2:.9f}\t{3:.9f}\n'.format(i[0], i[1], i[2], i[3]))
 
 
 def parse_args():
@@ -229,10 +152,8 @@ def main():
     meme_flag = args.meme
 
     seq = read_sites(fasta_path)
-    #seq = remove_equalent_seq(seq_list=seq, homology=0.95)
     seq = list(set(seq))
     seq = check_legth_of_sites(seq)
-    #background = background_freq(seq)
     background = {'A': 0.25,
                  'C': 0.25,
                  'G': 0.25,
