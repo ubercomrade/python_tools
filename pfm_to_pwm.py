@@ -20,7 +20,7 @@ import sys
 import math
 
 
-def read_homer(path):
+def read_pfm(path):
     with open(path, 'r') as file:
         header = file.readline()
         pfm = {'A': [], 'C': [], 'G': [], 'T': []}
@@ -32,21 +32,15 @@ def read_homer(path):
     return(pfm, header)
 
 
-def make_pcm_from_homer(pfm_homer):
-    '''
-    input - PFM (HOMER)
-    output -  PCM
-    Создает PCM на основе PFM
-    '''
+def make_pcm_from_pfm(pfm):
     matrix = {}
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
         matrix[i[0]] = []
-
     pseudo_count = 10**9
-    for key in pfm_homer.keys():
-        for i in pfm_homer[key]:
-            matrix[key].append(int(i * pseudo_count))
+    for key in pfm.keys():
+        for i in pfm[key]:
+            matrix[key].append(round(i * pseudo_count))
     return(matrix)
 
 
@@ -55,12 +49,10 @@ def make_pfm_from_pcm(pcm):
     for key in pcm.keys():
         for i in range(len(pcm[key])):
             number_of_sites[i] += pcm[key][i]
-
     pfm = dict()
     mono_nucleotides = itertools.product('ACGT', repeat=1)
     for i in mono_nucleotides:
         pfm[i[0]] = []
-
     first_key = list(pcm.keys())[0]
     nuc_pseudo = 1/len(pcm.keys())
     for i in range(len(pcm[first_key])):
@@ -79,19 +71,7 @@ def make_pwm_from_pcm(pcm, background):
     first_key = list(pcm.keys())[0]
     for i in range(len(pfm[first_key])):
         for j in pfm.keys():
-            pwm[j].append(math.log2(pfm[j][i] / background[j]))
-    return(pwm)
-
-
-def make_pwm_from_homer(pfm, background={'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}):
-    pwm = {}
-    mono_nucleotides = itertools.product('ACGT', repeat=1)
-    for i in mono_nucleotides:
-        pwm[i[0]] = []
-    first_key = list(pfm.keys())[0]
-    for i in range(len(pfm[first_key])):
-        for j in pfm.keys():
-            pwm[j].append(math.log2(pfm[j][i] / background[j]))
+            pwm[j].append(math.log10(pfm[j][i] / background[j]))
     return(pwm)
 
 
@@ -133,11 +113,10 @@ def main():
     input_homer = args.input
     output_pwm = args.output
 
-    pfm, header = read_homer(input_homer)
-    pcm = make_pcm_from_homer(pfm_homer=pfm)
+    pfm, header = read_pfm(input_homer)
+    pcm = make_pcm_from_pfm(pfm)
     background = {'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25}
     pwm = make_pwm_from_pcm(pcm, background)
-
     with open(output_pwm, 'w') as file:
         file.write(header)
         for i in zip(pwm['A'], pwm['C'], pwm['G'], pwm['T']):
