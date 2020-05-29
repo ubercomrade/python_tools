@@ -31,6 +31,7 @@ def read_fasta(path):
         for line in file:
             if not line.startswith('>'):
                 line = line.strip().upper()
+                #if not 'N' in line:
                 append(line)
                 append(complement(line))
     file.close()
@@ -106,33 +107,33 @@ def max_score(pwm):
 
 
 # ALL
-# def calculate_scores(peaks, pwm, length_of_site):
-#     sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
-#     scores = []
-#     append = scores.append
-#     for site in sites:
-#         if check_nucleotides(site):
-#             append(score(site, pwm))
-#         else:
-#             continue
-#     return(scores)
+def calculate_scores(peaks, pwm, length_of_site):
+    sites = (peak[i:length_of_site + i] for peak in peaks for i in range(len(peak) - length_of_site + 1))
+    scores = []
+    append = scores.append
+    for site in sites:
+        if check_nucleotides(site):
+            append(score(site, pwm))
+        else:
+            continue
+    return(scores)
 
 
 # THREHOLD
-def calculate_scores(peaks, pwm, length_of_site, threshold):
-    scores = []
-    append = scores.append
-    for peak in peaks:
-        for i in range(len(peak) - length_of_site + 1):
-            site = peak[i:length_of_site + i]
-            if 'N' in site:
-                continue
-            s = score(site, pwm)
-            if s > threshold:
-                append(s)
-            else:
-                continue
-    return(scores)
+# def calculate_scores(peaks, pwm, length_of_site, threshold):
+#     scores = []
+#     append = scores.append
+#     for peak in peaks:
+#         for i in range(len(peak) - length_of_site + 1):
+#             site = peak[i:length_of_site + i]
+#             if 'N' in site:
+#                 continue
+#             s = score(site, pwm)
+#             if s > threshold:
+#                 append(s)
+#             else:
+#                 continue
+#     return(scores)
 
 
 # NUMBER_OF_SITES
@@ -172,32 +173,47 @@ def complement(seq):
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
 
+# def get_threshold(scores, path_out, number_of_sites):
+#     scores.sort(reverse=False) # sorted score from small to big
+#     counts = Counter(scores)
+
+#     found_sites = counts[list(counts.keys())[::-1][0]]
+#     for index, k in enumerate(list(counts.keys())[::-1][1:]):
+#         found_sites = counts[k] + found_sites
+#         counts[k] = found_sites
+
+#     fprs_table = []
+#     append = fprs_table.append
+#     for index, k in enumerate(list(counts.keys())[::-1]):
+#         append(( k, counts[k] / number_of_sites ))
+
+
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for (score, fpr) in fprs_table:
+#             if fpr > 0.00051:
+#                 break
+#             else:
+#                 file.write("{0}\t{1}\n".format(score, fpr))
+#     file.close()
+#     return(0)
+
+
 def get_threshold(scores, path_out, number_of_sites):
-    scores.sort(reverse=False) # sorted score from small to big
-    #scores = [round(i, 3) for i in scores]
-    counts = Counter(scores)
-
-    found_sites = counts[list(counts.keys())[::-1][0]]
-    for index, k in enumerate(list(counts.keys())[::-1][1:]):
-        found_sites = counts[k] + found_sites
-        counts[k] = found_sites
-
-    fprs_table = []
-    append = fprs_table.append
-    for index, k in enumerate(list(counts.keys())[::-1]):
-        append(( k, counts[k] / number_of_sites ))
-
-
+    scores.sort(reverse=True) # big -> small
     with open(path_out, "w") as file:
-        file.write("Scores\tFPR\n")
-        for (score, fpr) in fprs_table:
-            if fpr > 0.00051:
-                break
+        last_score = scores[0]
+        for count, score in enumerate(scores[1:], 1):
+            if score == last_score:
+                continue
+            elif score != last_score and count/number_of_sites < 0.00051:
+                file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
+                last_score = score 
             else:
-                file.write("{0}\t{1}\n".format(score, fpr))
+                break
     file.close()
     return(0)
-
+    
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -227,9 +243,11 @@ def main():
     peaks = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
     length_of_site = len(pwm['A'])
-    number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
-    threshold = to_score(.7, pwm)
-    scores = calculate_scores(peaks, pwm, length_of_site, threshold)
+    #number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
+    #threshold = to_score(.7, pwm)
+    scores = calculate_scores(peaks, pwm, length_of_site)#, threshold)
+    number_of_sites = len(scores) 
+    print(number_of_sites)
     get_threshold(scores, path_out, number_of_sites)
 
 

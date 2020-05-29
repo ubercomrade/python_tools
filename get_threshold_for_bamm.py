@@ -250,29 +250,45 @@ def complement(seq):
     return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
 
     
+# def get_threshold(scores, path_out, number_of_sites):
+#     scores.sort(reverse=False) # sorted score from small to big
+#     #scores = [round(i, 3) for i in scores]
+#     counts = Counter(scores)
+
+#     found_sites = counts[list(counts.keys())[::-1][0]]
+#     for index, k in enumerate(list(counts.keys())[::-1][1:]):
+#         found_sites = counts[k] + found_sites
+#         counts[k] = found_sites
+
+#     fprs_table = []
+#     append = fprs_table.append
+#     for index, k in enumerate(list(counts.keys())[::-1]):
+#         append(( k, counts[k] / number_of_sites ))
+
+
+#     with open(path_out, "w") as file:
+#         file.write("Scores\tFPR\n")
+#         for (score, fpr) in fprs_table:
+#             if fpr > 0.00051:
+#                 break
+#             else:
+#                 file.write("{0}\t{1}\n".format(score, fpr))
+#     file.close()
+#     return(0)
+
+
 def get_threshold(scores, path_out, number_of_sites):
-    scores.sort(reverse=False) # sorted score from small to big
-    #scores = [round(i, 3) for i in scores]
-    counts = Counter(scores)
-
-    found_sites = counts[list(counts.keys())[::-1][0]]
-    for index, k in enumerate(list(counts.keys())[::-1][1:]):
-        found_sites = counts[k] + found_sites
-        counts[k] = found_sites
-
-    fprs_table = []
-    append = fprs_table.append
-    for index, k in enumerate(list(counts.keys())[::-1]):
-        append(( k, counts[k] / number_of_sites ))
-
-
+    scores.sort(reverse=True) # big -> small
     with open(path_out, "w") as file:
-        file.write("Scores\tFPR\n")
-        for (score, fpr) in fprs_table:
-            if fpr > 0.00051:
-                break
+        last_score = scores[0]
+        for count, score in enumerate(scores[1:], 1):
+            if score == last_score:
+                continue
+            elif score != last_score and count/number_of_sites < 0.00051:
+                file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
+                last_score = score 
             else:
-                file.write("{0}\t{1}\n".format(score, fpr))
+                break
     file.close()
     return(0)
 
