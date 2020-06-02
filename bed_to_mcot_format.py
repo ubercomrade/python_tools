@@ -129,7 +129,7 @@ def read_fasta(path):
 #     return(0)
 
 
-def write_mcot_format(path, bed, fasta, pwm, threshold):
+def write_mcot_format(path, bed, fasta, threshold):
     with open(path, 'w') as file:
         for index, line in enumerate(fasta):
             file.write('>peaks_{0}::{1}:{2}-{3}({4})\tSEQ {5}\tTHR {6}\n'.format(index, 
@@ -171,14 +171,10 @@ def main():
     fasta = args.fasta
     output = args.output
     threshold = args.threshold
-#    pwm_path = args.pwm
-    
- #   pwm = read_pwm(pwm_path)
     fasta = read_fasta(fasta)
     bed, min_score = read_bed(bed)
     if threshold is None:
         threshold = min_score
-    #write_mcot_format(output, bed, fasta, pwm, threshold) 
     write_mcot_format(output, bed, fasta, threshold) 
     return(0)
 

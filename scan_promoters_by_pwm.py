@@ -80,14 +80,16 @@ def scan_seq_by_pwm(seq, pwm, threshold):
     results = []
     length_pwm = len(pwm['A'])
     # first strand
+    counter = int()
     for i in range(len(seq) - length_pwm + 1):
         site = seq[i:length_pwm + i]
         if 'N' in site:
             continue
         s = score(site, pwm)
+        counter += 1
         if s >= threshold:
             results.append(site)
-    return(results)
+    return(results, counter)
 
 
 def write_sites(path, data):
@@ -121,10 +123,13 @@ def main():
     fasta = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
     results = []
+    number_of_sites = 0
     for record in fasta:
-      results += scan_seq_by_pwm(record, pwm, threshold)
+      add_results, add_counter = scan_seq_by_pwm(record, pwm, threshold)
+      results += add_results
+      number_of_sites += add_counter
     length_of_site = len(pwm['A'])
-    number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in fasta])
+    #number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in fasta])
     print(len(results), number_of_sites, len(results) / number_of_sites)
     write_sites(results_path, results)
 
