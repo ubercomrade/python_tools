@@ -61,7 +61,7 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
         'id={}'.format(path_to_fasta),
         'b={}'.format('From file'),
         'd={}'.format(path_to_fasta),
-       'f={}'.format(0.0006),
+       'f={}'.format(0.001),
        'outdir={}'.format(tmp_dir)]
     # args = [path_to_java, '-Xmx8096m', '-Xms1024m', '-jar', path_to_inmode, 'scan',
     #    'i={}'.format(path_to_model),
