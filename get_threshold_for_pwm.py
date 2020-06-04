@@ -199,18 +199,19 @@ def complement(seq):
 #     return(0)
 
 
-def get_threshold(scores, path_out, number_of_sites):
+def get_threshold(scores, number_of_sites, path_out):
     scores.sort(reverse=True) # big -> small
     with open(path_out, "w") as file:
         last_score = scores[0]
         for count, score in enumerate(scores[1:], 1):
             if score == last_score:
                 continue
-            elif score != last_score and count/number_of_sites < 0.00051:
+            elif count/number_of_sites > 0.0005:
+                file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
+                break
+            elif score != last_score:
                 file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
                 last_score = score 
-            else:
-                break
     file.close()
     return(0)
     
