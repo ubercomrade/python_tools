@@ -322,7 +322,7 @@ def main():
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
     threshold = to_score(0.7, bamm, order, length_of_site)
     scores = calculate_scores(peaks, bamm, order, length_of_site, threshold)
-    get_threshold(scores, path_out, number_of_sites)
+    get_threshold(scores, number_of_sites, path_out)
 
 if __name__ == '__main__':
     main()
