@@ -249,9 +249,7 @@ def main():
     scores = calculate_scores(peaks, pwm, length_of_site)#, threshold)
     number_of_sites = len(scores) 
     print(number_of_sites)
-    get_threshold(scores, number_of_sites, path_out
+    get_threshold(scores, number_of_sites, path_out)
 
-
-    
 if __name__ == '__main__':
     main()
