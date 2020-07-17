@@ -1,5 +1,7 @@
 import argparse
 import sys
+import functools
+from multiprocessing import Pool
 
 
 def read_fasta(path):
