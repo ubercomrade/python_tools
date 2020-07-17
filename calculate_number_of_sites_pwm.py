@@ -65,7 +65,7 @@ def parse_args():
                         help='path to PWM file')
     parser.add_argument('threshold', action='store', type=float,
                         help='threshold for PWM')
-    parser.add_argument('-t', '-threads', action='store', type=float, dest='threads',
+    parser.add_argument('-t', '-threads', action='store', type=int, dest='threads',
                         default=2, help='Threads for paralell calculating')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
