@@ -2,6 +2,7 @@ import random
 import argparse
 import sys
 
+
 def read_fasta(path_in, path_out):
     fasta = list()
     append = fasta.append
@@ -13,8 +14,7 @@ def read_fasta(path_in, path_out):
             line = clear_n(line)
             if line != '':
                 fasta_out.write('>{0}\n'.format(int(index / 2)))
-                fasta_out.write(line + '\n')
-                
+                fasta_out.write(line + '\n')       
     fasta_in.close()
     fasta_out.close()
     pass
@@ -50,23 +50,20 @@ def clear_n(string):
     
 def parse_args():
     parser = argparse.ArgumentParser()
-
     parser.add_argument('fasta_in', action='store', help='path to fasta in')
     parser.add_argument('fasta_out', action='store', help='path to fasta write results')
-
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
-
     return(parser.parse_args())
     
 
 def main():
     args = parse_args()
-
     fasta_in = args.fasta_in
     fasta_out = args.fasta_out
     read_fasta(fasta_in, fasta_out)
+    return(0)
 
 
 if __name__ == '__main__':

@@ -41,9 +41,8 @@ def complement(seq):
     return(seq)
 
 
-def scan_seq_by_pwm(seq, pwm, threshold):
+def scan_seq_by_pwm(seq, pwm, length_pwm, threshold):
     upper_threshold = 0
-    length_pwm = len(pwm['A'])
     counter = 0
     for i in range(len(seq) - length_pwm + 1):
         site = seq[i:length_pwm + i]
@@ -64,6 +63,8 @@ def parse_args():
                         help='path to PWM file')
     parser.add_argument('threshold', action='store', type=float,
                         help='threshold for PWM')
+    parser.add_argument('-t', '-threads', action='store', type=float, dest='threads',
+                        default=2, help='Threads for paralell calculating')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -75,15 +76,22 @@ def main():
     pwm_path = args.pwm
     fasta_path = args.fasta
     threshold = args.threshold
+    threads = args.threads
 
     fasta = read_fasta(fasta_path)
     pwm = read_pwm(pwm_path)
+    length_pwm = len(pwm['A'])
     total_upper_threshold = 0
     number_of_sites = 0
-    for record in fasta:
-        upper_threshold, add_counter = scan_seq_by_pwm(record, pwm, threshold)
-        total_upper_threshold += upper_threshold
-        number_of_sites += add_counter
+    # for record in fasta:
+    #     upper_threshold, add_counter = scan_seq_by_pwm(record, pwm, threshold)
+    #     total_upper_threshold += upper_threshold
+    #     number_of_sites += add_counter
+    with Pool(threads) as p:
+        t = functools.partial(scan_seq_by_pwm, pwm=pwm, length_pwm=length_pwm, threshold=threshold)
+        results = p.map(t, fasta)
+    total_upper_threshold = sum([i[0] for i in results])
+    number_of_sites = sum([i[1] for i in results])
     print(total_upper_threshold, number_of_sites, total_upper_threshold / number_of_sites)
 
 if __name__ == '__main__':
