@@ -1,38 +1,14 @@
-import subprocess
 import csv
 import itertools
 import os
 import sys
-import argparse
-import random
 import math
+from math import log
+import re
+import random
+import subprocess
 import shutil
-
-
-def read_log_odds_zoops(path):
-    container = []
-    append = container.append
-    with open(path) as file:
-        file.readline()
-        for line in file:
-            site = line.split()[5]
-            if not 'N' in site:
-                append(site)
-            else:
-                continue
-    return(container)
-
-
-def read_sites(path):
-    container = []
-    append = container.append
-    with open(path) as file:
-        for line in file:
-            if not line.startswith('>'):
-                append(line.strip().upper())
-            else:
-                continue
-    return(container)
+import argparse
 
 
 def parse_bamm_and_bg_from_file(bamm_file, bg_file):
@@ -100,7 +76,7 @@ def make_k_mers(order):
 def make_log_odds_bamm(bamm, bg):
     log_odds_bamm = dict()
     for order in bamm.keys():
-        log_odds_bamm[order] = [list(map(lambda x: log(x[0] / x[1], 2), zip(bamm_col, bg[order]))) for bamm_col in bamm[order]]
+        log_odds_bamm[order] = [list(map(lambda x: math.log(x[0] / x[1], 2), zip(bamm_col, bg[order]))) for bamm_col in bamm[order]]
     return(log_odds_bamm)
 
 
@@ -125,74 +101,138 @@ def read_bamm(bamm_path, bg_path):
     return(container, order)
 
 
-def score(site, bamm, order, length_of_site):
-    score = float()
+def write_fasta(peaks, path):
+    with open(path, 'w') as file:
+        for index, p in enumerate(peaks):
+            file.write('>{}\n'.format(index))
+            file.write(p + '\n')
+    return(0)
+
+
+def read_peaks(path):
+    container = []
+    append = container.append
+    with open(path) as file:
+        for line in file:
+            if not line.startswith('>'):
+                append(line.strip().upper())
+    return(container)
+
+
+def complement(seq):
+    return(seq.replace('A', 't').replace('T', 'a').replace('C', 'g').replace('G', 'c').upper()[::-1])
+
+
+def score_bamm(site, bamm, order, length_of_site):
+    score = 0
     for index in range(order):
         score += bamm[site[0:index + 1]][index]
     for index in range(length_of_site - order):
         score += bamm[site[index:index+order + 1]][index + order]
-    return(score, site)
+    return(score)
 
 
-def calculate_scores(sites, bamm, order, length_of_site):
-    scores = [score(site, bamm, oreder, length_of_site) for site in sites]
-    return(scores)
+def false_scores_bamm(peaks, bamm, order, length_of_site):
+    false_scores = []
+    append = false_scores.append
+    for peak in peaks:
+        complement_peak = complement(peak)
+        full_peak = peak + 'N' * length_of_site + complement_peak
+        n = len(full_peak) - length_of_site + 1
+        for i in range(n):
+            site = full_peak[i:length_of_site + i]
+            if 'N' in site:
+                continue
+            score = score_bamm(site, bamm, order, length_of_site)
+            false_scores.append(score)
+    return(false_scores)
 
 
-def create_bamm_model(directory, order):
+def true_scores_bamm(peaks, bamm, order, length_of_site):
+    true_scores = []
+    for peak in peaks:
+        complement_peak = complement(peak)
+        best = -1000000
+        full_peak = peak + 'N' * length_of_site + complement_peak
+        n = len(full_peak) - length_of_site + 1
+        for i in range(n):
+            site = full_peak[i:length_of_site + i]
+            if 'N' in site:
+                continue
+            score = score_bamm(site, bamm, order, length_of_site)
+            if score >= best:
+                best = score
+        true_scores.append(best)
+    return(true_scores)
+
+
+def create_bamm_model(directory, order, meme):
     fasta_path = directory + '/train.fasta'
-    sites_path = directory + '/sites.txt'
-    args = ['BaMMmotif', directory, fasta_path, '--bindingSiteFile', sites_path, '--EM', '--order', order, '--Order', order]
-    subprocess.call(args)
+    args = ['BaMMmotif', directory, fasta_path, '--PWMFile', meme, '--EM', '--order', str(order), '--Order', str(order)]
+    r = subprocess.run(args, capture_output=True)
     bamm_path = directory + '/train_motif_1.ihbcp'
     bg_path = directory + '/train.hbcp'
-    bamm = read_bamm(bamm_path, bg_path)
-    return(bamm)
+    bamm, order = read_bamm(bamm_path, bg_path)
+    return(bamm, order)
 
 
-def create_train_fasta_and_sites(sites, directory):
-    with open(directory + '/train.fasta') as file:
-        for index, site in enumerate(sites):
-            file.write('>{0}\n{1}\n'.format(index, site))
-    with open(directory + '/sites.txt') as file:
-        for site in sites:
-            file.write('{}\n'.format(site))
-    return(0)
+# def creat_background(peaks, length_of_site, counter):
+#     peaks = ''.join(peaks)
+#     n = int((counter // ((len(peaks) - length_of_site + 1) * 2)) + 1)
+#     print((counter // ((len(peaks) - length_of_site + 1) * 2)))
+#     print(n)
+#     shuffled_peaks = []
+#     for i in range(n):
+#         shuffled_peak = ''.join(random.sample(peaks, len(peaks)))
+#         shuffled_peaks.append(shuffled_peak)
+#     print((len(''.join(shuffled_peaks)) - length_of_site + 1) * 2)
+#     return(shuffled_peaks)
 
 
-def bootstrap_bamm(sites, size_of_random_sample, order, directory):
+def creat_background(peaks, length_of_site, counter):
+    shuffled_peaks = []
+    number_of_sites = 0
+    while counter > number_of_sites:
+        peak = random.choice(peaks)
+        shuffled_peak = ''.join(random.sample(peak, len(peak)))
+        shuffled_peaks.append(shuffled_peak)
+        number_of_sites += (len(''.join(shuffled_peak)) - length_of_site + 1) * 2
+    return(shuffled_peaks)
+
+
+def bootstrap_bamm(peaks, length_of_site, counter, order, meme, tmp_dir):
     true_scores = []
     false_scores = []
-    number_of_sites = len(sites)
-    len_of_site = len(sites[0])
-
+    number_of_peaks = len(peaks)
     for i in range(10):
-        train_sample = random.choices(sites, k=round(0.9 * number_of_sites))
-        test_sample = [site for site in sites  if not site in train_sample]
-        random_sample = [''.join(random.sample(list(random.choice(test_sample)), len_of_site)) for i in range(len(test_sample) * size_of_random_sample)]
-        create_train_fasta_and_sites(sites[index_train], directory)
-        bamm = create_bamm_model(directory)
-        for true_score in calculate_scores(test_sample, bamm, order, length_of_site):
+        train_peaks = random.choices(peaks, k=round(0.9 * number_of_peaks))
+        test_peaks = [peak for peak in peaks if not peak in train_peaks]
+        shuffled_peaks = creat_background(test_peaks, length_of_site, counter / 10)
+        write_fasta(train_peaks, tmp_dir + '/train.fasta')
+        bamm, order = create_bamm_model(tmp_dir, order, meme)
+        for true_score in true_scores_bamm(test_peaks, bamm, order, length_of_site):
             true_scores.append(true_score)
-        for false_score in calculate_scores(random_sample, bamm, order, length_of_site):
+        for false_score in false_scores_bamm(shuffled_peaks, bamm, order, length_of_site):
             false_scores.append(false_score)
+    table = creat_table_bootstrap(true_scores, false_scores)
+    return(table)
+
+
+def creat_table_bootstrap(true_scores, false_scores):
+    table = []
     true_scores.sort(reverse=True)
     false_scores.sort(reverse=True)
     false_length = len(false_scores)
     true_length = len(true_scores)
-
-    table = []
-    for tpr in [round(i * 0.01, 2) for i in range(0,105, 5)]:
-        print(tpr)
+    for tpr in [round(i * 0.01, 2) for i in range(5,105, 5)]:
         score = true_scores[round(true_length * tpr) - 1]
         actual_tpr = sum([1 if true_score >= score else 0 for true_score in true_scores]) / true_length
         fpr = sum([1 if false_score >= score else 0 for false_score in false_scores]) / false_length
         table.append({'Scores': score, 'TPR': tpr, 'ACTUAL_TPR': actual_tpr, 'FPR': fpr})
-    print(table)
     return(table)
 
 
-def write_table(path, data):
+def write_table_bootstrap(path, data):
     with open(path, 'w') as csvfile:
         fieldnames = data[0].keys()
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter='\t')
@@ -204,36 +244,46 @@ def write_table(path, data):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('output', action='store', help='path to write results')
-    parser.add_argument('input', action='store', help='path to file with sites')
-    parser.add_argument('-s', '--size', action='store', type=int, dest='size',
-                            default= 1000, required=False, help='randome_sample times more than test_sample')
-    parser.add_argument('-o', '--order', action='store', type=int, dest='order',
-                            default= 2, required=False, help='order of BaMM model')
-    parser.add_argument('-t', '--tmp', action='store', dest='tmp_dir',
-                            default= './tmp', required=False, help='dir for writing tmp files')
+    parser.add_argument('fasta', action='store', help='path to file with peaks')
+    parser.add_argument('results', action='store', help='path to write table with ROC')
+    parser.add_argument('length', action='store', type=int, help='length of TFBS')
+    parser.add_argument('meme', action='store', help='path to PWM in MEME format')
+    parser.add_argument('-t', '--tmp', action='store', type=str, dest='tmp',
+                        required=False, default='./bamm.tmp', help='tmp directory')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
     return(parser.parse_args())
-
-
+    
+    
 def main():
     args = parse_args()
-    path = args.input
-    out = args.output
-    size_of_random_sample = args.size
-    order = args.order
-    tmp_dir = args.tmp_dir
+    peaks_path = args.fasta
+    results_path = args.results
+    length_of_site = args.length
+    meme = args.meme
+    tmp_dir = args.tmp
     if not os.path.exists(tmp_dir):
         os.mkdir(tmp_dir)
-    sites = read_log_odds_zoops(path)
-    table = bootstrap_bamm(sites, size_of_random_sample, order, tmp_dir)
-    write_table(out, table)
+        
+    peaks = read_peaks(peaks_path)
+    counter = 5000000
+    order = 2
+    table = bootstrap_bamm(peaks, length_of_site, counter, order, meme, tmp_dir)
+    write_table_bootstrap(results_path, table)
     shutil.rmtree(tmp_dir)
     return(0)
 
 
-if __name__=='__main__':
-    main()
+def bootstrap_for_bamm(peaks_path, results_path, length_of_site, meme, tmp_dir, counter = 5000000, order=2):
+    if not os.path.exists(tmp_dir):
+        os.mkdir(tmp_dir)
+    peaks = read_peaks(peaks_path)
+    table = bootstrap_bamm(peaks, length_of_site, counter, order, meme, tmp_dir)
+    write_table_bootstrap(results_path, table)
+    shutil.rmtree(tmp_dir)
+    return(0)
 
+
+if __name__=="__main__":
+    main()

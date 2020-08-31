@@ -56,12 +56,12 @@ def complement(seq):
 def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java, tmp_dir):
     container = list()
     append = container.append
-    args = [path_to_java, '-Xmx8096m', '-Xms1024m', '--add-modules', 'java.xml.bind', '-jar', path_to_inmode, 'scan',
+    args = [path_to_java, '-Xmx16G', '-Xms1024m', '-jar', path_to_inmode, 'scan',
         'i={}'.format(path_to_model),
         'id={}'.format(path_to_fasta),
         'b={}'.format('From file'),
         'd={}'.format(path_to_fasta),
-       'f={}'.format(0.001),
+       'f={}'.format(0.01),
        'outdir={}'.format(tmp_dir)]
     # args = [path_to_java, '-Xmx8096m', '-Xms1024m', '-jar', path_to_inmode, 'scan',
     #    'i={}'.format(path_to_model),
@@ -72,7 +72,7 @@ def calculate_scores(path_to_inmode, path_to_model, path_to_fasta, path_to_java,
     #   'outdir={}'.format(tmp_dir)]
     r = subprocess.call(args)
     #with open(os.getcwd() + '/tmp' + "/Motif_hits_from_SequenceScan({:.1E}).BED".format(0.0006)) as file:
-    with open(os.getcwd() + '/tmp' + "/Motif_hits_from_SequenceScan(0.001).BED") as file:
+    with open(os.getcwd() + '/tmp' + "/Motif_hits_from_SequenceScan(0.01).BED") as file:
         for line in file:
             append(math.log10(float(line.strip().split()[4])))
     return(container)
@@ -109,7 +109,7 @@ def get_threshold(scores, number_of_sites, path_out):
         for count, score in enumerate(scores[1:], 1):
             if score == last_score:
                 continue
-            elif count/number_of_sites > 0.0005:
+            elif count/number_of_sites > 0.01:
                 file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
                 break
             elif score != last_score:

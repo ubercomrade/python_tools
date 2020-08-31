@@ -284,7 +284,7 @@ def get_threshold(scores, number_of_sites, path_out):
         for count, score in enumerate(scores[1:], 1):
             if score == last_score:
                 continue
-            elif count/number_of_sites > 0.0005:
+            elif count/number_of_sites > 0.01:
                 file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
                 break
             elif score != last_score:
@@ -320,7 +320,7 @@ def main():
     bamm, order = prepare_bamm(bamm_path, bg_path)
     length_of_site = len(bamm['A'])
     number_of_sites = sum([len(range(len(peak) - length_of_site + 1)) for peak in peaks])
-    threshold = to_score(0.7, bamm, order, length_of_site)
+    threshold = to_score(0.3, bamm, order, length_of_site)
     scores = calculate_scores(peaks, bamm, order, length_of_site, threshold)
     get_threshold(scores, number_of_sites, path_out)
 

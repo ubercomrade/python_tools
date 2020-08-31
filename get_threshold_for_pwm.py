@@ -206,7 +206,7 @@ def get_threshold(scores, number_of_sites, path_out):
         for count, score in enumerate(scores[1:], 1):
             if score == last_score:
                 continue
-            elif count/number_of_sites > 0.0005:
+            elif count/number_of_sites > 0.01:
                 file.write("{0}\t{1}\n".format(last_score, count/number_of_sites))
                 break
             elif score != last_score:
