@@ -200,16 +200,26 @@ def creat_background(peaks, length_of_site, counter):
     return(shuffled_peaks)
 
 
-def bootstrap_bamm(peaks, length_of_site, counter, order, meme, tmp_dir):
+def bootstrap_bamm(peaks, length_of_site, counter, order, path_to_chipmunk, path_to_java, cpu_count, tmp_dir):
     true_scores = []
     false_scores = []
     number_of_peaks = len(peaks)
-    for i in range(10):
+    background = {'A':0.25, 'C':0.25, 'G':0.25, 'T':0.25}
+    for i in range(5):
         train_peaks = random.choices(peaks, k=round(0.9 * number_of_peaks))
         test_peaks = [peak for peak in peaks if not peak in train_peaks]
-        shuffled_peaks = creat_background(test_peaks, length_of_site, counter / 10)
+        shuffled_peaks = creat_background(test_peaks, length_of_site, counter / 5)
         write_fasta(train_peaks, tmp_dir + '/train.fasta')
-        bamm, order = create_bamm_model(tmp_dir, order, meme)
+        run_chipmunk(path_to_java, path_to_chipmunk,
+                    tmp_dir + '/train.fasta', tmp_dir + '/chipmunk_results.txt',
+                    length_of_site, length_of_site, cpu_count)
+        sites = parse_chipmunk(tmp_dir + '/chipmunk_results.txt')
+        sites = list(set(sites))
+        nsites = len(sites)
+        pcm = make_pcm(sites)
+        pfm = make_pfm(pcm)
+        write_meme(tmp_dir, "anchor", pfm, background, nsites)
+        bamm, order = create_bamm_model(tmp_dir, order, tmp_dir + '/anchor.meme')
         for true_score in true_scores_bamm(test_peaks, bamm, order, length_of_site):
             true_scores.append(true_score)
         for false_score in false_scores_bamm(shuffled_peaks, bamm, order, length_of_site):
@@ -247,43 +257,130 @@ def parse_args():
     parser.add_argument('fasta', action='store', help='path to file with peaks')
     parser.add_argument('results', action='store', help='path to write table with ROC')
     parser.add_argument('length', action='store', type=int, help='length of TFBS')
-    parser.add_argument('meme', action='store', help='path to PWM in MEME format')
+    parser.add_argument('chipmunk', action='store', help='path to ChIPMunk source')
+    parser.add_argument('-j', '--java', action='store', type=str, dest='java',
+                        required=False, default='java', help='Path to java')
     parser.add_argument('-t', '--tmp', action='store', type=str, dest='tmp',
-                        required=False, default='./bamm.tmp', help='tmp directory')
+                        required=False, default='./pwm.tmp', help='tmp directory')
+    parser.add_argument('-p', '--processes', action='store', type=int, dest='cpu_count',
+                        required=False, default=4, help='Number of processes to use, default: 4')
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
     return(parser.parse_args())
+
+
+def write_meme(output, tag, pfm, background, nsites):
+    with open(output + '/' + tag + '.meme', 'w') as file:
+        file.write('MEME version 4\n\nALPHABET= ACGT\n\nBackground letter frequencies\n')
+        file.write('A {0} C {1} G {2} T {3}\n\n'.format(background['A'], background['C'],
+                                                        background['G'], background['T']))
+        file.write('MOTIF {0}\n'.format(tag))
+        file.write(
+            'letter-probability matrix: alength= 4 w= {0} nsites= {1}\n'.format(len(pfm['A']), nsites))
+        for i in zip(pfm['A'], pfm['C'], pfm['G'], pfm['T']):
+            file.write('{0:.8f}\t{1:.8f}\t{2:.8f}\t{3:.8f}\n'.format(i[0], i[1], i[2], i[3]))
+            
+            
+def run_chipmunk(path_to_java, path_to_chipmunk, fasta_path, path_out, motif_length_start, motif_length_end, cpu_count):
+    args = [path_to_java, '-cp', path_to_chipmunk,
+                   'ru.autosome.ChIPMunk', str(motif_length_start), str(motif_length_end), 'yes', '1.0',
+                   's:{}'.format(fasta_path),
+                  '100', '10', '1', str(cpu_count), 'random']
+    p = subprocess.run(args, shell=False, capture_output=True)
+    out = p.stdout
+    with open(path_out, 'wb') as file:
+        file.write(out)
+    return(0)
     
+    
+def parse_chipmunk(path):
+    with open(path, 'r') as file:
+        container = []
+        for line in file:
+            d = {'name': str(), 'start': int(), 'end': int(),
+                 'seq': str(), 'strand': str()}
+            if line.startswith('WORD|'):
+                line = line[5:].strip()
+                line = line.split()
+                d['name'] = 'peaks_' + str(int(line[0]) - 1)
+                d['start'] = int(line[1])
+                d['end'] = int(line[1]) + len(line[2])
+                d['seq'] = line[2]
+                if line[4] == 'direct':
+                    d['strand'] = '+'
+                else:
+                    d['strand'] = '-'
+                container.append(d)
+            else:
+                continue
+    seqs = [i['seq'] for i in container if not 'N' in i['seq']]
+    return(seqs)
+
+
+def make_pcm(motifs):
+    matrix = {}
+    mono_nucleotides = itertools.product('ACGT', repeat=1)
+    for i in mono_nucleotides:
+        matrix[i[0]] = []
+    len_of_motif = len(motifs[0])
+    for i in matrix.keys():
+        matrix[i] = [0]*len_of_motif
+    for i in range(len_of_motif):
+        for l in motifs:
+            matrix[l[i]][i] += 1
+    return(matrix)
+
+
+def make_pfm(pcm):
+    number_of_sites = [0] * len(pcm['A'])
+    for key in pcm.keys():
+        for i in range(len(pcm[key])):
+            number_of_sites[i] += pcm[key][i]
+    pfm = dict()
+    mono_nucleotides = itertools.product('ACGT', repeat=1)
+    for i in mono_nucleotides:
+        pfm[i[0]] = []
+    first_key = list(pcm.keys())[0]
+    nuc_pseudo = 1/len(pcm.keys())
+    for i in range(len(pcm[first_key])):
+        for nuc in pcm.keys():
+            pfm[nuc].append((pcm[nuc][i] + nuc_pseudo) / (number_of_sites[i] + 1))
+    return(pfm)
+
     
 def main():
     args = parse_args()
     peaks_path = args.fasta
     results_path = args.results
     length_of_site = args.length
-    meme = args.meme
+    path_to_chipmunk = args.chipmunk
+    path_to_java = args.java
     tmp_dir = args.tmp
+    cpu_count = args.cpu_count
     if not os.path.exists(tmp_dir):
         os.mkdir(tmp_dir)
         
     peaks = read_peaks(peaks_path)
     counter = 5000000
     order = 2
-    table = bootstrap_bamm(peaks, length_of_site, counter, order, meme, tmp_dir)
+    table = bootstrap_bamm(peaks, length_of_site, counter, order, path_to_chipmunk, path_to_java, cpu_count, tmp_dir)
     write_table_bootstrap(results_path, table)
     shutil.rmtree(tmp_dir)
     return(0)
 
 
-def bootstrap_for_bamm(peaks_path, results_path, length_of_site, meme, tmp_dir, counter = 5000000, order=2):
+def bootstrap_for_bamm(peaks_path, results_path, length_of_site, 
+                       path_to_chipmunk, path_to_java, cpu_count, 
+                       tmp_dir, counter = 5000000, order=2):
     if not os.path.exists(tmp_dir):
         os.mkdir(tmp_dir)
     peaks = read_peaks(peaks_path)
-    table = bootstrap_bamm(peaks, length_of_site, counter, order, meme, tmp_dir)
+    table = bootstrap_bamm(peaks, length_of_site, counter, order, path_to_chipmunk, path_to_java, cpu_count, tmp_dir)
     write_table_bootstrap(results_path, table)
     shutil.rmtree(tmp_dir)
     return(0)
 
 
 if __name__=="__main__":
-    main()
+   main()
